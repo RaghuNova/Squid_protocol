@@ -147,13 +147,13 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     description:
       'Arena physical challenge and QR reconstruction gate unlock a firmware debugging task across Java, Python, and C. Derives the final tournament breach key.',
     pointsText: 'Scoring:',
-    pointsHighlight: '+200 PTS + Champion Stamped',
+    pointsHighlight: '+200 to -25 PTS',
     footerStatus: 'Single-Use Gate',
     footerStatusColorClass: 'text-signal-green',
     briefing: {
       lore: 'The definitive survival round. Squads compete in physical arena trials to reconstruct their designated QR token, unlocking the final kernel debugging challenge.',
       duration: '25-30 Minutes',
-      scoreStructure: '+200 PTS (Final Breach Key)',
+      scoreStructure: '+200 (1st) down to -25 (9th+)',
       stages: [
         {
           title: 'Stage 1: Arena Physical Activity',
@@ -170,7 +170,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
         {
           title: 'Stage 3: Firmware Kernel Debugging',
           desc: 'Analyze low-level firmware source code across Java, Python, and C to identify the critical logic flaw and extract the final master key.',
-          points: '+200 PTS (One-Time)',
+          points: '+200 to -25 PTS (by Finishing Order)',
           tag: 'Final Key'
         }
       ],
