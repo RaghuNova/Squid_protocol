@@ -70,7 +70,20 @@ export async function resolveEffectiveTeamId(req: Request): Promise<string | nul
  * scored submissions.
  */
 export async function resolveSubmittingTeamId(req: Request): Promise<string | null> {
-  if (!req.user || req.user.role !== UserRole.TEAM) return null;
+  if (!req.user?.userId) return null;
+
+  // The database role is authoritative when an older session has a stale role
+  // claim. This still excludes admins and resolves the team's current linkage.
+  if (req.user.role !== UserRole.TEAM) {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { role: true, teamId: true }
+    });
+    if (currentUser?.role !== UserRole.TEAM || !currentUser.teamId) return null;
+    req.user.role = currentUser.role;
+    req.user.teamId = currentUser.teamId;
+    return currentUser.teamId;
+  }
 
   // Team login issues a signed token containing that team's ID. Use this claim
   // directly so a valid logged-in team is not rejected if its database user

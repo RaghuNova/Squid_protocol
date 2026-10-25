@@ -38,11 +38,11 @@ export async function apiRequest<T = any>(
   });
 
   // A different tab can replace the shared HttpOnly cookie while this tab
-  // still has an older Bearer token. If that stale token is explicitly denied
-  // by an admin-only route, retry once using the current cookie session.
+  // still has an older Bearer token. Retry role-gated requests once using the
+  // current cookie session, then discard the stale local token.
   if (!response.ok && response.status === 403 && token) {
     const denied = await response.clone().json().catch(() => null);
-    if (denied?.error === 'FORBIDDEN') {
+    if (denied?.error === 'FORBIDDEN' || denied?.error === 'TEAM_REQUIRED') {
       localStorage.removeItem('squid_token_backup');
       window.dispatchEvent(new Event('squid-auth-changed'));
       const cookieHeaders = { ...headers };
