@@ -18,6 +18,11 @@ export const LandingPage: React.FC = () => {
 
       {/* Hero Section */}
       <section className="relative flex items-center justify-center overflow-hidden border-b border-border-subtle py-16 sm:py-24" aria-label="Hero">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35"
+          style={{ backgroundImage: `url('/assets/Neon%20Dystopian%20Game%20Arena.png')` }}
+          aria-hidden="true"
+        />
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
           {/* Small Protocol Shape Row */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-surface border border-border-subtle text-text-muted" aria-hidden="true">
