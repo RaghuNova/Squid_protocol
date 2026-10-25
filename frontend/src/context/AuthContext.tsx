@@ -41,6 +41,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshMe();
   }, [refreshMe]);
 
+  useEffect(() => {
+    const handleAuthChange = () => { void refreshMe(); };
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'squid_token_backup') handleAuthChange();
+    };
+
+    window.addEventListener('squid-auth-changed', handleAuthChange);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('squid-auth-changed', handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [refreshMe]);
+
   const loginTeam = async (teamCode: string, pin: string) => {
     localStorage.removeItem('squid_token_backup');
     const res = await apiRequest<{ success: boolean; token: string; team: Team }>('/auth/team/login', {

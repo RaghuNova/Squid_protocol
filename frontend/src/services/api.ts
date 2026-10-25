@@ -31,11 +31,29 @@ export async function apiRequest<T = any>(
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers,
     credentials: 'include', // Include HttpOnly cookies
   });
+
+  // A different tab can replace the shared HttpOnly cookie while this tab
+  // still has an older Bearer token. If that stale token is explicitly denied
+  // by an admin-only route, retry once using the current cookie session.
+  if (!response.ok && response.status === 403 && token) {
+    const denied = await response.clone().json().catch(() => null);
+    if (denied?.error === 'FORBIDDEN') {
+      localStorage.removeItem('squid_token_backup');
+      window.dispatchEvent(new Event('squid-auth-changed'));
+      const cookieHeaders = { ...headers };
+      delete cookieHeaders.Authorization;
+      response = await fetch(url, {
+        ...options,
+        headers: cookieHeaders,
+        credentials: 'include',
+      });
+    }
+  }
 
   const contentType = response.headers.get('content-type');
   let data: any = null;
