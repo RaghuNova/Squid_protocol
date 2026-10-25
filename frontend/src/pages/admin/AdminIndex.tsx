@@ -8,7 +8,10 @@ import { Lock, User, AlertTriangle, ArrowRight, ShieldAlert, Loader2 } from 'luc
 import { Link, useNavigate } from 'react-router-dom';
 
 export const AdminIndex: React.FC = () => {
+<<<<<<< HEAD
   const navigate = useNavigate();
+=======
+>>>>>>> 7475606 (Add migration for RoundControl remainingSeconds and update AdminIndex)
   const { user, loginAdmin, logout, isLoading } = useAuth();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -40,13 +43,13 @@ export const AdminIndex: React.FC = () => {
           <ShieldAlert className="w-12 h-12 text-[#ff004f] mx-auto" />
           <h2 className="font-display font-black text-2xl text-white">ACCESS FORBIDDEN</h2>
           <p className="text-xs font-mono text-gray-400">
-            Currently logged in as a Team operative. To access the System Control Room, log out of your team session.
+            Currently logged in as a Team operative (<span className="text-white font-bold">{user.username}</span>). To access the System Control Room, log out of your team session.
           </p>
           <div className="pt-2 flex flex-col gap-2">
             <button
               onClick={() => logout()}
               type="button"
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#ff004f] hover:bg-[#e00045] text-white font-mono text-xs font-bold transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#ff004f] hover:bg-[#e00045] text-white font-mono text-xs font-bold transition-colors cursor-pointer"
             >
               <span>LOG OUT & SIGN IN AS ADMIN</span>
             </button>
