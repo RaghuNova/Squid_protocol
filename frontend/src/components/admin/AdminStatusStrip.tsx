@@ -44,12 +44,12 @@ export const AdminStatusStrip: React.FC<AdminStatusStripProps> = ({
     <div
       role="region"
       aria-label="Admin telemetry status strip"
-      className={`p-3 sm:p-4 rounded-2xl bg-[#0e1118] border border-gray-800 shadow-xl select-none ${className}`}
+      className={`p-3 sm:p-4 rounded-2xl bg-[#0f1218] border border-[#1e2432] shadow-subtle select-none ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Left: Console Feed Identity */}
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1 p-1 rounded bg-[#12151c] border border-gray-800">
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-[#151922] border border-[#1e2432]">
             <Radio
               className={`w-3.5 h-3.5 ${
                 isLive
