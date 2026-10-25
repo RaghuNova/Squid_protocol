@@ -392,7 +392,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       }
     });
 
-    it('allows administrator to test round1 submission without TEAM_REQUIRED error', async () => {
+    it('rejects administrator round1 submission with TEAM_REQUIRED (scored submissions are team-only)', async () => {
       const qRes = await request(app)
         .get('/api/v1/round1/questions')
         .set('Authorization', `Bearer ${adminToken}`);
@@ -408,8 +408,8 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
             selectedOption: 'A'
           });
 
-        expect(submitRes.status).not.toBe(403);
-        expect(submitRes.body.error).not.toBe('TEAM_REQUIRED');
+        expect(submitRes.status).toBe(403);
+        expect(submitRes.body.error).toBe('TEAM_REQUIRED');
       }
     });
   });
