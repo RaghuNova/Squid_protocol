@@ -41,12 +41,10 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
     if (!tokenCode.trim() || isSubmitting || isCompleted) return;
 
     setIsSubmitting(true);
-    setFeedback(null);
-
     try {
-      const res = await apiRequest('/round3/access/verify', {
+      const res = await apiRequest('/round3/qr/redeem', {
         method: 'POST',
-        body: JSON.stringify({ tokenCode: tokenCode.trim() }),
+        body: JSON.stringify({ code: tokenCode.trim() }),
       });
 
       playSuccess();
@@ -62,18 +60,17 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
   };
 
   if (!isUnlocked) {
-    return (
-      <div className="p-8 text-center bg-[#12151c]/60 rounded-2xl border border-gray-800/80">
+    return (      <div className="p-8 text-center bg-[#12151c]/60 rounded-2xl border border-gray-800/80">
         <Lock className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-        <h4 className="font-display font-bold text-lg text-gray-400">STAGE 2 LOCKED — BROKEN QR RECONSTRUCTION</h4>
+        <h4 className="font-display font-bold text-lg text-gray-400">STAGE 2 LOCKED: BROKEN QR RECONSTRUCTION</h4>
         <p className="text-xs font-mono text-gray-500 mt-1">
-          Complete Stage 1 physical task and receive organizer verification to unlock this protocol.
+          Complete the Stage 1 physical cup transfer and get official verification to unlock this stage.
         </p>
       </div>
     );
   }
 
-  const allAligned = rotations.every(r => r === 0);
+  const allAligned = rotations.every((r) => r === 0);
 
   return (
     <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-6 sm:p-8 space-y-6">
@@ -100,7 +97,7 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
       </div>
 
       <p className="text-sm text-gray-300 font-mono leading-relaxed">
-        Your squad has received shredded cryptographic matrix fragments. Reconstruct the QR quadrants, scan the composite token using your mobile phone camera or scanner, and submit your team's authentic Access ID below.
+        Assemble your team's physical QR fragments, scan the completed QR code using a phone or scanner, and enter the recovered Access ID below.
       </p>
 
       {/* Interactive QR Reconstruction Matrix */}
@@ -132,7 +129,7 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
               onClick={handleAutoAlign}
               className="text-[#00f0ff] hover:underline"
             >
-              [Auto-Reconstruct Matrix]
+              [Auto-Align Preview]
             </button>
             <span className="text-gray-600">•</span>
             <span className={allAligned ? 'text-[#00e676]' : 'text-amber-400'}>
@@ -149,7 +146,7 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
               PHYSICAL QR FRAGMENTS:
             </h4>
             <p className="text-xs font-mono text-gray-300 leading-relaxed">
-              Assemble the 4 physical cards handed to your squad by tournament officials. Scan the completed QR code to retrieve your unique token (Format: <code>SQ-TK-XXXX</code>).
+              Assemble the 4 physical cards given to your team by tournament officials. Scan the completed QR code to find your team's token (Format: <code>SQ-TK-XXXX</code>).
             </p>
           </div>
 
@@ -169,7 +166,7 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
           {!isCompleted && (
             <form onSubmit={handleSubmitToken} className="space-y-3">
               <label className="block font-mono text-xs text-gray-400">
-                ENTER SCANNED ACCESS ID:
+                ENTER ACCESS ID:
               </label>
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <div className="relative flex-1">
@@ -194,10 +191,10 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({
                   }`}
                 >
                   {isSubmitting ? (
-                    'VALIDATING...'
+                    'CHECKING CODE...'
                   ) : (
                     <>
-                      <span>AUTHENTICATE</span>
+                      <span>SUBMIT CODE</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

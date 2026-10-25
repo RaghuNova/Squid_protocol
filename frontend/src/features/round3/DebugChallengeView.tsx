@@ -43,9 +43,9 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
     return (
       <div className="p-8 text-center bg-[#12151c]/60 rounded-2xl border border-gray-800/80">
         <Lock className="w-10 h-10 text-gray-600 mx-auto mb-3" aria-hidden="true" />
-        <h4 className="font-display font-bold text-lg text-gray-400">ROUND 3 LOCKED — THE FINAL BREACH</h4>
+        <h4 className="font-display font-bold text-lg text-gray-400">ROUND 3 LOCKED: THE FINAL BREACH</h4>
         <p className="text-xs font-mono text-gray-500 mt-1">
-          Waiting for tournament organizers to activate Round 3's final debugging challenge.
+          Wait for tournament organizers to unlock the final debugging challenge.
         </p>
       </div>
     );
@@ -253,11 +253,11 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
             }`}
           >
             {isSubmitting ? (
-              'TRANSMITTING OVERRIDE...'
+              'CHECKING KEY...'
             ) : (
               <>
                 <Flame className="w-4 h-4" aria-hidden="true" />
-                <span>BREACH THE SYSTEM</span>
+                <span>SUBMIT FINAL KEY</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </>
             )}

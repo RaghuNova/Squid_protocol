@@ -41,24 +41,24 @@ export const CupTransferView: React.FC<CupTransferViewProps> = ({
         <div className="space-y-4">
           <h4 className="font-mono text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
             <Users className="w-4 h-4 text-[#ff2e7e]" />
-            MISSION PROTOCOL & INSTRUCTIONS:
+            CHALLENGE INSTRUCTIONS:
           </h4>
           <ul className="space-y-2.5 text-xs sm:text-sm font-mono text-gray-300">
             <li className="flex items-start gap-2">
               <span className="text-[#ff004f] font-bold">1.</span>
-              <span>Your team must transport <strong>5 lightweight paper cups</strong> from Station Alpha to Station Beta.</span>
+              <span>Your team must transport <strong>5 paper cups</strong> from Station 1 to Station 2.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#ff004f] font-bold">2.</span>
-              <span>Operatives must hold the attached strings only. <strong>Zero direct hand contact with cups allowed.</strong></span>
+              <span>Hold the attached strings only. <strong>Do not touch the cups with your hands.</strong></span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#ff004f] font-bold">3.</span>
-              <span>If a cup drops or tips over, your squad must reset that cup to Station Alpha.</span>
+              <span>If a cup drops or falls, return it to Station 1 and try again.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#ff004f] font-bold">4.</span>
-              <span>Once all 5 cups are successfully staged, summon an authorized Official/Volunteer to sign off on your terminal.</span>
+              <span>Once all 5 cups are across, ask an event official or volunteer to verify your completion.</span>
             </li>
           </ul>
         </div>
@@ -87,10 +87,10 @@ export const CupTransferView: React.FC<CupTransferViewProps> = ({
               <div className="space-y-2 pt-2">
                 <div className="text-amber-400 font-display font-semibold text-base flex items-center gap-2">
                   <Clock className="w-4 h-4 animate-spin" />
-                  <span>Task In Progress (Physical Realm)</span>
+                  <span>Task In Progress (In-Person Trial)</span>
                 </div>
                 <p className="text-xs font-mono text-gray-400 leading-relaxed">
-                  Perform the task offline in the event hall. When completed, ask an authorized tournament volunteer or admin to verify your squad.
+                  Complete the task at the venue station. When finished, ask an event official or volunteer to verify your team.
                 </p>
               </div>
             )}
@@ -98,7 +98,7 @@ export const CupTransferView: React.FC<CupTransferViewProps> = ({
 
           <div className="mt-4 pt-3 border-t border-gray-800 text-[11px] font-mono text-gray-500 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-            <span>Teams cannot self-verify. Stage 2 unlocks automatically once signed off.</span>
+            <span>An official or volunteer must verify completion before Stage 2 unlocks.</span>
           </div>
         </div>
       </div>

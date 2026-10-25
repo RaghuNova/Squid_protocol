@@ -1,6 +1,6 @@
 services:
   squid-postgres:
-    image: postgres:16-alpine
+    image: postgres:16-bullseye
     container_name: squid-postgres
     restart: unless-stopped
     environment:

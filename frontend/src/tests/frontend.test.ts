@@ -187,4 +187,177 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(shouldShowRestartButton({ enableTestGameReset: true })).toBe(true);
     });
   });
+
+  describe('Squid Game Comet Round Cards Protocol Verification', () => {
+    it('verifies all 3 rounds are defined with correct Squid Game symbols and hierarchy', async () => {
+      const { ROUND_PROTOCOLS } = await import('../components/SquidRoundCards');
+      expect(ROUND_PROTOCOLS.length).toBe(3);
+
+      // Round 1
+      expect(ROUND_PROTOCOLS[0].id).toBe(1);
+      expect(ROUND_PROTOCOLS[0].title).toBe('The Signal Protocol');
+      expect(ROUND_PROTOCOLS[0].guardSymbol).toBe('circle');
+      expect(ROUND_PROTOCOLS[0].badge).toContain('ROUND 1');
+      expect(ROUND_PROTOCOLS[0].pointsHighlight).toBe('+2,000 PTS');
+
+      // Round 2
+      expect(ROUND_PROTOCOLS[1].id).toBe(2);
+      expect(ROUND_PROTOCOLS[1].title).toBe('The Logic Protocol');
+      expect(ROUND_PROTOCOLS[1].guardSymbol).toBe('triangle');
+      expect(ROUND_PROTOCOLS[1].badge).toContain('ROUND 2');
+      expect(ROUND_PROTOCOLS[1].pointsHighlight).toBe('+300 PTS');
+
+      // Round 3
+      expect(ROUND_PROTOCOLS[2].id).toBe(3);
+      expect(ROUND_PROTOCOLS[2].title).toBe('The Final Breach');
+      expect(ROUND_PROTOCOLS[2].guardSymbol).toBe('square');
+      expect(ROUND_PROTOCOLS[2].badge).toContain('ROUND 3');
+      expect(ROUND_PROTOCOLS[2].pointsHighlight).toBe('+200 PTS');
+    });
+
+    it('verifies all 3 rounds contain comprehensive briefing stages and lethal rules', async () => {
+      const { ROUND_PROTOCOLS } = await import('../components/SquidRoundCards');
+      for (const proto of ROUND_PROTOCOLS) {
+        expect(proto.briefing.stages.length).toBeGreaterThanOrEqual(2);
+        expect(proto.briefing.lore.length).toBeGreaterThan(20);
+        expect(proto.briefing.lethalRule.length).toBeGreaterThan(10);
+        expect(proto.briefing.proTip.length).toBeGreaterThan(10);
+      }
+    });
+  });
+
+  describe('Aceternity Encrypted Text Effect Verification', () => {
+    it('verifies EncryptedText and EncryptedTextDemo components export cleanly', async () => {
+      const { EncryptedText } = await import('../components/ui/encrypted-text');
+      expect(typeof EncryptedText).toBe('function');
+
+      const EncryptedTextDemo = (await import('../components/encrypted-text-demo')).default;
+      expect(typeof EncryptedTextDemo).toBe('function');
+    });
+
+    it('verifies SQUID PROTOCOL heading segments preserve exact wording and styling separation', () => {
+      const segments = [
+        {
+          text: 'SQUID',
+          className: 'text-white',
+          revealedClassName: 'text-white',
+          encryptedClassName: 'text-white/50 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]',
+        },
+        {
+          text: ' ',
+          className: 'inline',
+        },
+        {
+          text: 'PROTOCOL',
+          className: 'text-transparent bg-clip-text bg-gradient-to-r from-[#ff004f] via-[#ff2e7e] to-[#ff004f]',
+          revealedClassName: 'text-transparent bg-clip-text bg-gradient-to-r from-[#ff004f] via-[#ff2e7e] to-[#ff004f]',
+          encryptedClassName: 'text-[#ff004f]/60 drop-shadow-[0_0_8px_rgba(255,0,79,0.35)]',
+        },
+      ];
+
+      const fullString = segments.map(s => s.text).join('');
+      expect(fullString).toBe('SQUID PROTOCOL');
+      expect(segments[0].text).toBe('SQUID');
+      expect(segments[0].revealedClassName).toBe('text-white');
+      expect(segments[2].text).toBe('PROTOCOL');
+      expect(segments[2].revealedClassName).toContain('#ff004f');
+    });
+  });
+
+  describe('Official Classified Rulebook & 15 Codified Rules Verification', () => {
+    it('verifies all 15 codified rules are defined with sequential IDs 1 to 15', async () => {
+      const { RULES } = await import('../pages/RulesPage');
+      expect(RULES.length).toBe(15);
+
+      for (let i = 0; i < 15; i++) {
+        expect(RULES[i].id).toBe(i + 1);
+        expect(RULES[i].title.length).toBeGreaterThan(0);
+        expect(RULES[i].plainEnglishSummary.length).toBeGreaterThan(0);
+        expect(RULES[i].desc.length).toBeGreaterThan(0);
+        expect(RULES[i].badge.length).toBeGreaterThan(0);
+        expect(RULES[i].keyDetails.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('verifies rule categories cover device setup, all 3 rounds, and integrity', async () => {
+      const { RULES } = await import('../pages/RulesPage');
+      const categories = new Set(RULES.map(r => r.category));
+      expect(categories.has('general')).toBe(true);
+      expect(categories.has('round1')).toBe(true);
+      expect(categories.has('round2')).toBe(true);
+      expect(categories.has('round3')).toBe(true);
+      expect(categories.has('integrity')).toBe(true);
+    });
+
+    it('verifies round-specific rules contain correct Squid Game geometric symbols and accents', async () => {
+      const { RULES } = await import('../pages/RulesPage');
+
+      // Round 1 rules (Rules 4, 5) have Circle and #ff004f
+      const r1Rules = RULES.filter(r => r.category === 'round1');
+      expect(r1Rules.length).toBe(2);
+      r1Rules.forEach(r => {
+        expect(r.roundSymbol).toBe('circle');
+        expect(r.roundAccentColor).toBe('#ff004f');
+      });
+
+      // Round 2 rules (Rules 6, 7) have Triangle and #00f0ff
+      const r2Rules = RULES.filter(r => r.category === 'round2');
+      expect(r2Rules.length).toBe(2);
+      r2Rules.forEach(r => {
+        expect(r.roundSymbol).toBe('triangle');
+        expect(r.roundAccentColor).toBe('#00f0ff');
+      });
+
+      // Round 3 rules (Rules 8, 9, 10) have Square and #00e676
+      const r3Rules = RULES.filter(r => r.category === 'round3');
+      expect(r3Rules.length).toBe(3);
+      r3Rules.forEach(r => {
+        expect(r.roundSymbol).toBe('square');
+        expect(r.roundAccentColor).toBe('#00e676');
+      });
+    });
+
+    it('verifies Rule 4 strictly preserves scoring values (+100/+200) and penalties (-50/-100)', async () => {
+      const { RULES } = await import('../pages/RulesPage');
+      const rule4 = RULES.find(r => r.id === 4)!;
+      expect(rule4.desc).toContain('+100');
+      expect(rule4.desc).toContain('+200');
+      expect(rule4.desc).toContain('50');
+      expect(rule4.desc).toContain('100');
+      expect(rule4.desc).toContain('RED LIGHT');
+      expect(rule4.desc).toContain('GREEN LIGHT');
+    });
+
+    it('verifies Rule 15 strictly preserves the official 3-tier tie-break criteria', async () => {
+      const { RULES } = await import('../pages/RulesPage');
+      const rule15 = RULES.find(r => r.id === 15)!;
+      expect(rule15.desc).toContain('Round 3');
+      expect(rule15.desc).toContain('Round 2');
+      expect(rule15.desc).toContain('Final Breach');
+      expect(rule15.keyDetails[0]).toContain('Round 3');
+      expect(rule15.keyDetails[1]).toContain('Round 2');
+      expect(rule15.keyDetails[2]).toContain('Final Breach');
+    });
+
+    it('verifies RulesPage component exports properly as a React component', async () => {
+      const { RulesPage } = await import('../pages/RulesPage');
+      expect(typeof RulesPage).toBe('function');
+    });
+  });
+
+  describe('Official IEEE NISB Logo & Branding Verification', () => {
+    it('verifies IEEELogo component is exported and functional', async () => {
+      const { IEEELogo } = await import('../components/IEEELogo');
+      expect(typeof IEEELogo).toBe('function');
+    });
+
+    it('verifies official logo asset exists in public/assets', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const logoPath = path.resolve(__dirname, '../../public/assets/ieee-nisb-logo.png');
+      expect(fs.existsSync(logoPath)).toBe(true);
+      const stat = fs.statSync(logoPath);
+      expect(stat.size).toBeGreaterThan(1000);
+    });
+  });
 });

@@ -62,15 +62,15 @@ export const Round1View: React.FC<Round1ViewProps> = ({
             Round 1 — The Signal Protocol
           </h2>
           <p className="text-sm font-mono text-gray-400">
-            Status: <span className="text-cyan-400 font-bold uppercase">Awaiting Start Signal</span>
+            Status: <span className="text-cyan-400 font-bold uppercase">Waiting to Start</span>
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-          Tournament officials have not activated Round 1 yet. When the round begins, your team will receive 10 questions delivered sequentially. Watch the Red Light / Green Light signal carefully!
+          Round 1 has not started yet. When it begins, your team will answer 10 questions in sequence. Watch the Red Light / Green Light indicator before submitting!
         </p>
         <div className="p-4 rounded-xl bg-black/40 border border-gray-800/80 inline-flex items-center gap-3 font-mono text-xs text-gray-400">
           <Clock className="w-4 h-4 text-cyan-400" aria-hidden="true" />
-          <span>Scheduled Round Duration: 15 Minutes</span>
+          <span>Round Duration: 15 Minutes</span>
         </div>
       </div>
     );
@@ -92,7 +92,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-          Your responses for Round 1 have been securely committed to the server ledger. Stand by for tournament officials to announce Round 2 — The Logic Protocol.
+          Your Round 1 answers have been submitted. Wait for tournament officials to announce the start of Round 2.
         </p>
         <button
           onClick={onRefresh}
@@ -120,7 +120,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           </p>
         </div>
         <p className="text-sm text-gray-300 max-w-md mx-auto">
-          Submissions for Round 1 are now closed. Awaiting tournament officials to transition to Round 2.
+          Submissions for Round 1 are now closed. Wait for tournament officials to begin Round 2.
         </p>
       </div>
     );
@@ -342,7 +342,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
               <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
               <div>
                 <span className="font-bold text-red-400 uppercase tracking-wider">RED LIGHT ACTIVE: </span>
-                <span>Submissions are penalized! Submitting now will deduct {isDoublePoints ? '100' : '50'} points regardless of answer correctness.</span>
+                <span>Submitting right now deducts {isDoublePoints ? '100' : '50'} points, even if your answer is correct!</span>
               </div>
             </div>
           )}
@@ -350,7 +350,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           {/* Controls Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-800/80">
             <span className="text-xs font-mono text-gray-500 tabular-nums">
-              Sequential Challenge: Question {questionNumber} must be completed to unlock Question {Math.min(totalQuestions, questionNumber + 1)}.
+              Sequential Questions: Complete Question {questionNumber} to unlock Question {Math.min(totalQuestions, questionNumber + 1)}.
             </span>
 
             <button
@@ -363,7 +363,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
               } ${(!selectedOption || isSubmitting || isPaused || isEnded) ? 'opacity-40 cursor-not-allowed shadow-none' : ''}`}
             >
               {isSubmitting ? (
-                <span>Validating with Central Engine...</span>
+                <span>Submitting answer...</span>
               ) : isRed ? (
                 <>
                   <AlertTriangle className="w-4 h-4" aria-hidden="true" />
