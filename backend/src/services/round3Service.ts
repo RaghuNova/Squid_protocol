@@ -305,10 +305,31 @@ export class Round3Service {
 
     const normalizedKey = params.finalKey.trim().toUpperCase();
     const expectedKey = challenge.expectedFinalKey.trim().toUpperCase();
+    const enteredChecksum = normalizedKey.match(/(?:PROTOCOL_BREACH_)?(\d+)$/)?.[1];
+
+    // The configured expected key can be stale in a deployed database after a
+    // challenge code update. Recompute the intended checksum from its input so
+    // validation always agrees with the corrected Java, Python, and C logic.
+    let correctedChecksum: number | null = null;
+    try {
+      const inputValues: unknown = JSON.parse(challenge.inputData);
+      if (Array.isArray(inputValues) && inputValues.every(Number.isInteger)) {
+        correctedChecksum = inputValues.reduce((total: number, value: number) => (
+          total + (value % 2 === 0 ? (value << 2) + 3 : value ^ 0x4B)
+        ), 0);
+      }
+    } catch {
+      // Retain the configured expected key as a fallback for non-JSON challenges.
+    }
+
     const expectedChecksum = expectedKey.match(/_(\d+)$/)?.[1];
-    // Accept either the full output printed by the supplied programs or just
-    // the corrected numeric checksum entered from a terminal.
-    const isCorrect = normalizedKey === expectedKey || normalizedKey === expectedChecksum;
+    const checksumMatches = enteredChecksum !== undefined && (
+      enteredChecksum === expectedChecksum ||
+      (correctedChecksum !== null && Number(enteredChecksum) === correctedChecksum)
+    );
+    const correctedOutputMatches = correctedChecksum !== null &&
+      normalizedKey === `PROTOCOL_BREACH_${correctedChecksum}`;
+    const isCorrect = normalizedKey === expectedKey || checksumMatches || correctedOutputMatches;
 
     if (!isCorrect) {
       await prisma.submission.create({
