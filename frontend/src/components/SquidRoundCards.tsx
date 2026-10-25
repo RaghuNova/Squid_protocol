@@ -182,7 +182,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
 
 export const SquidRoundCards: React.FC = () => {
   const [activeModalRound, setActiveModalRound] = useState<RoundProtocol | null>(null);
-  const cardRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const cardRefs = useRef<{ [key: number]: HTMLElement | null }>({});
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
