@@ -8,10 +8,7 @@ import { Lock, User, AlertTriangle, ArrowRight, ShieldAlert, Loader2 } from 'luc
 import { Link, useNavigate } from 'react-router-dom';
 
 export const AdminIndex: React.FC = () => {
-<<<<<<< HEAD
   const navigate = useNavigate();
-=======
->>>>>>> 7475606 (Add migration for RoundControl remainingSeconds and update AdminIndex)
   const { user, loginAdmin, logout, isLoading } = useAuth();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
