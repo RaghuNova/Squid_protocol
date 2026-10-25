@@ -170,6 +170,8 @@ export const LeaderboardPage: React.FC = () => {
         {/* Access Denied for Non-Admins */}
         {accessDenied || (user && user.role !== 'ADMIN') ? (
           <div className="p-12 text-center bg-[#12151c] rounded-2xl border border-gray-800 space-y-6 max-w-xl mx-auto">
+
+
             <div className="w-16 h-16 rounded-full bg-red-950/40 border border-red-800/40 text-red-400 flex items-center justify-center mx-auto">
               <Lock className="w-8 h-8" />
             </div>
@@ -183,13 +185,22 @@ export const LeaderboardPage: React.FC = () => {
               Under competition rules, overall standings are kept confidential by event organizers. Teams can check their own score on their personal dashboard.
             </p>
             <div className="pt-2">
+
               <Link
                 to={user?.role === 'TEAM' ? '/game' : '/'}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#ff004f] text-white font-mono text-xs uppercase tracking-wider font-semibold hover:bg-[#ff2e7e] transition-colors"
               >
+
                 <ArrowLeft className="w-4 h-4" />
                 <span>Return to {user?.role === 'TEAM' ? 'Game Arena' : 'Home'}</span>
               </Link>
+
+
+
+
+
+
+
             </div>
           </div>
         ) : (
@@ -217,6 +228,7 @@ export const LeaderboardPage: React.FC = () => {
                   aria-label="Refresh standings"
                   className="p-2 rounded-lg bg-[#12151c] border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166] cursor-pointer"
                 >
+  
                   <RefreshCw className="w-4 h-4" />
                 </button>
 
@@ -225,6 +237,7 @@ export const LeaderboardPage: React.FC = () => {
                     onClick={() => setIsReopenModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
                   >
+    
                     <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
                     <span>Reopen Results</span>
                   </button>
@@ -233,6 +246,7 @@ export const LeaderboardPage: React.FC = () => {
                     onClick={() => setIsFinalizeModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ffd166] hover:bg-[#ffdf88] text-black font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(255,209,102,0.3)] cursor-pointer"
                   >
+    
                     <ShieldCheck className="w-4 h-4 text-black" />
                     <span>Finalize &amp; Announce</span>
                   </button>
@@ -250,11 +264,13 @@ export const LeaderboardPage: React.FC = () => {
                     : 'bg-[#ff004f]/10 border-[#ff004f]/40 text-[#ff004f]'
                 }`}
               >
+
                 <span>{actionAlert.text}</span>
                 <button
                   onClick={() => setActionAlert(null)}
                   className="text-gray-400 hover:text-white underline cursor-pointer"
                 >
+  
                   Dismiss
                 </button>
               </div>
@@ -273,7 +289,8 @@ export const LeaderboardPage: React.FC = () => {
                         ? 'bg-[#00e676]/20 border border-[#00e676]/50 text-[#00e676]'
                         : 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
                     }`}
-                  >
+              >
+    
                     {isFinalized ? 'FINALIZED' : 'PROVISIONAL'}
                   </span>
                 </div>
@@ -309,7 +326,8 @@ export const LeaderboardPage: React.FC = () => {
                             ? 'bg-gradient-to-b from-slate-400/10 to-[#12151c] border-slate-400/40'
                             : 'bg-gradient-to-b from-amber-800/10 to-[#12151c] border-amber-700/40'
                         }`}
-                      >
+              >
+        
                         {/* Rank Badge */}
                         <div className="flex items-center justify-between mb-4">
                           <span
@@ -320,7 +338,8 @@ export const LeaderboardPage: React.FC = () => {
                                 ? 'bg-slate-300 text-black'
                                 : 'bg-amber-800 text-amber-100'
                             }`}
-                          >
+              >
+            
                             {isChampion && <Trophy className="w-3.5 h-3.5" />}
                             {rank === 2 && <Medal className="w-3.5 h-3.5" />}
                             {rank === 3 && <Award className="w-3.5 h-3.5" />}
@@ -434,7 +453,8 @@ export const LeaderboardPage: React.FC = () => {
                                 ? 'bg-amber-700/5'
                                 : ''
                             }`}
-                          >
+              >
+            
                             <td className="py-3.5 px-3 text-center">
                               {rank === 1 ? (
                                 <Medal className="w-5 h-5 text-amber-400 mx-auto" />
@@ -499,7 +519,8 @@ export const LeaderboardPage: React.FC = () => {
                                       ? 'text-[#ff004f]'
                                       : 'text-gray-400'
                                   }`}
-                                >
+              >
+                  
                                   {t.r3Points > 0 ? `+${t.r3Points}` : t.r3Points}
                                 </span>
                               ) : (
@@ -538,6 +559,7 @@ export const LeaderboardPage: React.FC = () => {
                 aria-modal="true"
                 aria-labelledby="finalize-dialog-title"
               >
+
                 <div className="w-full max-w-lg bg-[#0e1017] border border-gray-700 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-400 flex items-center justify-center flex-shrink-0">
@@ -585,6 +607,7 @@ export const LeaderboardPage: React.FC = () => {
                       onClick={() => setIsFinalizeModalOpen(false)}
                       className="px-4 py-2.5 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 font-mono text-xs uppercase cursor-pointer"
                     >
+      
                       Cancel
                     </button>
                     <button
@@ -593,6 +616,7 @@ export const LeaderboardPage: React.FC = () => {
                       onClick={handleFinalize}
                       className="px-5 py-2.5 rounded-xl bg-[#ffd166] hover:bg-[#ffdf88] text-black font-mono text-xs font-bold uppercase transition-all shadow-lg cursor-pointer"
                     >
+      
                       {isActionLoading ? 'Finalizing...' : 'Confirm & Finalize Winners'}
                     </button>
                   </div>
@@ -608,6 +632,7 @@ export const LeaderboardPage: React.FC = () => {
                 aria-modal="true"
                 aria-labelledby="reopen-dialog-title"
               >
+
                 <div className="w-full max-w-md bg-[#0e1017] border border-gray-700 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
@@ -634,6 +659,7 @@ export const LeaderboardPage: React.FC = () => {
                       onClick={() => setIsReopenModalOpen(false)}
                       className="px-4 py-2.5 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 font-mono text-xs uppercase cursor-pointer"
                     >
+      
                       Cancel
                     </button>
                     <button
@@ -642,6 +668,7 @@ export const LeaderboardPage: React.FC = () => {
                       onClick={handleReopen}
                       className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-mono text-xs font-bold uppercase transition-all cursor-pointer"
                     >
+      
                       {isActionLoading ? 'Reopening...' : 'Yes, Reopen Standings'}
                     </button>
                   </div>

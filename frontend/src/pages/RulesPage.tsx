@@ -315,43 +315,44 @@ export const RulesPage: React.FC = () => {
     <div className="min-h-screen bg-canvas text-text-primary flex flex-col selection:bg-signal-red selection:text-white">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 flex-1 space-y-8 w-full" id="main-content">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 flex-1 space-y-10 w-full" id="main-content">
         {/* Operations Header */}
-        <header className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface border border-border-subtle text-text-muted font-mono text-xs uppercase tracking-wider" aria-hidden="true">
-            <BookOpen className="w-3.5 h-3.5 text-text-muted" />
+        <header className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated border border-border-muted text-text-secondary font-mono text-xs uppercase tracking-widest" aria-hidden="true">
+            <span className="w-1.5 h-1.5 rounded-full bg-signal-red" />
+            <BookOpen className="w-3.5 h-3.5 text-signal-red" />
             <span>OPERATIONS MANUAL • CODIFIED SPECIFICATION</span>
           </div>
 
-          <h1 className="font-display font-bold text-3xl sm:text-4xl text-text-primary uppercase tracking-tight">
+          <h1 className="font-display font-black text-4xl sm:text-5xl text-text-primary uppercase tracking-tight">
             Official Rulebook
           </h1>
 
-          <p className="text-xs sm:text-sm font-mono text-text-muted max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm font-mono text-text-secondary max-w-2xl mx-auto leading-relaxed">
             Review the 15 official rules governing SQUID PROTOCOL. All rules are strictly enforced by backend verification routines and event officials.
           </p>
 
           {/* Quick Metrics Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-1 font-mono text-xs text-text-muted">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-border-subtle">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1 font-mono text-xs text-text-secondary">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] bg-surface-elevated border border-border-muted">
               <Scale className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
               <span>15 Codified Rules</span>
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-border-subtle">
-              <Clock className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] bg-surface-elevated border border-border-muted">
+              <Clock className="w-3.5 h-3.5 text-accent-cyan" aria-hidden="true" />
               <span>3 Sequential Rounds</span>
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-border-subtle">
-              <Award className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] bg-surface-elevated border border-border-muted">
+              <Award className="w-3.5 h-3.5 text-signal-green" aria-hidden="true" />
               <span>Strict Enforcement</span>
             </span>
           </div>
 
-          {/* Quick Gateway Link (Neutral Secondary Button) */}
+          {/* Quick Gateway Link */}
           <div className="pt-2">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-surface border border-border-form text-text-secondary hover:border-border-strong hover:text-text-primary font-mono text-xs tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-md)] bg-surface-elevated border border-border-form text-text-primary hover:border-text-primary font-mono text-xs tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               <span>Ready to compete? Enter the Team Gateway</span>
               <ArrowRight className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
@@ -359,69 +360,69 @@ export const RulesPage: React.FC = () => {
           </div>
         </header>
 
-        {/* Executive Quick-Reference Cards (4 Rules Every Participant Must Know) */}
-        <section aria-label="Essential tournament highlights" className="space-y-3">
+        {/* Executive Quick-Reference Cards */}
+        <section aria-label="Essential tournament highlights" className="space-y-3.5">
           <div className="flex items-center justify-between">
-            <h2 className="font-mono text-xs text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
+            <h2 className="font-mono text-xs text-text-secondary uppercase tracking-widest flex items-center gap-2 font-bold">
+              <Sparkles className="w-3.5 h-3.5 text-accent-gold" aria-hidden="true" />
               <span>Essential Rules at a Glance</span>
             </h2>
-            <span className="text-[11px] font-mono text-text-muted">Quick scan</span>
+            <span className="text-[11px] font-mono text-text-muted">// CRITICAL DIRECTIVES</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="p-4 rounded-md bg-surface border border-border-subtle hover:border-border-strong transition-colors space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="facility-card p-4 space-y-2 group transition-colors hover:border-border-strong">
               <div className="flex items-center justify-between">
-                <Laptop className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                <span className="text-[10px] font-mono text-text-muted">Rule 2</span>
+                <Laptop className="w-4 h-4 text-accent-cyan" aria-hidden="true" />
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted border border-border-subtle font-bold">Rule 02</span>
               </div>
-              <h3 className="font-display font-semibold text-sm text-text-primary">Single Device</h3>
-              <p className="text-xs font-mono text-text-muted leading-relaxed">
+              <h3 className="font-display font-bold text-sm text-text-primary group-hover:text-accent-cyan transition-colors">Single Device</h3>
+              <p className="text-xs font-mono text-text-secondary leading-relaxed">
                 Designate 1 computer for submitting answers. Duplicates are rejected.
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-surface border border-border-subtle hover:border-border-strong transition-colors space-y-1.5">
+            <div className="facility-card p-4 space-y-2 group transition-colors hover:border-border-strong">
               <div className="flex items-center justify-between">
-                <Clock className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                <span className="text-[10px] font-mono text-text-muted">Rule 3</span>
+                <Clock className="w-4 h-4 text-accent-gold" aria-hidden="true" />
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted border border-border-subtle font-bold">Rule 03</span>
               </div>
-              <h3 className="font-display font-semibold text-sm text-text-primary">Server Clock</h3>
-              <p className="text-xs font-mono text-text-muted leading-relaxed">
+              <h3 className="font-display font-bold text-sm text-text-primary group-hover:text-accent-gold transition-colors">Server Clock</h3>
+              <p className="text-xs font-mono text-text-secondary leading-relaxed">
                 Server controls all timers. Adjusting local clock will not extend time.
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-surface border border-border-subtle hover:border-border-strong transition-colors space-y-1.5">
+            <div className="facility-card p-4 space-y-2 group border-signal-red/40 hover:border-signal-red/80 transition-colors">
               <div className="flex items-center justify-between">
                 <AlertOctagon className="w-4 h-4 text-signal-red" aria-hidden="true" />
-                <span className="text-[10px] font-mono text-text-muted">Rule 4</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-signal-red/10 text-signal-red border border-signal-red/30 font-bold">Rule 04</span>
               </div>
-              <h3 className="font-display font-semibold text-sm text-text-primary">Red Light Penalty</h3>
-              <p className="text-xs font-mono text-text-muted leading-relaxed">
+              <h3 className="font-display font-bold text-sm text-text-primary group-hover:text-signal-red transition-colors">Red Light Penalty</h3>
+              <p className="text-xs font-mono text-text-secondary leading-relaxed">
                 Submissions in Red Light automatically deduct 50 pts (100 in Double Points).
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-surface border border-border-subtle hover:border-border-strong transition-colors space-y-1.5">
+            <div className="facility-card p-4 space-y-2 group transition-colors hover:border-border-strong">
               <div className="flex items-center justify-between">
-                <Lock className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                <span className="text-[10px] font-mono text-text-muted">Rule 6</span>
+                <Lock className="w-4 h-4 text-signal-green" aria-hidden="true" />
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted border border-border-subtle font-bold">Rule 06</span>
               </div>
-              <h3 className="font-display font-semibold text-sm text-text-primary">Sequential Order</h3>
-              <p className="text-xs font-mono text-text-muted leading-relaxed">
+              <h3 className="font-display font-bold text-sm text-text-primary group-hover:text-signal-green transition-colors">Sequential Order</h3>
+              <p className="text-xs font-mono text-text-secondary leading-relaxed">
                 No skipping. Each question and stage unlocks only after the previous is solved.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Round Overview Reference Strip */}
-        <section aria-label="Rounds overview reference" className="p-5 sm:p-6 rounded-lg bg-surface border border-border-subtle space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle pb-3">
+        {/* Round Overview Reference Strip & Scoring Matrix */}
+        <section aria-label="Rounds overview reference" className="facility-card p-6 sm:p-7 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle pb-4">
             <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-text-muted" aria-hidden="true" />
-              <h2 className="font-display font-semibold text-sm text-text-primary tracking-wide">
+              <Terminal className="w-4 h-4 text-accent-cyan" aria-hidden="true" />
+              <h2 className="font-display font-extrabold text-sm sm:text-base text-text-primary tracking-wide uppercase">
                 Tournament Structure by Round
               </h2>
             </div>
@@ -430,63 +431,123 @@ export const RulesPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Round 1 Card */}
-            <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-2">
+            <div className="p-4 rounded-[var(--radius-md)] bg-surface border border-border-subtle hover:border-signal-red/40 transition-colors space-y-2.5 relative border-t-2 border-t-signal-red">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CircleShape size={14} color="#ff004f" />
-                  <span className="font-display font-semibold text-sm text-text-primary">Round 1</span>
+                  <CircleShape size={13} color="currentColor" strokeWidth={1.5} className="text-signal-red" />
+                  <span className="font-display font-bold text-sm text-text-primary">Round 1</span>
                 </div>
-                <span className="font-mono text-[11px] px-2 py-0.5 rounded border border-border-muted bg-surface text-text-muted font-semibold">
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full border border-signal-red/30 bg-signal-red/10 text-signal-red font-bold">
                   15 MIN
                 </span>
               </div>
-              <h3 className="font-mono text-xs font-semibold text-text-secondary">The Signal Protocol</h3>
+              <h3 className="font-mono text-xs font-bold text-text-secondary">The Signal Protocol</h3>
               <p className="text-xs font-mono text-text-muted leading-relaxed">
                 20 sequential technical MCQs governed by Red Light / Green Light. Correct answers award +100 (+200 Double). Red Light submissions deduct 50 (100 Double).
               </p>
-              <div className="pt-1 font-mono text-xs font-semibold text-text-primary tabular-nums">
+              <div className="pt-1 font-mono text-xs font-bold text-signal-red tabular-nums">
                 Points: +100 / +200 per MCQ
               </div>
             </div>
 
             {/* Round 2 Card */}
-            <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-2">
+            <div className="p-4 rounded-[var(--radius-md)] bg-surface border border-border-subtle hover:border-accent-cyan/40 transition-colors space-y-2.5 relative border-t-2 border-t-accent-cyan">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TriangleShape size={14} color="#00f0ff" />
-                  <span className="font-display font-semibold text-sm text-text-primary">Round 2</span>
+                  <TriangleShape size={13} color="currentColor" strokeWidth={1.5} className="text-accent-cyan" />
+                  <span className="font-display font-bold text-sm text-text-primary">Round 2</span>
                 </div>
-                <span className="font-mono text-[11px] px-2 py-0.5 rounded border border-border-muted bg-surface text-text-muted font-semibold">
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full border border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan font-bold">
                   20 MIN
                 </span>
               </div>
-              <h3 className="font-mono text-xs font-semibold text-text-secondary">The Logic Protocol</h3>
+              <h3 className="font-mono text-xs font-bold text-text-secondary">The Logic Protocol</h3>
               <p className="text-xs font-mono text-text-muted leading-relaxed">
                 2 sequential stages. Stage 1: Solve a 6×6 Shape Sudoku (+100 PTS). Stage 2: Analyze Broken Logic firmware and submit the accumulator value (+200 PTS).
               </p>
-              <div className="pt-1 font-mono text-xs font-semibold text-text-primary tabular-nums">
+              <div className="pt-1 font-mono text-xs font-bold text-accent-cyan tabular-nums">
                 Points: +100 S1 / +200 S2
               </div>
             </div>
 
             {/* Round 3 Card */}
-            <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-2">
+            <div className="p-4 rounded-[var(--radius-md)] bg-surface border border-border-subtle hover:border-signal-green/40 transition-colors space-y-2.5 relative border-t-2 border-t-signal-green">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <SquareShape size={14} color="#00e676" />
-                  <span className="font-display font-semibold text-sm text-text-primary">Round 3</span>
+                  <SquareShape size={13} color="currentColor" strokeWidth={1.5} className="text-signal-green" />
+                  <span className="font-display font-bold text-sm text-text-primary">Round 3</span>
                 </div>
-                <span className="font-mono text-[11px] px-2 py-0.5 rounded border border-border-muted bg-surface text-text-muted font-semibold">
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full border border-signal-green/30 bg-signal-green/10 text-signal-green font-bold">
                   25–30 MIN
                 </span>
               </div>
-              <h3 className="font-mono text-xs font-semibold text-text-secondary">The Final Breach</h3>
+              <h3 className="font-mono text-xs font-bold text-text-secondary">The Final Breach</h3>
               <p className="text-xs font-mono text-text-muted leading-relaxed">
                 In-person Cup Transfer &amp; Broken QR Assembly. Redeem your single-use QR to unlock the final multi-language debugging challenge with finishing-order scoring.
               </p>
-              <div className="pt-1 font-mono text-xs font-semibold text-signal-green tabular-nums">
+              <div className="pt-1 font-mono text-xs font-bold text-signal-green tabular-nums">
                 Finishing Order: +200 to -25 PTS
               </div>
+            </div>
+          </div>
+
+          {/* Official Codified Scoring Matrix */}
+          <div className="pt-2">
+            <div className="text-xs font-mono text-text-muted uppercase tracking-wider mb-2 font-semibold">
+              Scoring Matrix Breakdown
+            </div>
+            <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border-subtle">
+              <table className="w-full text-left font-mono text-xs border-collapse">
+                <thead className="sticky top-0 bg-surface z-10 border-b border-border-form text-text-muted text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th scope="col" className="py-3 px-4 font-semibold">Stage</th>
+                    <th scope="col" className="py-3 px-4 font-semibold">Requirement</th>
+                    <th scope="col" className="py-3 px-4 text-right font-semibold">Yield</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle text-text-secondary bg-surface/50">
+                  <tr className="hover:bg-surface-elevated transition-colors">
+                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                      <CircleShape size={10} color="currentColor" strokeWidth={1.5} className="text-text-muted" />
+                      <span>Round 1</span>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary">20 Technical MCQs (Normal Answers)</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+100 / -50</td>
+                  </tr>
+                  <tr className="hover:bg-surface-elevated transition-colors">
+                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                      <CircleShape size={10} color="currentColor" strokeWidth={1.5} className="text-text-muted" />
+                      <span>Round 1 Bonus</span>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary">Double Points Multiplier Window</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+200 / -100</td>
+                  </tr>
+                  <tr className="hover:bg-surface-elevated transition-colors">
+                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                      <TriangleShape size={10} color="currentColor" strokeWidth={1.5} className="text-text-muted" />
+                      <span>Round 2 · S1</span>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary">6×6 Shape Sudoku (Unique Valid Grid)</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+100 PTS</td>
+                  </tr>
+                  <tr className="hover:bg-surface-elevated transition-colors">
+                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                      <TriangleShape size={10} color="currentColor" strokeWidth={1.5} className="text-text-muted" />
+                      <span>Round 2 · S2</span>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary">Broken Logic Technical Reasoning Output</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+200 PTS</td>
+                  </tr>
+                  <tr className="hover:bg-surface-elevated transition-colors">
+                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                      <SquareShape size={10} color="currentColor" strokeWidth={1.5} className="text-text-muted" />
+                      <span>Round 3 · Final</span>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary">Final System Breach (Finishing Order)</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-signal-green">+200 to -25 PTS</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -503,14 +564,14 @@ export const RulesPage: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search rules (e.g. penalty, red light, sudoku, tie-break, terminal)..."
                 aria-label="Search tournament rules"
-                className="w-full pl-10 pr-9 py-2 rounded-md bg-surface border border-border-form text-text-primary font-mono text-xs placeholder:text-text-muted/60 focus:outline-none focus:border-border-strong focus-visible:ring-2 focus-visible:ring-text-primary transition-colors"
+                className="w-full pl-10 pr-9 py-2.5 rounded-[var(--radius-md)] bg-surface border border-border-form text-text-primary font-mono text-xs placeholder:text-text-muted focus:outline-none focus:border-border-focus focus:ring-1 focus:ring-border-focus transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-text-primary"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -522,7 +583,7 @@ export const RulesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExpandAll}
-                className="px-3 py-1.5 rounded-md bg-surface border border-border-form text-text-muted hover:text-text-primary hover:border-border-strong font-mono text-xs transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary cursor-pointer"
+                className="px-3 py-2 rounded-[var(--radius-sm)] bg-surface-elevated border border-border-muted text-text-secondary hover:text-text-primary hover:border-border-strong font-mono text-xs transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary cursor-pointer"
                 aria-label="Expand all rules"
               >
                 <ChevronDown className="w-3 h-3" />
@@ -531,7 +592,7 @@ export const RulesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCollapseAll}
-                className="px-3 py-1.5 rounded-md bg-surface border border-border-form text-text-muted hover:text-text-primary hover:border-border-strong font-mono text-xs transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary cursor-pointer"
+                className="px-3 py-2 rounded-[var(--radius-sm)] bg-surface-elevated border border-border-muted text-text-secondary hover:text-text-primary hover:border-border-strong font-mono text-xs transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary cursor-pointer"
                 aria-label="Collapse all rules"
               >
                 <ChevronUp className="w-3 h-3" />
@@ -555,17 +616,17 @@ export const RulesPage: React.FC = () => {
                   role="tab"
                   aria-selected={isSelected}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-mono text-xs transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[var(--radius-sm)] font-mono text-xs transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary ${
                     isSelected
-                      ? 'bg-text-primary text-canvas font-semibold border border-transparent'
-                      : 'bg-surface text-text-muted border border-border-form hover:border-border-strong hover:text-text-primary'
+                      ? 'bg-surface-elevated text-text-primary font-bold border border-text-primary'
+                      : 'bg-surface text-text-secondary border border-border-muted hover:border-border-strong hover:text-text-primary'
                   }`}
                 >
-                  {cat.symbol === 'circle' && <CircleShape size={11} color={isSelected ? 'currentColor' : '#ff004f'} />}
-                  {cat.symbol === 'triangle' && <TriangleShape size={11} color={isSelected ? 'currentColor' : '#00f0ff'} />}
-                  {cat.symbol === 'square' && <SquareShape size={11} color={isSelected ? 'currentColor' : '#00e676'} />}
+                  {cat.symbol === 'circle' && <CircleShape size={11} strokeWidth={1.5} color="currentColor" className={isSelected ? 'text-text-primary' : 'text-signal-red'} />}
+                  {cat.symbol === 'triangle' && <TriangleShape size={11} strokeWidth={1.5} color="currentColor" className={isSelected ? 'text-text-primary' : 'text-accent-cyan'} />}
+                  {cat.symbol === 'square' && <SquareShape size={11} strokeWidth={1.5} color="currentColor" className={isSelected ? 'text-text-primary' : 'text-signal-green'} />}
                   <span>{cat.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${isSelected ? 'bg-canvas/30 text-canvas' : 'bg-surface-elevated text-text-muted'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${isSelected ? 'bg-text-primary/20 text-text-primary' : 'bg-surface-elevated text-text-muted'}`}>
                     {cat.count}
                   </span>
                 </button>
@@ -577,10 +638,10 @@ export const RulesPage: React.FC = () => {
         {/* Search Results Summary */}
         {searchQuery && (
           <div className="flex items-center justify-between text-xs font-mono text-text-muted px-1" role="status">
-            <span>Showing {filteredRules.length} matching rule{filteredRules.length !== 1 ? 's' : ''} for "{searchQuery}"</span>
+            <span>Showing {filteredRules.length} matching rule{filteredRules.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;</span>
             <button
               onClick={() => setSearchQuery('')}
-              className="text-text-primary hover:underline cursor-pointer"
+              className="text-text-primary hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-text-primary"
             >
               Reset search
             </button>
@@ -590,16 +651,16 @@ export const RulesPage: React.FC = () => {
         {/* 15 Codified Rules List */}
         <section aria-label="Codified tournament rules list" className="space-y-3">
           {filteredRules.length === 0 ? (
-            <div className="p-8 text-center bg-surface rounded-lg border border-border-subtle space-y-3">
+            <div className="facility-card p-8 text-center space-y-3">
               <HelpCircle className="w-8 h-8 text-text-muted mx-auto" aria-hidden="true" />
               <h3 className="font-display font-semibold text-base text-text-primary">No Matching Rules Found</h3>
               <p className="text-xs font-mono text-text-muted max-w-sm mx-auto">
-                No rules match "{searchQuery}". Try a different keyword such as "penalty", "sudoku", "tie-break", or clear your search filter.
+                No rules match &quot;{searchQuery}&quot;. Try a different keyword such as &quot;penalty&quot;, &quot;sudoku&quot;, &quot;tie-break&quot;, or clear your search filter.
               </p>
               <button
                 type="button"
                 onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
-                className="mt-2 px-4 py-2 rounded-md bg-surface-elevated hover:bg-surface-overlay text-text-primary font-mono text-xs transition-colors border border-border-form cursor-pointer"
+                className="mt-2 px-4 py-2 rounded-[var(--radius-sm)] bg-surface-elevated hover:bg-surface-overlay text-text-primary font-mono text-xs transition-colors border border-border-form cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
               >
                 Show All 15 Rules
               </button>
@@ -609,10 +670,32 @@ export const RulesPage: React.FC = () => {
               {filteredRules.map((rule) => {
                 const isExpanded = expandedRuleIds.includes(rule.id);
 
+                const borderAccentClass =
+                  rule.roundSymbol === 'circle'
+                    ? 'border-l-2 border-l-signal-red'
+                    : rule.roundSymbol === 'triangle'
+                    ? 'border-l-2 border-l-accent-cyan'
+                    : rule.roundSymbol === 'square'
+                    ? 'border-l-2 border-l-signal-green'
+                    : rule.category === 'integrity'
+                    ? 'border-l-2 border-l-signal-red/60'
+                    : 'border-l-2 border-l-border-muted';
+
+                const badgeNumberClass =
+                  rule.roundSymbol === 'circle'
+                    ? 'bg-signal-red/10 border-signal-red/30 text-signal-red'
+                    : rule.roundSymbol === 'triangle'
+                    ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan'
+                    : rule.roundSymbol === 'square'
+                    ? 'bg-signal-green/10 border-signal-green/30 text-signal-green'
+                    : rule.category === 'integrity'
+                    ? 'bg-signal-red/10 border-signal-red/30 text-signal-red'
+                    : 'bg-surface-elevated border-border-muted text-text-primary';
+
                 return (
                   <li
                     key={rule.id}
-                    className="rounded-lg bg-surface border border-border-subtle hover:border-border-strong transition-colors overflow-hidden"
+                    className={`facility-card hover:border-border-strong transition-colors overflow-hidden ${borderAccentClass}`}
                   >
                     {/* Rule Header / Clickable Toggle */}
                     <button
@@ -625,7 +708,7 @@ export const RulesPage: React.FC = () => {
                       <div className="flex items-start gap-3 sm:gap-4 flex-1">
                         {/* Rule Number Badge */}
                         <span
-                          className="w-7 h-7 sm:w-8 sm:h-8 rounded font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 border bg-surface-elevated border-border-muted text-text-primary"
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 border ${badgeNumberClass}`}
                           aria-hidden="true"
                         >
                           {rule.id}
@@ -635,13 +718,13 @@ export const RulesPage: React.FC = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             {/* Round Geometric Symbol if applicable */}
                             {rule.roundSymbol === 'circle' && (
-                              <CircleShape size={13} color="#ff004f" aria-hidden="true" />
+                              <CircleShape size={13} color="currentColor" strokeWidth={1.5} className="text-signal-red" aria-hidden="true" />
                             )}
                             {rule.roundSymbol === 'triangle' && (
-                              <TriangleShape size={13} color="#00f0ff" aria-hidden="true" />
+                              <TriangleShape size={13} color="currentColor" strokeWidth={1.5} className="text-accent-cyan" aria-hidden="true" />
                             )}
                             {rule.roundSymbol === 'square' && (
-                              <SquareShape size={13} color="#00e676" aria-hidden="true" />
+                              <SquareShape size={13} color="currentColor" strokeWidth={1.5} className="text-signal-green" aria-hidden="true" />
                             )}
 
                             <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">
@@ -679,7 +762,7 @@ export const RulesPage: React.FC = () => {
                       {/* Expand / Collapse Icon */}
                       <div className="text-text-muted hover:text-text-primary mt-1 p-1" aria-hidden="true">
                         {isExpanded ? (
-                          <ChevronUp className="w-4 h-4" />
+                          <ChevronUp className="w-4 h-4 text-text-primary" />
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
@@ -690,7 +773,7 @@ export const RulesPage: React.FC = () => {
                     {isExpanded && (
                       <div
                         id={`rule-content-${rule.id}`}
-                        className="px-4 sm:px-5 pb-5 pt-2 border-t border-border-subtle bg-surface-elevated/30 space-y-3"
+                        className="px-4 sm:px-5 pb-5 pt-3 border-t border-border-subtle bg-surface-elevated/30 space-y-3"
                       >
                         <div className="pl-10 sm:pl-12 space-y-3">
                           <div className="space-y-1">
@@ -708,10 +791,10 @@ export const RulesPage: React.FC = () => {
                               <h4 className="text-[11px] font-mono text-text-muted uppercase tracking-wider">
                                 Key Requirements:
                               </h4>
-                              <ul className="space-y-1 text-xs font-mono">
+                              <ul className="space-y-1.5 text-xs font-mono">
                                 {rule.keyDetails.map((detail, idx) => (
                                   <li key={idx} className="flex items-start gap-2 text-text-secondary">
-                                    <span className="text-text-muted" aria-hidden="true">•</span>
+                                    <span className="text-signal-red mt-0.5 text-xs font-bold" aria-hidden="true">▸</span>
                                     <span>{detail}</span>
                                   </li>
                                 ))}
@@ -732,10 +815,17 @@ export const RulesPage: React.FC = () => {
         <section aria-labelledby="emergency-notice-heading">
           <div
             role="note"
-            className="p-5 sm:p-6 rounded-lg bg-surface border border-border-subtle flex items-start gap-3.5"
+            className="facility-card p-5 sm:p-6 border-signal-red/30 bg-surface flex items-start gap-3.5"
           >
-            <AlertOctagon className="w-5 h-5 text-signal-red flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-signal-red/10 border border-signal-red/25 flex items-center justify-center flex-shrink-0 text-signal-red mt-0.5">
+              <AlertOctagon className="w-4 h-4" aria-hidden="true" />
+            </div>
             <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] text-signal-red uppercase tracking-wider font-semibold">CONTINGENCY CLAUSE</span>
+                <span className="text-text-muted text-[10px]">·</span>
+                <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">OFFICIAL PROTOCOL</span>
+              </div>
               <h2 id="emergency-notice-heading" className="font-display font-semibold text-sm text-text-primary uppercase tracking-wide">
                 Emergency Backup &amp; Event Adjudication Protocol
               </h2>

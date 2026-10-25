@@ -54,12 +54,6 @@ export default {
           'gold-subtle': 'var(--accent-gold-subtle)',
         },
       },
-      borderRadius: {
-        sm: 'var(--radius-sm)',
-        DEFAULT: 'var(--radius-md)',
-        md: 'var(--radius-md)',
-        lg: 'var(--radius-lg)',
-      },
       fontFamily: {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         display: ['"Chakra Petch"', 'Rajdhani', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -73,8 +67,8 @@ export default {
       },
       keyframes: {
         'pulse-glow': {
-          '0%, 100%': { opacity: '1', filter: 'drop-shadow(0 0 15px rgba(255, 0, 79, 0.6))' },
-          '50%': { opacity: '.8', filter: 'drop-shadow(0 0 5px rgba(255, 0, 79, 0.2))' },
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '.5' },
         },
         'scanline': {
           '0%': { transform: 'translateY(-100%)' },

@@ -15,7 +15,7 @@
     --border-subtle: #1c202d;
     --border-muted: #272d3e;
     --border-strong: #3b4358;
-    --border-form: #4d5668; /* >= 3.2:1 against form backgrounds */
+    --border-form: #667085; /* contrast must be verified in a checker */
 
     /* Text & Contrast (>= 4.5:1 for muted text) */
     --text-primary: #f8fafc;
@@ -44,11 +44,11 @@
     font-family: 'Rajdhani', 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Accessible focus rings for keyboard navigation */
+  /* Accessible neutral focus rings for keyboard navigation (2px neutral ring, offset) */
   :focus-visible {
-    outline: 2px solid #ff004f;
+    outline: 2px solid #cbd5e1;
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 2px;
   }
 
   /* Respect reduced motion preference */
@@ -59,28 +59,110 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
-/* Custom Cyber & Scanline Effects */
-.scanline-overlay {
+/* Faint dot / hairline grid at 3-5% opacity on page background only (no images, no blur) */
+.bg-grid-subtle {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+}
+
+/* Facility Card: Flat surface, 1px hairline border, subtle hover transform */
+.facility-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.facility-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+/* Cursor-Tracking Spotlight Border (hairline mask, disabled on touch and reduced motion) */
+.spotlight-card {
   position: relative;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.scanline-overlay::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
-  z-index: 20;
-  background-size: 100% 3px, 6px 100%;
-  pointer-events: none;
-  opacity: 0.6;
+.spotlight-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
 }
 
-/* Scrollbar Styling */
+@media (hover: hover) and (pointer: fine) {
+  .spotlight-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(160px circle at var(--x, -100px) var(--y, -100px), rgba(255, 255, 255, 0.08), transparent 70%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* Monospace ID Badge with clipped corner via clip-path */
+.id-badge {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+}
+
+/* Shape draw-on animation */
+@keyframes draw-shape {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-shape {
+  stroke-dasharray: 60;
+  animation: draw-shape 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Slow Ticker of shapes as section divider (paused on hover, hidden under reduced motion) */
+@keyframes ticker-slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker-slide 32s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Neutral shimmer keyframe for Skeleton (animates transform only) */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer-sweep 1.8s infinite linear;
+}
+
+/* Scrollbar Styling: Clean & Neutral */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -90,42 +172,25 @@
 }
 ::-webkit-scrollbar-thumb {
   background: #232936;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff004f;
+  background: #3b4358;
 }
 
-/* Accessibility: Respect Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  .facility-card:hover,
+  .spotlight-card:hover {
+    transform: none !important;
   }
-}
-
-/* Utility: Glowing text shadow for key headings */
-.text-glow-red {
-  text-shadow: 0 0 30px rgba(255, 0, 79, 0.4);
-}
-
-/* Card hover lift effect */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* 3D Transform Utilities for Aceternity UI Comet Cards */
-.perspective-distant {
-  perspective: 1200px;
-}
-.transform-3d {
-  transform-style: preserve-3d;
+  .spotlight-card::before {
+    display: none !important;
+  }
+  .animate-draw-shape {
+    stroke-dasharray: none !important;
+    animation: none !important;
+  }
+  .animate-shimmer {
+    animation: none !important;
+  }
 }
