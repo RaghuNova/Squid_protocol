@@ -70,10 +70,15 @@ export async function resolveEffectiveTeamId(req: Request): Promise<string | nul
  * scored submissions.
  */
 export async function resolveSubmittingTeamId(req: Request): Promise<string | null> {
-  if (!req.user || req.user.role !== UserRole.TEAM || !req.user.userId) return null;
+  if (!req.user || req.user.role !== UserRole.TEAM) return null;
 
-  // Use the current account-to-team link from the database. This avoids stale
-  // JWT claims authorizing a submission for a team the account no longer owns.
+  // Team login issues a signed token containing that team's ID. Use this claim
+  // directly so a valid logged-in team is not rejected if its database user
+  // association is temporarily stale or was changed after the session began.
+  if (req.user.teamId) return req.user.teamId;
+  if (!req.user.userId) return null;
+
+  // Older team tokens may not include teamId; resolve those from the account.
   const user = await prisma.user.findUnique({
     where: { id: req.user.userId },
     select: { role: true, teamId: true }
