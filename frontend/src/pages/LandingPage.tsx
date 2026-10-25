@@ -35,9 +35,6 @@ export const LandingPage: React.FC = () => {
             <UmbrellaShape size={18} color="#ffd166" />
             <StarShape size={18} color="#a855f7" />
             <DiamondShape size={18} color="#00e676" />
-            <span className="text-[11px] font-mono font-semibold tracking-widest text-gray-300 ml-2 uppercase">
-              INTER-COLLEGE TECH COMPETITION
-            </span>
           </div>
 
           {/* Title & Tagline */}
