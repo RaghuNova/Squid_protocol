@@ -7,6 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Preserved existing squid.* palette aliases for full backward compatibility
         squid: {
           dark: '#0a0b0e',
           card: '#12151c',
@@ -20,7 +21,44 @@ export default {
           gold: '#ffd166',
           cyan: '#00f0ff',
           muted: '#8b949e',
-        }
+        },
+        // Minimal semantic CSS-variable token mapping
+        canvas: 'var(--bg-canvas)',
+        surface: {
+          DEFAULT: 'var(--bg-surface)',
+          elevated: 'var(--bg-elevated)',
+          overlay: 'var(--bg-overlay)',
+          input: 'var(--bg-input)',
+        },
+        border: {
+          subtle: 'var(--border-subtle)',
+          muted: 'var(--border-muted)',
+          strong: 'var(--border-strong)',
+          form: 'var(--border-form)',
+        },
+        text: {
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+        },
+        signal: {
+          red: 'var(--signal-red)',
+          'red-subtle': 'var(--signal-red-subtle)',
+          green: 'var(--signal-green)',
+          'green-subtle': 'var(--signal-green-subtle)',
+        },
+        accent: {
+          cyan: 'var(--accent-cyan)',
+          'cyan-subtle': 'var(--accent-cyan-subtle)',
+          gold: 'var(--accent-gold)',
+          'gold-subtle': 'var(--accent-gold-subtle)',
+        },
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        DEFAULT: 'var(--radius-md)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
