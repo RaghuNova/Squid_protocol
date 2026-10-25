@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
+import { prisma } from '../prisma.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'squid-protocol-ultra-secure-jwt-key-dev-32chars';
 
@@ -23,17 +24,58 @@ export function generateToken(payload: AuthUser): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 }
 
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
-  let token: string | undefined;
-
-  // 1. Check HttpOnly cookie
-  if (req.cookies && req.cookies.squid_token) {
-    token = req.cookies.squid_token;
+export async function resolveEffectiveTeamId(req: Request): Promise<string | null> {
+  if (req.user?.teamId) {
+    return req.user.teamId;
   }
 
-  // 2. Fallback to Authorization header
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+  // Look up user in database if teamId was not in JWT
+  if (req.user?.userId) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { teamId: true }
+      });
+      if (user?.teamId) {
+        if (req.user) req.user.teamId = user.teamId;
+        return user.teamId;
+      }
+    } catch {
+      // Continue to next check
+    }
+  }
+
+  // Allow administrators to test or act on behalf of teams
+  if (req.user?.role === UserRole.ADMIN) {
+    const headerCode = (req.headers['x-team-code'] as string) || (req.body?.teamCode as string);
+    if (headerCode) {
+      const team = await prisma.team.findFirst({
+        where: { teamCode: { equals: headerCode.trim(), mode: 'insensitive' } },
+        select: { id: true }
+      });
+      if (team) return team.id;
+    }
+    const defaultTeam = await prisma.team.findFirst({
+      where: { teamCode: 'TEAM01' },
+      select: { id: true }
+    });
+    if (defaultTeam) return defaultTeam.id;
+  }
+
+  return null;
+}
+
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
+  let token: string | undefined;
+
+  // 1. Prioritize explicit Authorization header (Bearer token)
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
+  }
+
+  // 2. Fallback to HttpOnly cookie if no Authorization header provided
+  if (!token && req.cookies && req.cookies.squid_token) {
+    token = req.cookies.squid_token;
   }
 
   if (!token) {
@@ -47,6 +89,22 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+
+    // Fallback: If teamId is missing on decoded token, check the database
+    if (!decoded.teamId && decoded.userId) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { teamId: true, role: true }
+        });
+        if (user?.teamId) {
+          decoded.teamId = user.teamId;
+        }
+      } catch {
+        // Ignore DB lookup error and continue with token payload
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (err) {
@@ -82,8 +140,9 @@ export function requireRole(...roles: UserRole[]) {
   };
 }
 
-export function requireTeam(req: Request, res: Response, next: NextFunction): void {
-  if (!req.user || req.user.role !== UserRole.TEAM || !req.user.teamId) {
+export async function requireTeam(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const teamId = await resolveEffectiveTeamId(req);
+  if (!req.user || !teamId) {
     res.status(403).json({
       success: false,
       error: 'TEAM_ONLY',
@@ -91,5 +150,6 @@ export function requireTeam(req: Request, res: Response, next: NextFunction): vo
     });
     return;
   }
+  req.user.teamId = teamId;
   next();
 }

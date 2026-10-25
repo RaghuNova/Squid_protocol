@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshMe]);
 
   const loginTeam = async (teamCode: string, pin: string) => {
+    localStorage.removeItem('squid_token_backup');
     const res = await apiRequest<{ success: boolean; token: string; team: Team }>('/auth/team/login', {
       method: 'POST',
       body: JSON.stringify({ teamCode, pin })
@@ -54,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginAdmin = async (username: string, password: string) => {
+    localStorage.removeItem('squid_token_backup');
     const res = await apiRequest<{ success: boolean; token: string; user: User }>('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })

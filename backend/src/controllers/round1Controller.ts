@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { round1Service } from '../services/round1Service.js';
+import { resolveEffectiveTeamId } from '../middleware/auth.js';
 
 const SubmitSchema = z.object({
   questionId: z.string().uuid(),
@@ -10,7 +11,7 @@ const SubmitSchema = z.object({
 
 export async function getRound1(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId || undefined;
+    const teamId = (await resolveEffectiveTeamId(req)) || undefined;
     const data = await round1Service.getRound1Data(teamId);
     res.json({ success: true, ...data });
   } catch (err) {
@@ -20,7 +21,7 @@ export async function getRound1(req: Request, res: Response, next: NextFunction)
 
 export async function submitRound1(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId;
+    const teamId = await resolveEffectiveTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED', message: 'Only team accounts can submit.' });
       return;

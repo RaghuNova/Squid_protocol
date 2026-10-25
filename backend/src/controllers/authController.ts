@@ -190,7 +190,8 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        teamId: user.teamId
       },
       team: user.team ? {
         id: user.team.id,

@@ -354,4 +354,63 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       expect(res.body.announcement.isFinalized).toBe(false);
     });
   });
+
+  describe('5. Auth Bearer Precedence & Team Submission Resolution', () => {
+    it('prioritizes Authorization Bearer header over stale squid_token cookie', async () => {
+      // Send admin cookie in Cookie header, but test01 Bearer in Authorization header
+      const res = await request(app)
+        .get('/api/v1/auth/me')
+        .set('Cookie', [`squid_token=${adminToken}`])
+        .set('Authorization', `Bearer ${test01Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // Must be TEST01 team user, NOT admin
+      expect(res.body.user.role).toBe('TEAM');
+      expect(res.body.team.teamCode).toBe('TEST01');
+      expect(res.body.user.teamId).toBe(res.body.team.id);
+    });
+
+    it('allows team to submit an answer without TEAM_REQUIRED error', async () => {
+      // Fetch current question for round 1
+      const qRes = await request(app)
+        .get('/api/v1/round1/questions')
+        .set('Authorization', `Bearer ${test01Token}`);
+
+      expect(qRes.status).toBe(200);
+      if (qRes.body.currentQuestion) {
+        const submitRes = await request(app)
+          .post('/api/v1/round1/submit')
+          .set('Authorization', `Bearer ${test01Token}`)
+          .send({
+            questionId: qRes.body.currentQuestion.id,
+            selectedOption: 'A'
+          });
+
+        expect(submitRes.status).not.toBe(403);
+        expect(submitRes.body.error).not.toBe('TEAM_REQUIRED');
+      }
+    });
+
+    it('allows administrator to test round1 submission without TEAM_REQUIRED error', async () => {
+      const qRes = await request(app)
+        .get('/api/v1/round1/questions')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(qRes.status).toBe(200);
+      if (qRes.body.currentQuestion) {
+        const submitRes = await request(app)
+          .post('/api/v1/round1/submit')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .set('x-team-code', 'TEST02')
+          .send({
+            questionId: qRes.body.currentQuestion.id,
+            selectedOption: 'A'
+          });
+
+        expect(submitRes.status).not.toBe(403);
+        expect(submitRes.body.error).not.toBe('TEAM_REQUIRED');
+      }
+    });
+  });
 });

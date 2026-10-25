@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { round3Service } from '../services/round3Service.js';
+import { resolveEffectiveTeamId } from '../middleware/auth.js';
 
 const QRRedeemSchema = z.object({
   code: z.string().min(1).max(100)
@@ -12,7 +13,7 @@ const FinalKeySubmitSchema = z.object({
 
 export async function getRound3(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId;
+    const teamId = await resolveEffectiveTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED' });
       return;
@@ -27,7 +28,7 @@ export async function getRound3(req: Request, res: Response, next: NextFunction)
 
 export async function redeemQRCode(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId;
+    const teamId = await resolveEffectiveTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED' });
       return;
@@ -54,7 +55,7 @@ export async function redeemQRCode(req: Request, res: Response, next: NextFuncti
 
 export async function submitFinalKey(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId;
+    const teamId = await resolveEffectiveTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED' });
       return;

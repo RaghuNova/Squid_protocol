@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
+import { resolveEffectiveTeamId } from '../middleware/auth.js';
 
 export async function getTeamMe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = req.user?.teamId;
+    const teamId = (await resolveEffectiveTeamId(req)) || req.user?.teamId;
     if (!teamId) {
       res.status(403).json({ success: false, error: 'NO_TEAM_ASSOCIATED' });
       return;
