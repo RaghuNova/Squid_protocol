@@ -65,6 +65,24 @@ export async function resolveEffectiveTeamId(req: Request): Promise<string | nul
   return null;
 }
 
+/** Resolve a team only when the authenticated account itself is a team account.
+ * Admin impersonation is useful for read-only previews, but must never authorize
+ * scored submissions.
+ */
+export async function resolveSubmittingTeamId(req: Request): Promise<string | null> {
+  if (!req.user || req.user.role !== UserRole.TEAM || !req.user.userId) return null;
+
+  // Use the current account-to-team link from the database. This avoids stale
+  // JWT claims authorizing a submission for a team the account no longer owns.
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    select: { role: true, teamId: true }
+  });
+  if (!user || user.role !== UserRole.TEAM || !user.teamId) return null;
+  req.user.teamId = user.teamId;
+  return user.teamId;
+}
+
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   let token: string | undefined;
 
