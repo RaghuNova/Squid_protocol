@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../../services/api';
+import { apiRequest, cleanApiBaseUrl } from '../../services/api';
 import { SignalIndicator } from '../../components/SignalIndicator';
 import { CountdownTimer } from '../../components/CountdownTimer';
 import {
@@ -145,7 +145,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleExportCSV = async () => {
-    window.open(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/admin/export/csv`, '_blank');
+    window.open(`${cleanApiBaseUrl}/api/v1/admin/export/csv`, '_blank');
   };
 
   const handleConfirmRestart = async () => {

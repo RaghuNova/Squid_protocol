@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { apiRequest } from '../services/api';
+import { apiRequest, cleanApiBaseUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { LeaderboardTeam } from '../types/game';
 import { Trophy, Medal, Award, Flame, ShieldAlert, RefreshCw, Lock, ArrowLeft } from 'lucide-react';
@@ -45,8 +45,8 @@ export const LeaderboardPage: React.FC = () => {
 
     if (user?.role !== 'ADMIN') return;
 
-    const streamUrl = import.meta.env.VITE_API_BASE_URL
-      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/live/stream`
+    const streamUrl = cleanApiBaseUrl
+      ? `${cleanApiBaseUrl}/api/v1/live/stream`
       : '/api/v1/live/stream';
 
     let eventSource: EventSource | null = null;

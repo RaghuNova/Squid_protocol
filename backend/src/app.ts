@@ -25,15 +25,23 @@ app.use(helmet({
 // CORS Configuration
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173')
   .split(',')
-  .map(o => o.trim());
+  .map(o => o.trim().replace(/\/+$/, ''));
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    const isAllowed = 
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV === 'development';
+
+    if (isAllowed) {
       return callback(null, true);
     }
+    console.warn(`[CORS Blocked] Origin "${origin}" not permitted. Allowed:`, allowedOrigins);
     return callback(new Error(`Origin ${origin} not permitted by CORS policy.`));
   },
   credentials: true,

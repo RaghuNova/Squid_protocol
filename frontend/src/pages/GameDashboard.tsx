@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiRequest } from '../services/api';
+import { apiRequest, cleanApiBaseUrl } from '../services/api';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { SystemStatusStrip, SSEConnectionStatus } from '../components/SystemStatusStrip';
@@ -141,8 +141,8 @@ export const GameDashboard: React.FC = () => {
 
   // Real-time updates via Server-Sent Events (SSE) with live connection health monitoring
   useEffect(() => {
-    const streamUrl = import.meta.env.VITE_API_BASE_URL
-      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/live/stream`
+    const streamUrl = cleanApiBaseUrl
+      ? `${cleanApiBaseUrl}/api/v1/live/stream`
       : '/api/v1/live/stream';
 
     let eventSource: EventSource | null = null;
