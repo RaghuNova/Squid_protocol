@@ -20,39 +20,39 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     {
       to: '/rules',
-      icon: <BookOpen className="w-4 h-4 text-[#ff2e7e]" aria-hidden="true" />,
+      icon: <BookOpen className="w-4 h-4" aria-hidden="true" />,
       label: 'Rules',
       show: true,
     },
     {
       to: '/leaderboard',
-      icon: <Trophy className="w-4 h-4 text-[#ffd166]" aria-hidden="true" />,
+      icon: <Trophy className="w-4 h-4" aria-hidden="true" />,
       label: 'Leaderboard',
       show: user?.role === 'ADMIN',
     },
     {
       to: '/admin/dashboard',
-      icon: <Shield className="w-4 h-4 text-[#ff004f]" aria-hidden="true" />,
+      icon: <Shield className="w-4 h-4" aria-hidden="true" />,
       label: 'Admin Panel',
       show: user?.role === 'ADMIN',
     },
     {
       to: '/game',
-      icon: <Gamepad2 className="w-4 h-4 text-[#ff004f]" aria-hidden="true" />,
+      icon: <Gamepad2 className="w-4 h-4" aria-hidden="true" />,
       label: 'Arena',
       show: user?.role === 'TEAM',
     },
   ].filter(link => link.show);
 
   const linkClass = (path: string) =>
-    `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] ${
+    `flex items-center gap-2 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
       isActive(path)
-        ? 'bg-gray-800 text-white border border-gray-700'
-        : 'text-gray-400 hover:text-white hover:bg-gray-900'
+        ? 'bg-surface text-text-primary border-border-strong font-semibold'
+        : 'text-text-secondary hover:text-text-primary hover:bg-surface/60 border-transparent'
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-800/80 bg-[#08090c]/90 backdrop-blur-md" role="navigation" aria-label="Main navigation">
+    <nav className="sticky top-0 z-50 border-b border-border-subtle bg-canvas" role="navigation" aria-label="Main navigation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
@@ -60,21 +60,22 @@ export const Navbar: React.FC = () => {
             <IEEELogo
               size="md"
               withContainer
-              containerClassName="group-hover:border-[#ff004f]/50 transition-colors"
+              containerClassName="group-hover:border-border-strong transition-colors"
             />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-display font-black tracking-widest text-base sm:text-lg text-white group-hover:text-[#ff004f] transition-colors">
+                <span className="font-display font-bold tracking-wide text-base sm:text-lg text-text-primary group-hover:text-[#ff004f] transition-colors">
                   SQUID<span className="text-[#ff004f]"> PROTOCOL</span>
                 </span>
-                <div className="hidden lg:flex items-center gap-1 opacity-70 ml-0.5" aria-hidden="true">
+                {/* Structural Protocol markers: 01 (Red), 02 (Cyan), 03 (Green) */}
+                <div className="hidden lg:flex items-center gap-1 opacity-80 ml-0.5" aria-hidden="true">
                   <CircleShape size={9} color="#ff004f" />
-                  <TriangleShape size={9} color="#ff2e7e" />
-                  <SquareShape size={9} color="#00f0ff" />
+                  <TriangleShape size={9} color="#00f0ff" />
+                  <SquareShape size={9} color="#00e676" />
                 </div>
               </div>
-              <span className="hidden sm:block text-[10px] font-mono tracking-widest text-gray-500 uppercase leading-none">
-                IEEE NISB · SURVIVE THE SYSTEM
+              <span className="hidden sm:block text-[10px] font-mono tracking-wider text-text-muted uppercase leading-none">
+                IEEE NISB · TOURNAMENT ENGINE
               </span>
             </div>
           </Link>
@@ -82,8 +83,15 @@ export const Navbar: React.FC = () => {
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-2">
             {navLinks.map(link => (
-              <Link key={link.to} to={link.to} className={linkClass(link.to)}>
-                {link.icon}
+              <Link
+                key={link.to}
+                to={link.to}
+                aria-current={isActive(link.to) ? 'page' : undefined}
+                className={linkClass(link.to)}
+              >
+                <span className={isActive(link.to) ? 'text-text-primary' : 'text-text-muted'}>
+                  {link.icon}
+                </span>
                 <span>{link.label}</span>
               </Link>
             ))}
@@ -93,10 +101,10 @@ export const Navbar: React.FC = () => {
               onClick={toggleMute}
               aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
               title={isMuted ? 'Unmute Game SFX' : 'Mute Game SFX'}
-              className="p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors"
+              className="p-2 rounded-md bg-surface border border-border-form text-text-muted hover:text-text-primary hover:border-border-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas cursor-pointer"
             >
               {isMuted
-                ? <VolumeX className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                ? <VolumeX className="w-4 h-4 text-text-muted" aria-hidden="true" />
                 : <Volume2 className="w-4 h-4 text-[#00e676]" aria-hidden="true" />
               }
             </button>
@@ -104,14 +112,14 @@ export const Navbar: React.FC = () => {
             {/* Auth State */}
             {team ? (
               <div className="flex items-center gap-2">
-                <div className="hidden md:flex flex-col items-end px-3 py-1 rounded bg-[#12151c] border border-gray-800 text-xs leading-tight">
-                  <span className="font-mono text-gray-400">{team.teamCode}</span>
-                  <span className="font-bold text-[#00e676]">{team.totalScore} PTS</span>
+                <div className="hidden md:flex flex-col items-end px-3 py-1 rounded-md bg-surface border border-border-subtle text-xs leading-tight font-mono">
+                  <span className="text-text-muted">{team.teamCode}</span>
+                  <span className="font-bold text-[#00e676] tabular-nums">{team.totalScore} PTS</span>
                 </div>
                 <button
                   onClick={() => logout()}
                   aria-label="Log out of team"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-red-950/40 text-red-400 border border-red-900/50 hover:bg-red-900/50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-[#ff004f] hover:border-[#ff004f]/40 hover:bg-signal-red-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                   <span className="hidden sm:inline">LOG OUT</span>
@@ -121,7 +129,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => logout()}
                 aria-label="Log out"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>LOG OUT</span>
@@ -129,7 +137,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-[#ff004f] text-white hover:bg-[#ff2e7e] transition-colors shadow-[0_0_15px_rgba(255,0,79,0.35)]"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-[#ff004f] hover:bg-[#e00045] text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
                 <LogIn className="w-4 h-4" aria-hidden="true" />
                 <span>SIGN IN</span>
@@ -137,18 +145,18 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile: score badge + hamburger */}
+          {/* Mobile: score badge + sound toggle + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
             {team && (
-              <span className="font-bold text-[#00e676] text-sm font-mono">{team.totalScore} PTS</span>
+              <span className="font-bold text-[#00e676] text-sm font-mono tabular-nums">{team.totalScore} PTS</span>
             )}
             <button
               onClick={toggleMute}
               aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
-              className="p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-400"
+              className="p-2 rounded-md bg-surface border border-border-form text-text-muted"
             >
               {isMuted
-                ? <VolumeX className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                ? <VolumeX className="w-4 h-4 text-text-muted" aria-hidden="true" />
                 : <Volume2 className="w-4 h-4 text-[#00e676]" aria-hidden="true" />
               }
             </button>
@@ -157,7 +165,7 @@ export const Navbar: React.FC = () => {
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
-              className="p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
+              className="p-2 rounded-md bg-surface border border-border-form text-text-secondary hover:text-text-primary cursor-pointer"
             >
               {mobileMenuOpen
                 ? <X className="w-5 h-5" aria-hidden="true" />
@@ -172,7 +180,7 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div
           id="mobile-menu"
-          className="sm:hidden border-t border-gray-800/80 bg-[#08090c]/95 backdrop-blur-md animate-fade-in"
+          className="sm:hidden border-t border-border-subtle bg-canvas"
           role="menu"
         >
           <div className="px-4 py-3 space-y-1">
@@ -181,28 +189,31 @@ export const Navbar: React.FC = () => {
                 key={link.to}
                 to={link.to}
                 role="menuitem"
+                aria-current={isActive(link.to) ? 'page' : undefined}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full ${
                   isActive(link.to)
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                    ? 'bg-surface text-text-primary border border-border-strong font-semibold'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface/60'
                 }`}
               >
-                {link.icon}
+                <span className={isActive(link.to) ? 'text-text-primary' : 'text-text-muted'}>
+                  {link.icon}
+                </span>
                 <span>{link.label}</span>
               </Link>
             ))}
 
-            <div className="pt-2 border-t border-gray-800/60 mt-2">
+            <div className="pt-2 border-t border-border-subtle mt-2">
               {team ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#12151c] border border-gray-800 text-xs font-mono">
-                    <span className="text-gray-400">{team.teamCode}</span>
-                    <span className="font-bold text-[#00e676]">{team.totalScore} PTS</span>
+                  <div className="flex items-center justify-between px-3 py-2 rounded-md bg-surface border border-border-subtle text-xs font-mono">
+                    <span className="text-text-muted">{team.teamCode}</span>
+                    <span className="font-bold text-[#00e676] tabular-nums">{team.totalScore} PTS</span>
                   </div>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-mono bg-red-950/40 text-red-400 border border-red-900/50"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-[#ff004f] hover:bg-signal-red-subtle cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" aria-hidden="true" />
                     <span>EXIT GAME</span>
@@ -211,7 +222,7 @@ export const Navbar: React.FC = () => {
               ) : user ? (
                 <button
                   onClick={() => { logout(); setMobileMenuOpen(false); }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-mono bg-gray-800 text-gray-300"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" aria-hidden="true" />
                   <span>LOGOUT</span>
@@ -220,7 +231,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#ff004f] text-white"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold bg-[#ff004f] text-white"
                 >
                   <LogIn className="w-4 h-4" aria-hidden="true" />
                   <span>TEAM LOGIN</span>
