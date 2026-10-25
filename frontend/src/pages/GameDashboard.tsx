@@ -12,6 +12,7 @@ import { Round3View } from '../features/round3/Round3View';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { RoundControl, Question, SudokuData, BrokenLogicData } from '../types/game';
 import { Users, Lock, CheckCircle2, ShieldCheck, Flame, Radio, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Card, Badge, Button } from '../components/ui';
 
 export const GameDashboard: React.FC = () => {
   const { user, team, isLoading: authLoading, refreshMe } = useAuth();
@@ -139,7 +140,7 @@ export const GameDashboard: React.FC = () => {
     }
   }, [user, loadAll]);
 
-  // Real-time updates via Server-Sent Events (SSE) with live connection health monitoring
+  // Real-time updates via Server-Sent Events (SSE)
   useEffect(() => {
     const streamUrl = import.meta.env.VITE_API_BASE_URL
       ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/live/stream`
@@ -213,10 +214,10 @@ export const GameDashboard: React.FC = () => {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-[#08090c] text-white flex items-center justify-center font-mono text-sm">
+      <div className="min-h-screen bg-[#08090d] text-white flex items-center justify-center font-mono text-xs">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-[#ff004f] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-          <span>ESTABLISHING SECURE SQUAD LINK...</span>
+          <span className="text-gray-400 uppercase tracking-wider">CONNECTING TO ARENA MAINFRAME...</span>
         </div>
       </div>
     );
@@ -279,7 +280,7 @@ export const GameDashboard: React.FC = () => {
       id: 1,
       num: '01',
       title: 'THE SIGNAL PROTOCOL',
-      subtitle: '10 Sequential MCQs • Red/Green Traffic',
+      subtitle: '10 Sequential MCQs • Signal Controlled',
       status: round1Data.isCompleted
         ? 'COMPLETED'
         : round1Data.round?.status === 'PAUSED'
@@ -295,7 +296,7 @@ export const GameDashboard: React.FC = () => {
       id: 2,
       num: '02',
       title: 'THE LOGIC PROTOCOL',
-      subtitle: 'Stage 1: Shape Sudoku • Stage 2: Broken Logic',
+      subtitle: 'Shape Sudoku • Broken Logic Puzzle',
       status: round2Data.brokenLogic?.isCompleted
         ? 'COMPLETED'
         : round2Data.round?.status === 'PAUSED'
@@ -309,7 +310,7 @@ export const GameDashboard: React.FC = () => {
       id: 3,
       num: '03',
       title: 'THE FINAL BREACH',
-      subtitle: 'Physical QR Gate • Multi-Lang Debugging',
+      subtitle: 'Physical QR Gate • Firmware Debugging',
       status: round3Data.isCompleted
         ? 'COMPLETED'
         : round3Data.round?.status === 'PAUSED'
@@ -322,11 +323,11 @@ export const GameDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#08090c] text-gray-100 flex flex-col font-sans selection:bg-[#ff004f] selection:text-white">
+    <div className="min-h-screen bg-[#08090d] text-gray-100 flex flex-col font-sans selection:bg-[#ff004f] selection:text-white">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6 w-full">
-        {/* Real-Time System Status Strip (Improvement 1) */}
+        {/* Real-Time System Status Strip */}
         <SystemStatusStrip
           protocolNumber={activeStage.protocolNumber}
           protocolTitle={activeStage.protocolTitle}
@@ -341,15 +342,13 @@ export const GameDashboard: React.FC = () => {
           onTimerExpire={loadAll}
         />
 
-        {/* Squad Status Header (No other teams' scores shown - confidential event rule) */}
-        <div className="p-6 rounded-2xl bg-[#12151c] border border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-[#ff004f]/10 to-transparent pointer-events-none" />
-
-          <div className="space-y-1">
+        {/* Squad Status Header */}
+        <Card variant="elevated" className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs px-2.5 py-0.5 rounded bg-[#ff004f]/20 border border-[#ff004f]/40 text-[#ff004f] font-bold">
+              <Badge variant="danger" size="sm">
                 {team?.teamCode}
-              </span>
+              </Badge>
               <h2 className="font-display font-black text-2xl text-white tracking-wide">
                 {team?.name}
               </h2>
@@ -360,42 +359,39 @@ export const GameDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800">
+          <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-[#1e2432]">
             <div className="text-right">
-              <span className="block text-[11px] font-mono text-gray-400 uppercase tracking-wider">MY TEAM SCORE</span>
-              <span className="font-display font-black text-3xl sm:text-4xl text-[#00e676] drop-shadow-[0_0_15px_rgba(0,230,118,0.3)] tabular-nums">
+              <span className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest">
+                MY SQUAD SCORE
+              </span>
+              <span className="font-display font-black text-3xl sm:text-4xl text-[#00e676] tabular-nums">
                 {team?.totalScore} <span className="text-xs text-gray-400 font-mono">PTS</span>
               </span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Protocol Stage Rail (Optional 1) */}
-        <section aria-label="Tournament protocol progression rail">
+        {/* Protocol Navigation Tabs */}
+        <section aria-label="Tournament protocol progression switcher">
           <div
-            role="tablist"
-            aria-label="Tournament protocol stages"
-            className="grid grid-cols-1 md:grid-cols-3 gap-3 p-2 rounded-2xl bg-[#0e1118] border border-gray-800"
+            className="grid grid-cols-1 md:grid-cols-3 gap-3 p-2 rounded-2xl bg-[#0f1218] border border-[#1e2432]"
           >
             {protocols.map((p) => {
               const isSelected = activeTab === p.id;
               const isCompleted = p.status === 'COMPLETED';
               const isPaused = p.status === 'PAUSED';
               const isActive = p.status === 'ACTIVE';
-              const isLocked = p.status === 'LOCKED' || p.status === 'UPCOMING';
 
               return (
                 <button
                   key={p.id}
-                  role="tab"
-                  id={`protocol-tab-${p.id}`}
-                  aria-selected={isSelected}
-                  aria-controls={`protocol-panel-${p.id}`}
+                  type="button"
+                  aria-current={isSelected ? 'true' : undefined}
                   onClick={() => setActiveTab(p.id)}
-                  className={`p-4 rounded-xl text-left transition-all duration-200 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1118] ${
+                  className={`p-4 rounded-xl text-left transition-all duration-150 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] ${
                     isSelected
-                      ? 'bg-[#181c26] border-[#ff004f] shadow-[0_0_20px_rgba(255,0,79,0.25)]'
-                      : 'bg-[#12151c]/60 border-gray-800 hover:border-gray-700 hover:bg-[#12151c]'
+                      ? 'bg-[#151922] border-[#ff004f] shadow-red-sm'
+                      : 'bg-[#0f1218] border-[#1e2432] hover:border-[#2c3447] hover:bg-[#141822]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -405,14 +401,14 @@ export const GameDashboard: React.FC = () => {
 
                     {/* Status Badge */}
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase tracking-wider ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-wider ${
                         isCompleted
-                          ? 'bg-[#00e676]/20 border border-[#00e676]/40 text-[#00e676]'
+                          ? 'bg-[#00e676]/15 border border-[#00e676]/40 text-[#00e676]'
                           : isPaused
                           ? 'bg-amber-950/60 border border-amber-500/50 text-amber-300'
                           : isActive
                           ? 'bg-cyan-950/60 border border-cyan-800/60 text-cyan-300'
-                          : 'bg-gray-800/80 border border-gray-700/60 text-gray-400'
+                          : 'bg-[#151922] border border-[#2c3447] text-gray-500'
                       }`}
                     >
                       {isCompleted ? (
@@ -446,7 +442,7 @@ export const GameDashboard: React.FC = () => {
                     {p.subtitle}
                   </p>
 
-                  <div className="mt-3 pt-2.5 border-t border-gray-800/80 flex items-center justify-between text-[10px] font-mono">
+                  <div className="mt-3 pt-2.5 border-t border-[#1e2432] flex items-center justify-between text-[10px] font-mono">
                     <span className="text-gray-400">{p.pointsBadge}</span>
                     <span className="text-[#ff004f] font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                       {isSelected ? 'Viewing' : 'Inspect'} <ArrowRight className="w-3 h-3 inline" aria-hidden="true" />
@@ -460,9 +456,7 @@ export const GameDashboard: React.FC = () => {
 
         {/* Active Round Content Panes */}
         <div
-          role="tabpanel"
           id={`protocol-panel-${activeTab}`}
-          aria-labelledby={`protocol-tab-${activeTab}`}
           className="focus-visible:outline-none"
         >
           {activeTab === 1 && (
@@ -478,28 +472,28 @@ export const GameDashboard: React.FC = () => {
           )}
 
           {activeTab === 2 && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {!round2Data.isUnlocked ? (
-                <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
-                  <div className="w-16 h-16 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
-                    <Lock className="w-8 h-8" />
+                <Card variant="elevated" cornerAccents className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-5">
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
+                    <Lock className="w-7 h-7" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <h2 className="text-2xl font-display font-bold text-white tracking-wide">
                       Round 2 — The Logic Protocol
                     </h2>
-                    <p className="text-sm font-mono text-gray-400">
-                      Status: <span className="text-cyan-400 font-bold uppercase">Locked</span>
-                    </p>
+                    <Badge variant="cyan" size="sm">
+                      AWAITING ACTIVATION SIGNAL
+                    </Badge>
                   </div>
-                  <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
+                  <p className="text-xs sm:text-sm text-gray-300 font-mono leading-relaxed max-w-lg mx-auto">
                     Round 2 is currently locked by tournament officials. Once Round 1 concludes, officials will activate Stage 1: Shape Sudoku.
                   </p>
-                </div>
+                </Card>
               ) : (
                 <>
-                  {/* Round 2 Live Timer */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-[#12151c] border border-gray-800">
+                  {/* Round 2 Sub-header Bar */}
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-[#0f1218] border border-[#1e2432]">
                     <div className="font-mono text-xs text-gray-400">
                       <span className="text-white font-bold block sm:inline">STAGE {round2Data.currentStage}: </span>
                       <span>{round2Data.currentStage === 1 ? 'Shape Sudoku (+100 PTS)' : 'Broken Logic Firmware Checksum (+200 PTS)'}</span>

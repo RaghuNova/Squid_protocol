@@ -2,6 +2,7 @@ import React from 'react';
 import { SignalState } from '../types/game';
 import { CountdownTimer } from './CountdownTimer';
 import { Wifi, WifiOff, Zap, CheckCircle2, AlertTriangle, Radio } from 'lucide-react';
+import { Badge } from './ui/Badge';
 
 export type SSEConnectionStatus = 'connected' | 'reconnecting' | 'disconnected';
 
@@ -39,13 +40,16 @@ export const SystemStatusStrip: React.FC<SystemStatusStripProps> = ({
   return (
     <section
       aria-label="Authoritative system telemetry status"
-      className={`p-3.5 sm:p-4 rounded-2xl bg-[#0e1118] border border-gray-800 shadow-xl select-none transition-all ${className}`}
+      className={`p-3.5 sm:p-4 rounded-2xl bg-[#0f1218] border border-[#1e2432] shadow-subtle select-none transition-all ${className}`}
     >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
         {/* Left Section: Active Protocol & Stage */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff004f] shadow-[0_0_8px_rgba(255,0,79,0.8)]" aria-hidden="true" />
+            <span
+              className="w-2.5 h-2.5 rounded-full bg-[#ff004f] shadow-red-sm"
+              aria-hidden="true"
+            />
             <span className="font-display font-black text-xs sm:text-sm tracking-wider text-white uppercase">
               PROTOCOL 0{protocolNumber}:
             </span>
@@ -54,22 +58,22 @@ export const SystemStatusStrip: React.FC<SystemStatusStripProps> = ({
             </span>
           </div>
 
-          <span className="hidden sm:inline-block text-gray-600 font-mono text-xs">•</span>
+          <span className="hidden sm:inline-block text-gray-600 font-mono text-xs" aria-hidden="true">•</span>
 
-          <span className="px-2.5 py-0.5 rounded-md bg-[#181c26] border border-gray-700/80 font-mono text-[11px] text-cyan-400 font-medium tracking-wide">
+          <span className="px-2.5 py-0.5 rounded-lg bg-[#151922] border border-[#2c3447] font-mono text-[11px] text-[#00f0ff] font-medium tracking-wide">
             {stageName}
           </span>
         </div>
 
         {/* Center / Right Section: Signal + 2X + Silent Timer + Link Health */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between lg:justify-end">
-          {/* Signal State Compact Pill (Display badge only; authoritative live announcer is SignalIndicator) */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-between lg:justify-end">
+          {/* Signal State Compact Pill */}
           <div
             aria-label={`Server signal state: ${isGreen ? 'Green Light' : 'Red Light'}`}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-xs font-bold transition-all ${
               isGreen
                 ? 'bg-[#00e676]/15 border-[#00e676]/40 text-[#00e676]'
-                : 'bg-red-950/60 border-red-800 text-red-400'
+                : 'bg-red-950/50 border-red-800/80 text-red-400'
             }`}
           >
             {isGreen ? (
@@ -77,21 +81,21 @@ export const SystemStatusStrip: React.FC<SystemStatusStripProps> = ({
             ) : (
               <AlertTriangle className="w-3.5 h-3.5 text-red-400" aria-hidden="true" />
             )}
-            <span>{isGreen ? 'GREEN' : 'RED LIGHT'}</span>
+            <span>{isGreen ? 'GREEN LIGHT' : 'RED LIGHT'}</span>
           </div>
 
           {/* Double Points Pill (when enabled) */}
           {doublePointsEnabled && (
             <div
               aria-label="Double points multiplier active"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#ffd166]/15 border border-[#ffd166]/40 text-[#ffd166] font-mono text-xs font-bold"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#f59e0b]/15 border border-[#f59e0b]/40 text-[#f59e0b] font-mono text-xs font-bold"
             >
-              <Zap className="w-3.5 h-3.5 fill-[#ffd166] animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+              <Zap className="w-3.5 h-3.5 fill-[#f59e0b] animate-pulse motion-reduce:animate-none" aria-hidden="true" />
               <span>2X POINTS</span>
             </div>
           )}
 
-          {/* Authoritative Timer Component (announce={false} prevents duplicate screen-reader live announcements) */}
+          {/* Authoritative Timer Component */}
           <CountdownTimer
             endTime={timerEndTime}
             remainingSeconds={timerRemainingSeconds}
@@ -102,7 +106,7 @@ export const SystemStatusStrip: React.FC<SystemStatusStripProps> = ({
             className="text-xs py-1"
           />
 
-          {/* Authoritative Live Telemetry Link Status */}
+          {/* Central Telemetry Link Status */}
           <div
             role="status"
             aria-label={`Central telemetry link status: ${

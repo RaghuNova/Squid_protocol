@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
-import { Question, RoundControl, SubmissionStatus } from '../../types/game';
+import React, { useState, useEffect } from 'react';
+import { Question, RoundControl } from '../../types/game';
 import { SignalIndicator } from '../../components/SignalIndicator';
 import { CountdownTimer } from '../../components/CountdownTimer';
 import { apiRequest } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
-import { Zap, CheckCircle2, XCircle, AlertTriangle, ArrowRight, ShieldAlert, Clock, HelpCircle, Lock } from 'lucide-react';
+import {
+  Zap,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ArrowRight,
+  ShieldAlert,
+  Clock,
+  HelpCircle,
+  Lock,
+} from 'lucide-react';
+import { Card, Badge, Button, TerminalWindow } from '../../components/ui';
 
 interface Round1ViewProps {
   round: RoundControl | null;
@@ -50,79 +61,98 @@ export const Round1View: React.FC<Round1ViewProps> = ({
   const isRed = round?.signalState === 'RED';
   const isDoublePoints = Boolean(round?.doublePointsEnabled);
 
+  // Keyboard shortcut listener: Press A, B, C, D to select option
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (isSubmitting || isPaused || isEnded || !currentQuestion) return;
+
+      const key = e.key.toUpperCase();
+      if (['A', 'B', 'C', 'D'].includes(key)) {
+        setSelectedOption(key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSubmitting, isPaused, isEnded, currentQuestion]);
+
   // 1. Waiting screen before round starts
   if (isUpcoming) {
     return (
-      <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
-        <div className="w-16 h-16 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
-          <Lock className="w-8 h-8" />
+      <Card variant="elevated" cornerAccents className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
+        <div className="w-14 h-14 rounded-2xl bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
+          <Lock className="w-7 h-7" />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <h2 className="text-2xl font-display font-bold text-white tracking-wide">
             Round 1 — The Signal Protocol
           </h2>
-          <p className="text-sm font-mono text-gray-400">
-            Status: <span className="text-cyan-400 font-bold uppercase">Awaiting Start Signal</span>
-          </p>
+          <Badge variant="cyan" size="sm">
+            AWAITING START SIGNAL
+          </Badge>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
+        <p className="text-xs sm:text-sm text-gray-300 font-mono leading-relaxed max-w-lg mx-auto">
           Tournament officials have not activated Round 1 yet. When the round begins, your team will receive 10 questions delivered sequentially. Watch the Red Light / Green Light signal carefully!
         </p>
-        <div className="p-4 rounded-xl bg-black/40 border border-gray-800/80 inline-flex items-center gap-3 font-mono text-xs text-gray-400">
-          <Clock className="w-4 h-4 text-cyan-400" aria-hidden="true" />
+        <div className="p-3 rounded-xl bg-[#08090d] border border-[#1e2432] inline-flex items-center gap-2.5 font-mono text-xs text-gray-400">
+          <Clock className="w-4 h-4 text-[#00f0ff]" aria-hidden="true" />
           <span>Scheduled Round Duration: 15 Minutes</span>
         </div>
-      </div>
+      </Card>
     );
   }
 
   // 2. All questions completed screen
   if (isCompleted) {
     return (
-      <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
-        <div className="w-16 h-16 rounded-full bg-[#00e676]/20 border border-[#00e676]/40 text-[#00e676] flex items-center justify-center mx-auto" aria-hidden="true">
-          <CheckCircle2 className="w-8 h-8" />
+      <Card variant="elevated" cornerAccents className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
+        <div className="w-14 h-14 rounded-2xl bg-[#00e676]/15 border border-[#00e676]/40 text-[#00e676] flex items-center justify-center mx-auto" aria-hidden="true">
+          <CheckCircle2 className="w-7 h-7" />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <h2 className="text-2xl font-display font-bold text-white tracking-wide">
             Round 1 Completed
           </h2>
-          <p className="text-sm font-mono text-[#00e676]">
-            All 10 questions have been finalized and scored.
-          </p>
+          <Badge variant="success" size="sm" hasDot>
+            10 / 10 QUESTIONS FINALIZED
+          </Badge>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
+        <p className="text-xs sm:text-sm text-gray-300 font-mono leading-relaxed max-w-lg mx-auto">
           Your responses for Round 1 have been securely committed to the server ledger. Stand by for tournament officials to announce Round 2 — The Logic Protocol.
         </p>
-        <button
+        <Button
           onClick={onRefresh}
-          className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
+          variant="secondary"
+          size="sm"
+          className="mx-auto"
         >
-          Refresh Status
-        </button>
-      </div>
+          REFRESH PROTOCOL STATUS
+        </Button>
+      </Card>
     );
   }
 
   // 3. Round ended / expired screen without completing
   if (isEnded && !currentQuestion) {
     return (
-      <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
-        <div className="w-16 h-16 rounded-full bg-red-950/40 border border-red-800/40 text-red-400 flex items-center justify-center mx-auto" aria-hidden="true">
-          <Clock className="w-8 h-8" />
+      <Card variant="elevated" cornerAccents className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
+        <div className="w-14 h-14 rounded-2xl bg-red-950/40 border border-red-800/40 text-red-400 flex items-center justify-center mx-auto" aria-hidden="true">
+          <Clock className="w-7 h-7" />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <h2 className="text-2xl font-display font-bold text-white tracking-wide">
             Round 1 Concluded
           </h2>
-          <p className="text-sm font-mono text-red-400">
-            The 15-minute time limit for Round 1 has expired.
-          </p>
+          <Badge variant="danger" size="sm">
+            TIME EXPIRED (15 MIN)
+          </Badge>
         </div>
-        <p className="text-sm text-gray-300 max-w-md mx-auto">
+        <p className="text-xs sm:text-sm text-gray-300 font-mono max-w-md mx-auto">
           Submissions for Round 1 are now closed. Awaiting tournament officials to transition to Round 2.
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -211,7 +241,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
         <div
           role="alert"
           aria-live="assertive"
-          className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-4 flex items-center gap-3 text-amber-300 font-mono text-sm"
+          className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-4 flex items-center gap-3 text-amber-300 font-mono text-xs sm:text-sm animate-fade-in"
         >
           <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-400 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
           <div>
@@ -226,11 +256,11 @@ export const Round1View: React.FC<Round1ViewProps> = ({
         <div
           role="status"
           aria-label="Double points modifier active"
-          className="bg-[#ff004f]/10 border border-[#ff004f]/40 rounded-xl p-3 flex items-center justify-between text-white font-mono text-xs"
+          className="bg-[#f59e0b]/10 border border-[#f59e0b]/40 rounded-xl p-3 flex items-center justify-between text-white font-mono text-xs animate-fade-in"
         >
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#ff004f] fill-[#ff004f] animate-pulse motion-reduce:animate-none flex-shrink-0" aria-hidden="true" />
-            <span className="font-bold text-[#ff004f] uppercase tracking-wider">DOUBLE POINTS ACTIVE:</span>
+            <Zap className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b] animate-pulse motion-reduce:animate-none flex-shrink-0" aria-hidden="true" />
+            <span className="font-bold text-[#f59e0b] uppercase tracking-wider">DOUBLE POINTS ACTIVE:</span>
             <span className="text-gray-300">Officials activated 2X scoring (Correct: +200 | Wrong: -100 | Red Light: -100)</span>
           </div>
         </div>
@@ -238,13 +268,13 @@ export const Round1View: React.FC<Round1ViewProps> = ({
 
       {/* Active Question Card (One Question at a Time) */}
       {currentQuestion ? (
-        <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-6 sm:p-8 space-y-6 relative overflow-hidden">
+        <Card variant="elevated" cornerAccents className="p-6 sm:p-8 space-y-6 relative overflow-hidden">
           {/* Question Sequence Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-800/80">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#1e2432]">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-md bg-[#ff004f]/20 border border-[#ff004f]/40 font-mono text-xs font-bold text-[#ff004f] uppercase tabular-nums">
+              <Badge variant="danger" size="md">
                 QUESTION {questionNumber} OF {totalQuestions}
-              </span>
+              </Badge>
               <span className="font-mono text-xs text-gray-400">
                 {currentQuestion.topic}
               </span>
@@ -256,20 +286,23 @@ export const Round1View: React.FC<Round1ViewProps> = ({
 
           {/* Prompt */}
           <div className="space-y-4">
-            <h3 className="text-lg sm:text-xl font-medium text-white leading-relaxed">
+            <h3 className="text-base sm:text-lg font-medium text-white leading-relaxed">
               {currentQuestion.prompt}
             </h3>
 
             {currentQuestion.codeSnippet && (
-              <pre className="p-4 rounded-xl bg-black/60 border border-gray-800 text-gray-300 font-mono text-sm overflow-x-auto">
-                <code>{currentQuestion.codeSnippet}</code>
-              </pre>
+              <TerminalWindow
+                title="source_snippet.c"
+                code={currentQuestion.codeSnippet}
+                language="c"
+                showLineNumbers
+              />
             )}
           </div>
 
-          {/* Options */}
+          {/* Options with Keyboard Shortcuts */}
           <div
-            className="space-y-3 pt-2"
+            className="space-y-2.5 pt-2"
             role="group"
             aria-label="Multiple choice answers"
           >
@@ -284,22 +317,22 @@ export const Round1View: React.FC<Round1ViewProps> = ({
                     aria-pressed={isSelected}
                     disabled={isSubmitting || isPaused || isEnded}
                     onClick={() => handleSelectOption(opt.id)}
-                    className={`w-full text-left p-4 rounded-xl border font-mono text-sm transition-all flex items-start gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#12151c] ${
+                    className={`w-full text-left p-4 rounded-xl border font-mono text-xs sm:text-sm transition-all flex items-start gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] ${
                       isSelected
-                        ? 'bg-[#ff004f]/20 border-[#ff004f] text-white shadow-[0_0_15px_rgba(255,0,79,0.3)]'
-                        : 'bg-black/30 border-gray-800 text-gray-300 hover:border-gray-700 hover:bg-black/50'
-                    } ${isPaused || isEnded ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        ? 'bg-[#ff004f]/15 border-[#ff004f] text-white shadow-red-sm'
+                        : 'bg-[#08090d] border-[#1e2432] text-gray-300 hover:border-[#2c3447] hover:bg-[#141822]'
+                    } ${isPaused || isEnded ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span
-                      className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                      className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
                         isSelected
                           ? 'bg-[#ff004f] text-white'
-                          : 'bg-gray-800 text-gray-400'
+                          : 'bg-[#151922] text-gray-400 border border-[#2c3447]'
                       }`}
                     >
                       {opt.id}
                     </span>
-                    <span className="flex-1 pt-0.5">{opt.text}</span>
+                    <span className="flex-1 pt-0.5 leading-relaxed">{opt.text}</span>
                   </button>
                 );
               })}
@@ -309,7 +342,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           {feedback && (
             <div
               role="alert"
-              className={`p-4 rounded-xl font-mono text-xs flex items-center gap-3 ${
+              className={`p-4 rounded-xl font-mono text-xs flex items-center gap-3 animate-fade-in ${
                 feedback.type === 'success'
                   ? 'bg-[#00e676]/10 border border-[#00e676]/30 text-[#00e676]'
                   : feedback.type === 'penalty'
@@ -333,11 +366,11 @@ export const Round1View: React.FC<Round1ViewProps> = ({
             </div>
           )}
 
-          {/* Red Light Submission Warning (Active in RED light, but button remains clickable) */}
+          {/* Red Light Submission Warning */}
           {isRed && !feedback && (
             <div
               role="status"
-              className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/80 flex items-center gap-3 text-red-300 font-mono text-xs"
+              className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/80 flex items-center gap-3 text-red-300 font-mono text-xs animate-fade-in"
             >
               <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
               <div>
@@ -348,42 +381,32 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           )}
 
           {/* Controls Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-800/80">
-            <span className="text-xs font-mono text-gray-500 tabular-nums">
-              Sequential Challenge: Question {questionNumber} must be completed to unlock Question {Math.min(totalQuestions, questionNumber + 1)}.
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#1e2432]">
+            <span className="text-[11px] font-mono text-gray-500 tabular-nums">
+              Keyboard shortcut: Press A, B, C, or D to select option.
             </span>
 
-            <button
+            <Button
               onClick={handleSubmit}
               disabled={!selectedOption || isSubmitting || isPaused || isEnded}
-              className={`w-full sm:w-auto px-8 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12151c] ${
-                isRed
-                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] focus-visible:ring-red-500'
-                  : 'bg-[#ff004f] hover:bg-[#ff004f]/90 text-white shadow-[0_0_15px_rgba(255,0,79,0.4)] focus-visible:ring-[#ff004f]'
-              } ${(!selectedOption || isSubmitting || isPaused || isEnded) ? 'opacity-40 cursor-not-allowed shadow-none' : ''}`}
+              variant={isRed ? 'danger' : 'primary'}
+              size="md"
+              isLoading={isSubmitting}
+              className="w-full sm:w-auto"
+              rightIcon={!isRed && <ArrowRight className="w-4 h-4" />}
             >
-              {isSubmitting ? (
-                <span>Validating with Central Engine...</span>
-              ) : isRed ? (
-                <>
-                  <AlertTriangle className="w-4 h-4" aria-hidden="true" />
-                  <span className="tabular-nums">Submit During Red Light (-{isDoublePoints ? '100' : '50'} pts)</span>
-                </>
-              ) : (
-                <>
-                  <span>Submit Answer</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </>
-              )}
-            </button>
+              {isRed
+                ? `Submit During Red Light (-${isDoublePoints ? '100' : '50'} pts)`
+                : 'Submit Answer'}
+            </Button>
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="p-8 text-center bg-[#12151c] rounded-2xl border border-gray-800">
-          <HelpCircle className="w-12 h-12 text-gray-500 mx-auto mb-3" aria-hidden="true" />
+        <Card variant="elevated" className="p-8 text-center space-y-2">
+          <HelpCircle className="w-10 h-10 text-gray-500 mx-auto mb-2" aria-hidden="true" />
           <h3 className="font-display font-bold text-lg text-white">No Active Question</h3>
-          <p className="text-sm font-mono text-gray-400 mt-1">Waiting for tournament officials.</p>
-        </div>
+          <p className="text-xs font-mono text-gray-400">Waiting for tournament officials.</p>
+        </Card>
       )}
     </div>
   );
