@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ProtocolShape } from './ui/ProtocolShape';
+import { CornerMarks } from './ui/CornerMarks';
 import { CircleShape, TriangleShape, SquareShape, UmbrellaShape, StarShape, DiamondShape } from './GeometricShapes';
 import {
   ShieldAlert,
@@ -8,13 +10,10 @@ import {
   X,
   ExternalLink,
   ChevronRight,
-  Sparkles,
-  Zap,
   Clock,
   Award,
   AlertTriangle,
   Flame,
-  CheckCircle2,
   Code2
 } from 'lucide-react';
 
@@ -23,8 +22,6 @@ export interface RoundProtocol {
   badge: string;
   badgeColorClass: string;
   borderColorClass: string;
-  glowColor: string;
-  glareColor: string;
   icon: React.ElementType;
   iconColorClass: string;
   guardRole: string;
@@ -56,9 +53,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     id: 1,
     badge: 'ROUND 1 • 15 MIN',
     badgeColorClass: 'bg-surface-elevated border-border-muted text-text-primary',
-    borderColorClass: 'hover:border-border-strong',
-    glowColor: '#ff004f',
-    glareColor: '255, 0, 79',
+    borderColorClass: 'border-border-subtle hover:border-border-strong',
     icon: ShieldAlert,
     iconColorClass: 'text-text-muted',
     guardRole: 'PROTOCOL 01',
@@ -103,9 +98,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     id: 2,
     badge: 'ROUND 2 • 20 MIN',
     badgeColorClass: 'bg-surface-elevated border-border-muted text-text-primary',
-    borderColorClass: 'hover:border-border-strong',
-    glowColor: '#00f0ff',
-    glareColor: '0, 240, 255',
+    borderColorClass: 'border-border-subtle hover:border-border-strong',
     icon: Cpu,
     iconColorClass: 'text-text-muted',
     guardRole: 'PROTOCOL 02',
@@ -144,9 +137,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     id: 3,
     badge: 'ROUND 3 • 25-30 MIN',
     badgeColorClass: 'bg-surface-elevated border-border-muted text-text-primary',
-    borderColorClass: 'hover:border-border-strong',
-    glowColor: '#00e676',
-    glareColor: '0, 230, 118',
+    borderColorClass: 'border-border-subtle hover:border-border-strong',
     icon: Terminal,
     iconColorClass: 'text-text-muted',
     guardRole: 'PROTOCOL 03',
@@ -191,12 +182,32 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
 
 export const SquidRoundCards: React.FC = () => {
   const [activeModalRound, setActiveModalRound] = useState<RoundProtocol | null>(null);
+  const cardRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
-  // Close modal on Escape key
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--y', `${e.clientY - rect.top}px`);
+  };
+
+  const handleOpenModal = (protocol: RoundProtocol) => {
+    setActiveModalRound(protocol);
+  };
+
+  const handleCloseModal = () => {
+    const closedId = activeModalRound?.id;
+    setActiveModalRound(null);
+    if (closedId && cardRefs.current[closedId]) {
+      cardRefs.current[closedId]?.focus();
+    }
+  };
+
+  // Close modal on Escape key and return focus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setActiveModalRound(null);
+        handleCloseModal();
       }
     };
     if (activeModalRound) {
@@ -217,71 +228,81 @@ export const SquidRoundCards: React.FC = () => {
           return (
             <article
               key={protocol.id}
-              onClick={() => setActiveModalRound(protocol)}
+              ref={(el) => { cardRefs.current[protocol.id] = el; }}
+              onPointerMove={handlePointerMove}
+              onClick={() => handleOpenModal(protocol)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  setActiveModalRound(protocol);
+                  handleOpenModal(protocol);
                 }
               }}
               tabIndex={0}
               role="button"
               aria-haspopup="dialog"
-              aria-label={`Inspect ${protocol.title} details`}
-              className="p-6 rounded-lg bg-surface border border-border-subtle hover:border-border-strong transition-colors flex flex-col justify-between h-full select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+              aria-label={`Inspect ${protocol.title} briefing`}
+              className="spotlight-card corner-bracket-container p-6 rounded bg-surface border border-border-subtle hover:border-border-strong hover:-translate-y-px transition-all duration-150 flex flex-col justify-between h-full select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary relative overflow-hidden group"
             >
+              <CornerMarks />
+
+              {/* Large Outlined Watermark (6% opacity) */}
+              <span
+                className="absolute top-3 right-4 font-display font-black text-6xl text-white/[0.06] select-none pointer-events-none"
+                aria-hidden="true"
+              >
+                {`0${protocol.id}`}
+              </span>
+
               {/* Card Header & Content */}
-              <div className="space-y-4">
+              <div className="space-y-4 relative z-10">
                 {/* Badge & Icon Row */}
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`font-mono text-xs px-2.5 py-0.5 rounded border font-semibold uppercase tracking-wider ${protocol.badgeColorClass}`}
-                  >
+                  <span className="id-badge font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border border-border-muted bg-surface-elevated text-text-muted font-semibold">
                     {protocol.badge}
                   </span>
-                  <div className="p-1.5 rounded-md bg-surface-elevated border border-border-subtle text-text-muted">
+                  <div className="p-2 rounded bg-surface-elevated border border-border-subtle text-text-muted">
                     <IconComponent className="w-4 h-4" aria-hidden="true" />
                   </div>
                 </div>
 
-                {/* Title & Hierarchy Role (Neutral Structural Markers) */}
+                {/* Title & Hierarchy Role */}
                 <div>
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                    {protocol.guardSymbol === 'circle' && <CircleShape size={12} strokeWidth={2} color="var(--text-muted)" />}
-                    {protocol.guardSymbol === 'triangle' && <TriangleShape size={12} strokeWidth={2} color="var(--text-muted)" />}
-                    {protocol.guardSymbol === 'square' && <SquareShape size={12} strokeWidth={2} color="var(--text-muted)" />}
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest mb-1.5 font-bold text-text-muted">
+                    <ProtocolShape type={protocol.guardSymbol} size={11} drawOn className="text-text-secondary" />
                     <span>{protocol.guardRole}</span>
                   </div>
-                  <h3 className="font-display font-bold text-xl text-text-primary">
+                  <h3 className="font-display font-bold text-xl sm:text-2xl text-text-primary tracking-tight">
                     {protocol.title}
                   </h3>
+                  <p className="font-mono text-xs text-text-muted mt-0.5">
+                    {protocol.subtitle}
+                  </p>
                 </div>
 
                 {/* Description Paragraph */}
-                <p className="text-xs sm:text-sm font-mono text-text-muted leading-relaxed min-h-[4.5rem]">
+                <p className="text-xs sm:text-sm font-mono text-text-secondary leading-relaxed min-h-[4.5rem]">
                   {protocol.description}
                 </p>
               </div>
 
               {/* Card Footer */}
-              <div className="pt-4 mt-4 border-t border-border-subtle space-y-3">
+              <div className="pt-4 mt-4 border-t border-border-subtle space-y-3 relative z-10">
                 <div className="flex items-center justify-between font-mono text-xs text-text-secondary">
                   <span>
                     {protocol.pointsText}{' '}
-                    <strong className="text-text-primary font-semibold tabular-nums">{protocol.pointsHighlight}</strong>
+                    <strong className="text-text-primary font-bold tabular-nums">{protocol.pointsHighlight}</strong>
                   </span>
-                  <span className={`font-medium ${protocol.footerStatusColorClass}`}>
+                  <span className={`font-semibold ${protocol.footerStatusColorClass}`}>
                     {protocol.footerStatus}
                   </span>
                 </div>
 
                 {/* Interactive Prompt Chip */}
                 <div className="flex items-center justify-between pt-1">
-                  <span className="font-mono text-[11px] text-text-muted flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
-                    Inspect protocol briefing
+                  <span className="font-mono text-[11px] text-text-muted group-hover:text-text-secondary transition-colors flex items-center gap-1.5">
+                    <span>Inspect protocol briefing</span>
                   </span>
-                  <span className="w-6 h-6 rounded bg-surface-elevated border border-border-subtle flex items-center justify-center text-text-muted">
+                  <span className="w-6 h-6 rounded bg-surface-elevated border border-border-subtle group-hover:border-border-strong flex items-center justify-center text-text-muted group-hover:text-text-primary transition-colors">
                     <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </span>
                 </div>
@@ -291,39 +312,37 @@ export const SquidRoundCards: React.FC = () => {
         })}
       </div>
 
-      {/* Interactive Squid Game Protocol Briefing Modal */}
+      {/* Protocol Briefing Modal (Flat dark surface, no backdrop-blur) */}
       {activeModalRound && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/80"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/85"
           role="dialog"
           aria-modal="true"
           aria-labelledby="briefing-modal-title"
-          onClick={() => setActiveModalRound(null)}
+          onClick={handleCloseModal}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-2xl bg-surface border border-border-strong rounded-lg shadow-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl bg-surface border border-border-strong rounded p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto corner-bracket-container"
           >
-            {/* Header / Squid Symbols Bar */}
+            <CornerMarks size={10} />
+
+            {/* Header */}
             <div className="flex items-start justify-between border-b border-border-subtle pb-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`font-mono text-[11px] px-2.5 py-0.5 rounded border font-semibold uppercase tracking-wider ${activeModalRound.badgeColorClass}`}
-                  >
+                  <span className="id-badge font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border border-border-muted bg-surface-elevated text-text-muted font-semibold">
                     {activeModalRound.badge}
                   </span>
-                  <span className="font-mono text-xs text-text-muted flex items-center gap-1.5">
+                  <span className="font-mono text-xs text-text-muted flex items-center gap-1.5 font-semibold">
                     //{' '}
-                    {activeModalRound.guardSymbol === 'circle' && <CircleShape size={12} strokeWidth={2} color="var(--text-muted)" />}
-                    {activeModalRound.guardSymbol === 'triangle' && <TriangleShape size={12} strokeWidth={2} color="var(--text-muted)" />}
-                    {activeModalRound.guardSymbol === 'square' && <SquareShape size={12} strokeWidth={2} color="var(--text-muted)" />}
+                    <ProtocolShape type={activeModalRound.guardSymbol} size={11} className="text-text-secondary" />
                     <span>{activeModalRound.guardRole}</span>
                   </span>
                 </div>
                 <h2
                   id="briefing-modal-title"
-                  className="font-display font-bold text-2xl text-text-primary tracking-wide"
+                  className="font-display font-bold text-2xl sm:text-3xl text-text-primary tracking-tight"
                 >
                   {activeModalRound.title}
                 </h2>
@@ -334,9 +353,9 @@ export const SquidRoundCards: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setActiveModalRound(null)}
+                onClick={handleCloseModal}
                 aria-label="Close protocol briefing"
-                className="p-1.5 rounded-md bg-surface-elevated text-text-muted hover:text-text-primary border border-border-subtle hover:border-border-strong transition-colors cursor-pointer"
+                className="p-1.5 rounded bg-surface-elevated text-text-muted hover:text-text-primary border border-border-subtle hover:border-border-strong transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -344,7 +363,7 @@ export const SquidRoundCards: React.FC = () => {
 
             {/* Quick Metrics Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
-              <div className="p-3 rounded-md bg-surface-elevated border border-border-subtle">
+              <div className="p-3 rounded bg-surface-elevated border border-border-subtle">
                 <div className="text-text-muted text-[10px] uppercase flex items-center gap-1.5 mb-1">
                   <Clock className="w-3.5 h-3.5 text-accent-cyan" /> Duration
                 </div>
@@ -352,7 +371,7 @@ export const SquidRoundCards: React.FC = () => {
                   {activeModalRound.briefing.duration}
                 </div>
               </div>
-              <div className="p-3 rounded-md bg-surface-elevated border border-border-subtle">
+              <div className="p-3 rounded bg-surface-elevated border border-border-subtle">
                 <div className="text-text-muted text-[10px] uppercase flex items-center gap-1.5 mb-1">
                   <Award className="w-3.5 h-3.5 text-accent-gold" /> Scoring
                 </div>
@@ -360,7 +379,7 @@ export const SquidRoundCards: React.FC = () => {
                   {activeModalRound.briefing.scoreStructure}
                 </div>
               </div>
-              <div className="p-3 rounded-md bg-surface-elevated border border-border-subtle col-span-2 sm:col-span-1">
+              <div className="p-3 rounded bg-surface-elevated border border-border-subtle col-span-2 sm:col-span-1">
                 <div className="text-text-muted text-[10px] uppercase flex items-center gap-1.5 mb-1">
                   <Flame className="w-3.5 h-3.5 text-signal-red" /> Status
                 </div>
@@ -371,7 +390,7 @@ export const SquidRoundCards: React.FC = () => {
             </div>
 
             {/* Lore / Briefing Overview */}
-            <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle font-mono text-xs sm:text-sm text-text-secondary leading-relaxed">
+            <div className="p-4 rounded bg-surface-elevated border border-border-subtle font-mono text-xs sm:text-sm text-text-secondary leading-relaxed">
               <div className="text-text-muted font-bold uppercase tracking-wider text-[11px] mb-1">
                 SYSTEM OPERATIONAL BRIEFING
               </div>
@@ -381,14 +400,13 @@ export const SquidRoundCards: React.FC = () => {
             {/* Stage-by-Stage Breakdown */}
             <div className="space-y-3">
               <div className="font-display font-bold text-sm text-text-primary uppercase tracking-wider flex items-center gap-2">
-                <Zap className="w-4 h-4 text-text-muted" />
                 Stage &amp; Challenge Breakdown
               </div>
               <div className="space-y-2">
                 {activeModalRound.briefing.stages.map((stage, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-md bg-surface-elevated border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="p-3.5 rounded bg-surface-elevated border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -418,9 +436,9 @@ export const SquidRoundCards: React.FC = () => {
               </div>
             </div>
 
-            {/* Specific Interactive Demo Component per Round */}
+            {/* Interactive Demo Component per Round */}
             {activeModalRound.id === 1 && (
-              <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-3">
+              <div className="p-4 rounded bg-surface-elevated border border-border-subtle space-y-3">
                 <div className="flex items-center justify-between font-mono text-xs">
                   <span className="text-text-muted font-semibold uppercase tracking-wider">
                     Live Signal Daemon Mechanics:
@@ -450,12 +468,12 @@ export const SquidRoundCards: React.FC = () => {
             )}
 
             {activeModalRound.id === 2 && (
-              <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-3">
+              <div className="p-4 rounded bg-surface-elevated border border-border-subtle space-y-3">
                 <div className="font-mono text-xs text-text-muted font-semibold uppercase tracking-wider flex items-center justify-between">
                   <span>Cryptographic Shape Grid (6 Shapes)</span>
                   <span className="text-text-muted text-[11px]">Unique Latin Solution</span>
                 </div>
-                <div className="flex items-center justify-around p-3 bg-surface rounded-md border border-border-subtle">
+                <div className="flex items-center justify-around p-3 bg-surface rounded border border-border-subtle">
                   <div className="flex flex-col items-center gap-1 font-mono text-[10px] text-text-muted">
                     <SquareShape size={22} color="var(--text-muted)" />
                     <span>Square</span>
@@ -485,7 +503,7 @@ export const SquidRoundCards: React.FC = () => {
             )}
 
             {activeModalRound.id === 3 && (
-              <div className="p-4 rounded-md bg-surface-elevated border border-border-subtle space-y-2 font-mono text-xs">
+              <div className="p-4 rounded bg-surface-elevated border border-border-subtle space-y-2 font-mono text-xs">
                 <div className="text-signal-green font-semibold uppercase tracking-wider flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Code2 className="w-4 h-4 text-signal-green" />
@@ -501,8 +519,8 @@ export const SquidRoundCards: React.FC = () => {
             )}
 
             {/* Warning / Pro Tip Box */}
-            <div className="p-3.5 rounded-md bg-surface-elevated border border-border-subtle flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-accent-amber flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded bg-surface-elevated border border-border-subtle flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-accent-gold flex-shrink-0 mt-0.5" />
               <div className="space-y-0.5 font-mono text-xs">
                 <div className="text-text-primary font-semibold uppercase text-[11px]">
                   Survival Advisory
@@ -513,11 +531,11 @@ export const SquidRoundCards: React.FC = () => {
               </div>
             </div>
 
-            {/* Modal Action Buttons (Neutral Primary Button) */}
+            {/* Modal Action Buttons (Neutral) */}
             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-border-subtle">
               <Link
                 to="/rules"
-                className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-surface border border-border-form text-text-secondary hover:text-text-primary hover:border-border-strong font-mono text-xs tracking-wider transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+                className="w-full sm:w-auto px-4 py-2.5 rounded bg-surface border border-border-form text-text-secondary hover:text-text-primary hover:border-border-strong font-mono text-xs tracking-wider transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary"
               >
                 <span>Read Full Rulebook</span>
                 <ExternalLink className="w-3.5 h-3.5 text-text-muted" />
@@ -525,7 +543,7 @@ export const SquidRoundCards: React.FC = () => {
 
               <Link
                 to="/login"
-                className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-text-primary text-canvas hover:bg-slate-200 font-display font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+                className="w-full sm:w-auto px-5 py-2.5 rounded bg-text-primary text-canvas hover:bg-slate-200 font-display font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary"
               >
                 <span>Enter Arena Gateway</span>
                 <ChevronRight className="w-3.5 h-3.5" />

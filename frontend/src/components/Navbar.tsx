@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSound } from '../context/SoundContext';
@@ -6,7 +6,7 @@ import {
   Volume2, VolumeX, LogIn, LogOut, Trophy, BookOpen,
   Shield, Gamepad2, Menu, X
 } from 'lucide-react';
-import { CircleShape, TriangleShape, SquareShape } from './GeometricShapes';
+import { ProtocolShape } from './ui/ProtocolShape';
 import { IEEELogo } from './IEEELogo';
 
 export const Navbar: React.FC = () => {
@@ -14,6 +14,24 @@ export const Navbar: React.FC = () => {
   const { isMuted, toggleMute } = useSound();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Hairline bottom border strengthens after scroll (passive listener, rAF-throttled)
+  useEffect(() => {
+    let rAF = 0;
+    const handleScroll = () => {
+      if (rAF) return;
+      rAF = requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 12);
+        rAF = 0;
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rAF) cancelAnimationFrame(rAF);
+    };
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -22,37 +40,47 @@ export const Navbar: React.FC = () => {
       to: '/rules',
       icon: <BookOpen className="w-4 h-4" aria-hidden="true" />,
       label: 'Rules',
+      shape: 'circle' as const,
       show: true,
     },
     {
       to: '/leaderboard',
       icon: <Trophy className="w-4 h-4" aria-hidden="true" />,
       label: 'Leaderboard',
+      shape: 'triangle' as const,
       show: user?.role === 'ADMIN',
     },
     {
       to: '/admin/dashboard',
       icon: <Shield className="w-4 h-4" aria-hidden="true" />,
       label: 'Admin Panel',
+      shape: 'square' as const,
       show: user?.role === 'ADMIN',
     },
     {
       to: '/game',
       icon: <Gamepad2 className="w-4 h-4" aria-hidden="true" />,
       label: 'Arena',
+      shape: 'square' as const,
       show: user?.role === 'TEAM',
     },
   ].filter(link => link.show);
 
   const linkClass = (path: string) =>
-    `flex items-center gap-2 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
+    `relative flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
       isActive(path)
-        ? 'bg-surface text-text-primary border-border-strong font-semibold'
-        : 'text-text-secondary hover:text-text-primary hover:bg-surface/60 border-transparent'
+        ? 'text-text-primary border-text-primary font-semibold'
+        : 'text-text-muted hover:text-text-secondary border-transparent'
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border-subtle bg-canvas" role="navigation" aria-label="Main navigation">
+    <nav
+      className={`sticky top-0 z-50 bg-canvas transition-colors ${
+        scrolled ? 'border-b border-border-strong' : 'border-b border-border-subtle'
+      }`}
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
@@ -60,28 +88,28 @@ export const Navbar: React.FC = () => {
             <IEEELogo
               size="md"
               withContainer
-              containerClassName="group-hover:border-border-strong transition-colors"
+              containerClassName="bg-surface border-border-subtle group-hover:border-border-strong transition-colors"
             />
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-display font-bold tracking-wide text-base sm:text-lg text-text-primary group-hover:text-[#ff004f] transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="font-display font-black tracking-wider text-base sm:text-lg text-text-primary">
                   SQUID<span className="text-[#ff004f]"> PROTOCOL</span>
                 </span>
-                {/* Structural Protocol markers: 01 (Red), 02 (Cyan), 03 (Green) */}
-                <div className="hidden lg:flex items-center gap-1 opacity-80 ml-0.5" aria-hidden="true">
-                  <CircleShape size={9} color="#ff004f" />
-                  <TriangleShape size={9} color="#00f0ff" />
-                  <SquareShape size={9} color="#00e676" />
+                {/* Structural Protocol markers: 01 (Circle), 02 (Triangle), 03 (Square) */}
+                <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface border border-border-subtle text-text-muted" aria-hidden="true">
+                  <ProtocolShape type="circle" size={9} strokeWidth={1.5} />
+                  <ProtocolShape type="triangle" size={9} strokeWidth={1.5} />
+                  <ProtocolShape type="square" size={9} strokeWidth={1.5} />
                 </div>
               </div>
-              <span className="hidden sm:block text-[10px] font-mono tracking-wider text-text-muted uppercase leading-none">
+              <span className="hidden sm:block text-[10px] font-mono tracking-widest text-text-muted uppercase leading-none mt-0.5">
                 IEEE NISB · TOURNAMENT ENGINE
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-3">
             {navLinks.map(link => (
               <Link
                 key={link.to}
@@ -89,9 +117,11 @@ export const Navbar: React.FC = () => {
                 aria-current={isActive(link.to) ? 'page' : undefined}
                 className={linkClass(link.to)}
               >
-                <span className={isActive(link.to) ? 'text-text-primary' : 'text-text-muted'}>
-                  {link.icon}
-                </span>
+                {isActive(link.to) ? (
+                  <ProtocolShape type={link.shape} size={10} className="text-text-primary" />
+                ) : (
+                  <span className="text-text-muted">{link.icon}</span>
+                )}
                 <span>{link.label}</span>
               </Link>
             ))}
@@ -101,25 +131,25 @@ export const Navbar: React.FC = () => {
               onClick={toggleMute}
               aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
               title={isMuted ? 'Unmute Game SFX' : 'Mute Game SFX'}
-              className="p-2 rounded-md bg-surface border border-border-form text-text-muted hover:text-text-primary hover:border-border-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas cursor-pointer"
+              className="p-2 rounded bg-surface border border-border-subtle text-text-muted hover:text-text-primary hover:border-border-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary cursor-pointer"
             >
               {isMuted
                 ? <VolumeX className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                : <Volume2 className="w-4 h-4 text-[#00e676]" aria-hidden="true" />
+                : <Volume2 className="w-4 h-4 text-signal-green" aria-hidden="true" />
               }
             </button>
 
             {/* Auth State */}
             {team ? (
               <div className="flex items-center gap-2">
-                <div className="hidden md:flex flex-col items-end px-3 py-1 rounded-md bg-surface border border-border-subtle text-xs leading-tight font-mono">
-                  <span className="text-text-muted">{team.teamCode}</span>
-                  <span className="font-bold text-[#00e676] tabular-nums">{team.totalScore} PTS</span>
+                <div className="hidden md:flex flex-col items-end px-3 py-1 rounded bg-surface border border-border-subtle text-xs leading-tight font-mono">
+                  <span className="text-text-muted text-[10px] tracking-wider">{team.teamCode}</span>
+                  <span className="font-bold text-signal-green tabular-nums tracking-wide">{team.totalScore} PTS</span>
                 </div>
                 <button
                   onClick={() => logout()}
                   aria-label="Log out of team"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-[#ff004f] hover:border-[#ff004f]/40 hover:bg-signal-red-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-signal-red hover:border-signal-red/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                   <span className="hidden sm:inline">LOG OUT</span>
@@ -129,7 +159,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => logout()}
                 aria-label="Log out"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>LOG OUT</span>
@@ -137,9 +167,9 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-[#ff004f] hover:bg-[#e00045] text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                className="flex items-center gap-2 px-4 py-2 rounded text-xs sm:text-sm font-display font-bold uppercase tracking-wider bg-[#ff004f] hover:bg-[#ff2e7e] text-white border border-[#ff004f] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
-                <LogIn className="w-4 h-4" aria-hidden="true" />
+                <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>SIGN IN</span>
               </Link>
             )}
@@ -148,16 +178,16 @@ export const Navbar: React.FC = () => {
           {/* Mobile: score badge + sound toggle + hamburger */}
           <div className="flex sm:hidden items-center gap-2">
             {team && (
-              <span className="font-bold text-[#00e676] text-sm font-mono tabular-nums">{team.totalScore} PTS</span>
+              <span className="font-bold text-signal-green text-sm font-mono tabular-nums">{team.totalScore} PTS</span>
             )}
             <button
               onClick={toggleMute}
               aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
-              className="p-2 rounded-md bg-surface border border-border-form text-text-muted"
+              className="p-2 rounded bg-surface border border-border-form text-text-muted"
             >
               {isMuted
                 ? <VolumeX className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                : <Volume2 className="w-4 h-4 text-[#00e676]" aria-hidden="true" />
+                : <Volume2 className="w-4 h-4 text-signal-green" aria-hidden="true" />
               }
             </button>
             <button
@@ -165,7 +195,7 @@ export const Navbar: React.FC = () => {
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
-              className="p-2 rounded-md bg-surface border border-border-form text-text-secondary hover:text-text-primary cursor-pointer"
+              className="p-2 rounded bg-surface border border-border-form text-text-secondary hover:text-text-primary cursor-pointer"
             >
               {mobileMenuOpen
                 ? <X className="w-5 h-5" aria-hidden="true" />
@@ -191,15 +221,17 @@ export const Navbar: React.FC = () => {
                 role="menuitem"
                 aria-current={isActive(link.to) ? 'page' : undefined}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded text-sm font-medium transition-colors w-full ${
                   isActive(link.to)
                     ? 'bg-surface text-text-primary border border-border-strong font-semibold'
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface/60'
                 }`}
               >
-                <span className={isActive(link.to) ? 'text-text-primary' : 'text-text-muted'}>
-                  {link.icon}
-                </span>
+                {isActive(link.to) ? (
+                  <ProtocolShape type={link.shape} size={12} className="text-text-primary" />
+                ) : (
+                  <span className="text-text-muted">{link.icon}</span>
+                )}
                 <span>{link.label}</span>
               </Link>
             ))}
@@ -207,13 +239,13 @@ export const Navbar: React.FC = () => {
             <div className="pt-2 border-t border-border-subtle mt-2">
               {team ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between px-3 py-2 rounded-md bg-surface border border-border-subtle text-xs font-mono">
+                  <div className="flex items-center justify-between px-3 py-2 rounded bg-surface border border-border-subtle text-xs font-mono">
                     <span className="text-text-muted">{team.teamCode}</span>
-                    <span className="font-bold text-[#00e676] tabular-nums">{team.totalScore} PTS</span>
+                    <span className="font-bold text-signal-green tabular-nums">{team.totalScore} PTS</span>
                   </div>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-[#ff004f] hover:bg-signal-red-subtle cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-signal-red hover:bg-signal-red-subtle cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" aria-hidden="true" />
                     <span>EXIT GAME</span>
@@ -222,7 +254,7 @@ export const Navbar: React.FC = () => {
               ) : user ? (
                 <button
                   onClick={() => { logout(); setMobileMenuOpen(false); }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded text-sm font-mono bg-surface border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" aria-hidden="true" />
                   <span>LOGOUT</span>
@@ -231,7 +263,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold bg-[#ff004f] text-white"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded text-sm font-semibold bg-[#ff004f] text-white"
                 >
                   <LogIn className="w-4 h-4" aria-hidden="true" />
                   <span>TEAM LOGIN</span>
