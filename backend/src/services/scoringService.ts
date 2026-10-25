@@ -175,30 +175,30 @@ export class ScoringService {
       }
     });
 
-    // Calculate round breakdowns
     const enriched = teams.map((team) => {
       let r1Score = 0;
       let r2Score = 0;
       let r3Score = 0;
       let adminAdjustmentScore = 0;
+      let totalLedgerScore = 0;
 
       for (const ev of team.scoreEvents) {
+        totalLedgerScore += ev.pointsDelta;
         if (ev.round === 1) {
           r1Score += ev.pointsDelta;
         } else if (ev.round === 2) {
           r2Score += ev.pointsDelta;
         } else if (ev.round === 3) {
-          // Only the final debugging challenge is an online scored event in Round 3
-          if (ev.source.includes('CUP') || ev.source.includes('ACCESS')) {
-            continue;
+          // Only the final core debugging challenge is an online scored event in Round 3 for tie-breaking
+          if (!ev.source.includes('CUP') && !ev.source.includes('ACCESS')) {
+            r3Score += ev.pointsDelta;
           }
-          r3Score += ev.pointsDelta;
         } else if (ev.round === 0) {
           adminAdjustmentScore += ev.pointsDelta;
         }
       }
 
-      const cleanTotalScore = r1Score + r2Score + r3Score + adminAdjustmentScore;
+      const cleanTotalScore = team.scoreEvents.length > 0 ? totalLedgerScore : team.totalScore;
 
       return {
         id: team.id,

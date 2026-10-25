@@ -1,26 +1,27 @@
 import React from 'react';
 
-interface ShapeProps {
+export interface ShapeProps {
   className?: string;
   size?: number;
   color?: string;
+  strokeWidth?: number | string;
 }
 
-export const CircleShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" className={className}>
+export const CircleShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor', strokeWidth = 2.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} className={className}>
     <circle cx="12" cy="12" r="9" />
   </svg>
 );
 
-export const TriangleShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" className={className}>
-    <polygon points="12,4 21,20 3,20" />
+export const TriangleShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor', strokeWidth = 2.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" className={className}>
+    <polygon points="12,3.5 21,19.5 3,19.5" />
   </svg>
 );
 
-export const SquareShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" className={className}>
-    <rect x="4" y="4" width="16" height="16" rx="1.5" />
+export const SquareShape: React.FC<ShapeProps> = ({ className = '', size = 24, color = 'currentColor', strokeWidth = 2.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" className={className}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
   </svg>
 );
 

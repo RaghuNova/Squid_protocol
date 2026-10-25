@@ -6,7 +6,25 @@
   body {
     background-color: #08090c;
     color: #f1f5f9;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Rajdhani', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Accessible focus rings for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid #ff004f;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -53,4 +71,26 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Utility: Glowing text shadow for key headings */
+.text-glow-red {
+  text-shadow: 0 0 30px rgba(255, 0, 79, 0.4);
+}
+
+/* Card hover lift effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Transform Utilities for Aceternity UI Comet Cards */
+.perspective-distant {
+  perspective: 1200px;
+}
+.transform-3d {
+  transform-style: preserve-3d;
 }

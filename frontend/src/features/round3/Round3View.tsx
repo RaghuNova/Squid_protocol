@@ -59,7 +59,7 @@ export const Round3View: React.FC<Round3ViewProps> = ({
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-          Round 3 is not currently active. Tournament officials will start Round 3 when all teams are ready to begin the final physical activities and code derivation.
+          Round 3 has not started yet. Tournament officials will start Round 3 when all teams are ready to begin the physical trials and final debugging challenge.
         </p>
       </div>
     );
@@ -109,7 +109,7 @@ export const Round3View: React.FC<Round3ViewProps> = ({
               ROUND 3: THE FINAL BREACH
             </span>
             <span className="text-[11px] font-mono text-gray-400">
-              Offline Physical QR Activity + Single-Use Redemption + Online Debugging (+200 PTS)
+              Physical Challenges + Single-Use QR Redemption + Final Debugging Challenge (+200 PTS)
             </span>
           </div>
         </div>
@@ -131,8 +131,8 @@ export const Round3View: React.FC<Round3ViewProps> = ({
         >
           <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-400 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
           <div>
-            <span className="font-bold uppercase tracking-wider">ROUND 3 CURRENTLY PAUSED: </span>
-            <span>Timer is frozen by tournament officials. Submissions are temporarily suspended.</span>
+            <span className="font-bold uppercase tracking-wider">ROUND 3 PAUSED: </span>
+            <span>The round timer has been paused by tournament officials. Submissions are temporarily closed.</span>
           </div>
         </div>
       )}
@@ -200,10 +200,10 @@ export const Round3View: React.FC<Round3ViewProps> = ({
               }`}
             >
               {isRedeeming ? (
-                <span>Validating with Central System...</span>
+                <span>Checking QR code...</span>
               ) : (
                 <>
-                  <span>Redeem QR Access Code</span>
+                  <span>Unlock Final Challenge</span>
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </>
               )}
@@ -213,8 +213,8 @@ export const Round3View: React.FC<Round3ViewProps> = ({
           <div className="p-4 rounded-xl bg-black/30 border border-gray-800/80 font-mono text-xs text-gray-400 space-y-1">
             <span className="text-gray-300 font-bold block">Physical Challenge Rules:</span>
             <p>1. Each QR code is single-use and can only be redeemed once across the event.</p>
-            <p>2. Cup-transfer and QR assembly are performed offline under organizer supervision.</p>
-            <p>3. The online debugging challenge will unlock immediately upon successful redemption.</p>
+            <p>2. Complete the physical cup transfer and QR assembly under official supervision.</p>
+            <p>3. The online debugging challenge unlocks immediately upon verification.</p>
           </div>
         </div>
       ) : (

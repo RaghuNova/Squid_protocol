@@ -4,9 +4,11 @@ class SoundService {
   private isMuted: boolean = true; // Muted by default per specification!
 
   constructor() {
-    const saved = localStorage.getItem('squid_sound_muted');
-    if (saved !== null) {
-      this.isMuted = saved === 'true';
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('squid_sound_muted');
+      if (saved !== null) {
+        this.isMuted = saved === 'true';
+      }
     }
   }
 
@@ -26,7 +28,9 @@ class SoundService {
 
   public setMuted(muted: boolean): void {
     this.isMuted = muted;
-    localStorage.setItem('squid_sound_muted', muted ? 'true' : 'false');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('squid_sound_muted', muted ? 'true' : 'false');
+    }
   }
 
   public getMuted(): boolean {

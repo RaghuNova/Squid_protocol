@@ -279,7 +279,7 @@ export const GameDashboard: React.FC = () => {
       id: 1,
       num: '01',
       title: 'THE SIGNAL PROTOCOL',
-      subtitle: '10 Sequential MCQs • Red/Green Traffic',
+      subtitle: '10 Sequential Questions • Red / Green Light',
       status: round1Data.isCompleted
         ? 'COMPLETED'
         : round1Data.round?.status === 'PAUSED'
@@ -309,7 +309,7 @@ export const GameDashboard: React.FC = () => {
       id: 3,
       num: '03',
       title: 'THE FINAL BREACH',
-      subtitle: 'Physical QR Gate • Multi-Lang Debugging',
+      subtitle: 'Physical QR Challenge • Multi-Language Debugging',
       status: round3Data.isCompleted
         ? 'COMPLETED'
         : round3Data.round?.status === 'PAUSED'
@@ -325,7 +325,7 @@ export const GameDashboard: React.FC = () => {
     <div className="min-h-screen bg-[#08090c] text-gray-100 flex flex-col font-sans selection:bg-[#ff004f] selection:text-white">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6 w-full">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6 w-full" id="main-content">
         {/* Real-Time System Status Strip (Improvement 1) */}
         <SystemStatusStrip
           protocolNumber={activeStage.protocolNumber}
@@ -356,13 +356,13 @@ export const GameDashboard: React.FC = () => {
             </div>
             <p className="text-xs font-mono text-gray-400 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
-              <span>Operatives: {team?.members || 'Squad Active'}</span>
+              <span>Members: {team?.members || 'Active Team'}</span>
             </p>
           </div>
 
           <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800">
             <div className="text-right">
-              <span className="block text-[11px] font-mono text-gray-400 uppercase tracking-wider">MY TEAM SCORE</span>
+              <span className="block text-[11px] font-mono text-gray-400 uppercase tracking-wider">TEAM SCORE</span>
               <span className="font-display font-black text-3xl sm:text-4xl text-[#00e676] drop-shadow-[0_0_15px_rgba(0,230,118,0.3)] tabular-nums">
                 {team?.totalScore} <span className="text-xs text-gray-400 font-mono">PTS</span>
               </span>

@@ -70,7 +70,7 @@ export const LeaderboardPage: React.FC = () => {
     <div className="min-h-screen bg-[#08090c] text-gray-100 flex flex-col font-sans selection:bg-[#ff004f] selection:text-white">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 space-y-8 w-full">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 space-y-8 w-full" id="main-content">
         {/* Access Denied for Non-Admins */}
         {accessDenied || (user && user.role !== 'ADMIN') ? (
           <div className="p-12 text-center bg-[#12151c] rounded-2xl border border-gray-800 space-y-6 max-w-xl mx-auto">
@@ -80,11 +80,11 @@ export const LeaderboardPage: React.FC = () => {
             <div className="space-y-2">
               <h2 className="font-display font-bold text-2xl text-white">ACCESS RESTRICTED</h2>
               <p className="text-sm font-mono text-red-400">
-                The full tournament leaderboard is restricted to Tournament Officials.
+                The full tournament leaderboard is visible only to Tournament Officials.
               </p>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              In accordance with event rules, standings are managed confidentially by event administrators. Teams can view their own score on their dashboard.
+              Under competition rules, overall standings are kept confidential by event organizers. Teams can check their own score on their personal dashboard.
             </p>
             <div className="pt-2">
               <Link
@@ -103,7 +103,7 @@ export const LeaderboardPage: React.FC = () => {
               <div>
                 <span className="font-mono text-xs text-[#ffd166] uppercase tracking-widest flex items-center gap-1.5">
                   <Trophy className="w-4 h-4 text-[#ffd166]" />
-                  CONFIDENTIAL TOURNAMENT STANDINGS (ADMIN-ONLY)
+                  CONFIDENTIAL TOURNAMENT STANDINGS (ADMIN ONLY)
                 </span>
                 <h1 className="font-display font-black text-3xl sm:text-4xl text-white uppercase tracking-tight mt-1">
                   Squid Protocol Scoreboard
@@ -127,7 +127,7 @@ export const LeaderboardPage: React.FC = () => {
 
             {isLoading ? (
               <div className="p-12 text-center font-mono text-sm text-gray-500">
-                CONNECTING TO AUTHORITATIVE SCORING ENGINE...
+                Loading tournament scores...
               </div>
             ) : (
               <div className="bg-[#12151c] rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">

@@ -29,8 +29,11 @@ const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#06070a] text-white flex items-center justify-center font-mono text-xs">
-        AUTHENTICATING ADMIN CONSOLE...
+      <div className="min-h-screen bg-[#06070a] text-white flex items-center justify-center" role="status" aria-label="Loading">
+        <div className="flex flex-col items-center gap-3 font-mono text-xs text-gray-400">
+          <div className="w-7 h-7 border-2 border-[#ff004f] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+          <span>AUTHENTICATING ADMIN CONSOLE...</span>
+        </div>
       </div>
     );
   }
@@ -47,6 +50,13 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <SoundProvider>
+          {/* Skip to content link for keyboard and screen reader users */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#ff004f] focus:text-white focus:font-mono focus:text-sm focus:shadow-xl"
+          >
+            Skip to main content
+          </a>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />

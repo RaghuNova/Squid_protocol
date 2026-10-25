@@ -22,9 +22,9 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
     return (
       <div className="p-8 text-center bg-[#12151c]/60 rounded-2xl border border-gray-800/80">
         <Lock className="w-10 h-10 text-gray-600 mx-auto mb-3" aria-hidden="true" />
-        <h4 className="font-display font-bold text-lg text-gray-400">STAGE 2 LOCKED — THE BROKEN LOGIC</h4>
+        <h4 className="font-display font-bold text-lg text-gray-400">STAGE 2 LOCKED: BROKEN LOGIC</h4>
         <p className="text-xs font-mono text-gray-500 mt-1">
-          Complete Stage 1 Shape Sudoku to breach this security layer.
+          Complete the Stage 1 Shape Sudoku puzzle to unlock Stage 2.
         </p>
       </div>
     );
@@ -85,7 +85,7 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
         <div className="p-4 rounded-xl bg-[#181c26] border border-gray-800">
           <h4 className="font-mono text-xs text-amber-400 font-semibold mb-2 flex items-center gap-1.5">
             <AlertTriangle className="w-4 h-4" aria-hidden="true" />
-            SYSTEM DIAGNOSTIC REPORT:
+            CHALLENGE OVERVIEW:
           </h4>
           <p className="text-sm font-mono text-gray-200 whitespace-pre-line leading-relaxed">
             {puzzle?.scenario}
@@ -96,7 +96,7 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
           <div className="space-y-2">
             <span className="font-mono text-xs text-gray-400 flex items-center gap-1.5">
               <Terminal className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
-              DECOMPILED ALGORITHM:
+              SOURCE CODE:
             </span>
             <pre className="p-4 rounded-xl bg-[#090b0f] border border-gray-800 text-cyan-300 font-mono text-xs sm:text-sm overflow-x-auto">
               <code>{puzzle.codeSnippet}</code>
@@ -123,14 +123,14 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 pt-2">
           <div className="relative w-full sm:w-80">
             <label htmlFor="broken-logic-accumulator" className="sr-only">
-              Expected Accumulator Output
+              Expected Output Value
             </label>
             <input
               id="broken-logic-accumulator"
               type="text"
               value={outputVal}
               onChange={(e) => setOutputVal(e.target.value)}
-              placeholder="Enter expected accumulator value..."
+              placeholder="Enter final output value..."
               className="w-full px-4 py-3 rounded-xl bg-[#090b0f] border border-gray-800 text-white font-mono text-sm placeholder-gray-600 focus:outline-none focus:border-[#ff004f] focus-visible:ring-2 focus-visible:ring-[#ff004f] transition-colors"
             />
           </div>
@@ -146,10 +146,10 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
             }`}
           >
             {isSubmitting ? (
-              'VERIFYING...'
+              'CHECKING ANSWER...'
             ) : (
               <>
-                <span>VALIDATE ACCUMULATOR</span>
+                <span>SUBMIT ANSWER</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </>
             )}

@@ -25,11 +25,13 @@ export default {
       fontFamily: {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         display: ['"Chakra Petch"', 'Rajdhani', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Rajdhani', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'scanline': 'scanline 8s linear infinite',
+        'fade-in': 'fade-in 0.3s ease forwards',
+        'slide-up': 'slide-up 0.3s ease forwards',
       },
       keyframes: {
         'pulse-glow': {
@@ -39,7 +41,15 @@ export default {
         'scanline': {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(1000%)' }
-        }
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slide-up': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       }
     },
   },
