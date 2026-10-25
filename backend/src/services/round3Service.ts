@@ -304,7 +304,11 @@ export class Round3Service {
     }
 
     const normalizedKey = params.finalKey.trim().toUpperCase();
-    const isCorrect = normalizedKey === challenge.expectedFinalKey.toUpperCase();
+    const expectedKey = challenge.expectedFinalKey.trim().toUpperCase();
+    const expectedChecksum = expectedKey.match(/_(\d+)$/)?.[1];
+    // Accept either the full output printed by the supplied programs or just
+    // the corrected numeric checksum entered from a terminal.
+    const isCorrect = normalizedKey === expectedKey || normalizedKey === expectedChecksum;
 
     if (!isCorrect) {
       await prisma.submission.create({
@@ -323,7 +327,7 @@ export class Round3Service {
         success: false,
         isCorrect: false,
         error: 'INVALID_FINAL_KEY',
-        message: 'Breach Key Rejected. Verify the corrected program output across your chosen language.'
+        message: 'Breach Key Rejected. Enter the corrected program output or its numeric checksum.'
       };
     }
 

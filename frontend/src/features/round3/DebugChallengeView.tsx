@@ -240,6 +240,9 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
               placeholder="e.g. PROTOCOL_BREACH_XXXX"
               className="w-full px-4 py-3 rounded-xl bg-[#090b0f] border border-gray-800 text-white font-mono text-sm tracking-wider uppercase placeholder-gray-600 focus:outline-none focus:border-[#ff004f] focus-visible:ring-2 focus-visible:ring-[#ff004f] transition-colors"
             />
+            <p className="mt-1.5 text-[10px] font-mono text-gray-500">
+              Enter the full program output or just its numeric checksum.
+            </p>
           </div>
           <button
             type="submit"
