@@ -19,10 +19,15 @@ const AdminLoginSchema = z.object({
 export async function teamLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { teamCode, pin } = TeamLoginSchema.parse(req.body);
-    const normalizedCode = teamCode.trim().toUpperCase();
+    const normalizedInput = teamCode.trim();
 
-    const team = await prisma.team.findUnique({
-      where: { teamCode: normalizedCode },
+    const team = await prisma.team.findFirst({
+      where: {
+        OR: [
+          { teamCode: { equals: normalizedInput, mode: 'insensitive' } },
+          { user: { username: { equals: normalizedInput, mode: 'insensitive' } } }
+        ]
+      },
       include: { user: true }
     });
 

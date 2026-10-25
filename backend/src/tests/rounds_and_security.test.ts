@@ -718,6 +718,14 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
     });
 
     it('rejects debugging submission before redeeming QR access token', async () => {
+      // Clean previous final completions so testTeam can reliably test 1st place (+200 pts)
+      await prisma.team.updateMany({
+        data: { finalBreachCompletedAt: null, finalBreachPosition: null, finalBreachPoints: null }
+      });
+      await prisma.scoreEvent.deleteMany({
+        where: { round: 3, stage: 3 }
+      });
+
       // Admin starts Round 3
       await request(app)
         .put('/api/v1/admin/rounds/3')

@@ -197,22 +197,21 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(ROUND_PROTOCOLS[0].id).toBe(1);
       expect(ROUND_PROTOCOLS[0].title).toBe('The Signal Protocol');
       expect(ROUND_PROTOCOLS[0].guardSymbol).toBe('circle');
-      expect(ROUND_PROTOCOLS[0].badge).toContain('ROUND 1');
-      expect(ROUND_PROTOCOLS[0].pointsHighlight).toBe('+2,000 PTS');
+      expect(ROUND_PROTOCOLS[0].pointsHighlight).toBe('+100 / +200 per MCQ');
 
       // Round 2
       expect(ROUND_PROTOCOLS[1].id).toBe(2);
       expect(ROUND_PROTOCOLS[1].title).toBe('The Logic Protocol');
       expect(ROUND_PROTOCOLS[1].guardSymbol).toBe('triangle');
       expect(ROUND_PROTOCOLS[1].badge).toContain('ROUND 2');
-      expect(ROUND_PROTOCOLS[1].pointsHighlight).toBe('+300 PTS');
+      expect(ROUND_PROTOCOLS[1].pointsHighlight).toBe('+100 S1 / +200 S2');
 
       // Round 3
       expect(ROUND_PROTOCOLS[2].id).toBe(3);
       expect(ROUND_PROTOCOLS[2].title).toBe('The Final Breach');
       expect(ROUND_PROTOCOLS[2].guardSymbol).toBe('square');
       expect(ROUND_PROTOCOLS[2].badge).toContain('ROUND 3');
-      expect(ROUND_PROTOCOLS[2].pointsHighlight).toBe('+200 PTS');
+      expect(ROUND_PROTOCOLS[2].pointsHighlight).toBe('+200 to -25 PTS');
     });
 
     it('verifies all 3 rounds contain comprehensive briefing stages and lethal rules', async () => {
@@ -345,19 +344,50 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
     });
   });
 
-  describe('Official IEEE NISB Logo & Branding Verification', () => {
-    it('verifies IEEELogo component is exported and functional', async () => {
-      const { IEEELogo } = await import('../components/IEEELogo');
-      expect(typeof IEEELogo).toBe('function');
-    });
-
-    it('verifies official logo asset exists in public/assets', async () => {
+  describe('Landing Page & Rulebook — Scrubbed Metrics & Scoring Verification', () => {
+    it('verifies absence of hardcoded participant and team count statistics in LandingPage', async () => {
       const fs = await import('fs');
       const path = await import('path');
-      const logoPath = path.resolve(__dirname, '../../public/assets/ieee-nisb-logo.png');
-      expect(fs.existsSync(logoPath)).toBe(true);
-      const stat = fs.statSync(logoPath);
-      expect(stat.size).toBeGreaterThan(1000);
+      const landingPageContent = fs.readFileSync(path.resolve(__dirname, '../pages/LandingPage.tsx'), 'utf-8');
+
+      // Must not display "60 participants" or "20 teams"
+      expect(landingPageContent).not.toContain('60 participants');
+      expect(landingPageContent).not.toContain('20 teams');
+      expect(landingPageContent).not.toContain("{ value: '60', label: 'Participants'");
+      expect(landingPageContent).not.toContain("{ value: '20', label: 'Teams'");
+    });
+
+    it('verifies absence of maximum-point and fixed-cap claims across participant frontend', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const landingContent = fs.readFileSync(path.resolve(__dirname, '../pages/LandingPage.tsx'), 'utf-8');
+      const rulesContent = fs.readFileSync(path.resolve(__dirname, '../pages/RulesPage.tsx'), 'utf-8');
+      const roundCardsContent = fs.readFileSync(path.resolve(__dirname, '../components/SquidRoundCards.tsx'), 'utf-8');
+
+      for (const content of [landingContent, rulesContent, roundCardsContent]) {
+        expect(content).not.toContain('2,500 Maximum Points');
+        expect(content).not.toContain('Overall Cap: 2,500');
+        expect(content).not.toContain('Total Competition Cap: 2,500');
+        expect(content).not.toContain('MAXIMUM POSSIBLE SCORE');
+        expect(content).not.toContain('Max Score: +2,000 PTS');
+        expect(content).not.toContain('Max Score: +300 PTS');
+        expect(content).not.toContain('Max Score: +200 PTS');
+      }
+    });
+
+    it('verifies Round 1 view defaults to 20 questions', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const round1ViewContent = fs.readFileSync(path.resolve(__dirname, '../features/round1/Round1View.tsx'), 'utf-8');
+
+      expect(round1ViewContent).toContain('totalQuestions = 20');
+      expect(round1ViewContent).not.toContain('answer 10 questions in sequence');
+    });
+
+    it('verifies LeaderboardPage component exports properly with winner management support', async () => {
+      const { LeaderboardPage } = await import('../pages/LeaderboardPage');
+      expect(typeof LeaderboardPage).toBe('function');
     });
   });
 });

@@ -45,9 +45,14 @@ export async function resetTestDatabase() {
         currentStage: 1,
         totalScore: 0,
         isDisqualified: false,
-        finalBreachCompletedAt: null
+        finalBreachCompletedAt: null,
+        finalBreachPosition: null,
+        finalBreachPoints: null
       }
     });
+
+    // Reset winner announcement
+    await prisma.winnerAnnouncement.deleteMany({});
 
     // Reset access tokens to unredeemed
     await prisma.accessToken.updateMany({

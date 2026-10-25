@@ -4,6 +4,21 @@ import { sseService } from './sseService.js';
 import { computeRoundTimer } from './round1Service.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
 
+export function getRound3FinishingPoints(position: number): number {
+  switch (position) {
+    case 1: return 200;
+    case 2: return 175;
+    case 3: return 150;
+    case 4: return 125;
+    case 5: return 100;
+    case 6: return 75;
+    case 7: return 50;
+    case 8: return 25;
+    default:
+      return -25; // 9th onward: -25
+  }
+}
+
 export class Round3Service {
   /**
    * Get team-specific Round 3 data.
@@ -25,6 +40,8 @@ export class Round3Service {
         isUnlocked: false,
         isQrRedeemed: false,
         isCompleted: false,
+        position: null,
+        pointsAwarded: null,
         message: 'Round 3 — The Final Breach is currently locked. Waiting for admin to start.',
         challenge: null
       };
@@ -66,6 +83,8 @@ export class Round3Service {
       isUnlocked: true,
       isQrRedeemed,
       isCompleted,
+      position: team?.finalBreachPosition ?? null,
+      pointsAwarded: team?.finalBreachPoints ?? null,
       completedAt: team?.finalBreachCompletedAt?.toISOString() || null,
       challenge: debugChallenge
     };
@@ -266,9 +285,11 @@ export class Round3Service {
         success: true,
         alreadyCompleted: true,
         isCorrect: true,
+        position: team.finalBreachPosition,
         pointsAwarded: 0,
+        originalPointsAwarded: team.finalBreachPoints ?? 0,
         completedAt: team.finalBreachCompletedAt.toISOString(),
-        message: 'Final Breach has already been solved and registered for your team.',
+        message: `Final Breach has already been solved and registered for your team (Position #${team.finalBreachPosition || 1}).`,
         newTotalScore: team.totalScore
       };
     }
@@ -311,6 +332,9 @@ export class Round3Service {
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
+        // Concurrency-safe lock: Acquire row-level lock on RoundControl for Round 3
+        await tx.$queryRaw`SELECT id FROM "RoundControl" WHERE id = 3 FOR UPDATE`;
+
         const existingScore = await tx.scoreEvent.findUnique({
           where: {
             teamId_source: {
@@ -325,12 +349,21 @@ export class Round3Service {
           return {
             alreadyCompleted: true,
             isCorrect: true,
+            position: currentTeam?.finalBreachPosition || 1,
             pointsAwarded: 0,
+            originalPointsAwarded: currentTeam?.finalBreachPoints ?? existingScore.pointsDelta,
             completedAt: currentTeam?.finalBreachCompletedAt?.toISOString() || completionTimestamp.toISOString(),
-            message: 'Final Breach already scored for your team.',
+            message: `Final Breach already scored for your team (Position #${currentTeam?.finalBreachPosition || 1}).`,
             newTotalScore: currentTeam?.totalScore ?? 0
           };
         }
+
+        // Count how many teams have successfully completed the final challenge so far
+        const verifiedFinishersCount = await tx.team.count({
+          where: { finalBreachCompletedAt: { not: null } }
+        });
+        const position = verifiedFinishersCount + 1;
+        const pointsAwarded = getRound3FinishingPoints(position);
 
         await tx.submission.create({
           data: {
@@ -339,19 +372,20 @@ export class Round3Service {
             stage: 3,
             submittedValue: normalizedKey,
             status: SubmissionStatus.CORRECT,
-            pointsAwarded: challenge.points,
+            pointsAwarded: pointsAwarded,
             clientIp: params.clientIp
           }
         });
 
+        const sign = pointsAwarded >= 0 ? '+' : '';
         await tx.scoreEvent.create({
           data: {
             teamId: params.teamId,
             round: 3,
             stage: 3,
             source,
-            pointsDelta: challenge.points,
-            reason: 'Final Breach Debugging Challenge solved (+200)'
+            pointsDelta: pointsAwarded,
+            reason: `Final Breach Debugging Challenge solved (Position #${position}: ${sign}${pointsAwarded} pts)`
           }
         });
 
@@ -359,8 +393,10 @@ export class Round3Service {
           where: { id: params.teamId },
           data: {
             finalBreachCompletedAt: completionTimestamp,
+            finalBreachPosition: position,
+            finalBreachPoints: pointsAwarded,
             totalScore: {
-              increment: challenge.points
+              increment: pointsAwarded
             }
           }
         });
@@ -368,9 +404,10 @@ export class Round3Service {
         return {
           alreadyCompleted: false,
           isCorrect: true,
-          pointsAwarded: challenge.points,
+          position,
+          pointsAwarded,
           completedAt: completionTimestamp.toISOString(),
-          message: `SYSTEM BREACH SUCCESSFUL! Correct Key Verified. +${challenge.points} points awarded.`,
+          message: `SYSTEM BREACH SUCCESSFUL! Correct Key Verified. Position #${position} achieved: ${sign}${pointsAwarded} points awarded.`,
           newTotalScore: updatedTeam.totalScore
         };
       });
@@ -380,12 +417,13 @@ export class Round3Service {
           teamId: params.teamId,
           teamName: team.name,
           completedAt: completionTimestamp.toISOString(),
-          points: challenge.points
+          position: txResult.position,
+          points: txResult.pointsAwarded
         });
 
         sseService.broadcast('score_update', {
           teamId: params.teamId,
-          pointsDelta: challenge.points,
+          pointsDelta: txResult.pointsAwarded,
           newTotalScore: txResult.newTotalScore,
           source
         });
@@ -402,9 +440,11 @@ export class Round3Service {
           success: true,
           alreadyCompleted: true,
           isCorrect: true,
+          position: currentTeam?.finalBreachPosition || 1,
           pointsAwarded: 0,
+          originalPointsAwarded: currentTeam?.finalBreachPoints ?? 0,
           completedAt: currentTeam?.finalBreachCompletedAt?.toISOString() || completionTimestamp.toISOString(),
-          message: 'Final Breach already scored for your team.',
+          message: `Final Breach already scored for your team (Position #${currentTeam?.finalBreachPosition || 1}).`,
           newTotalScore: currentTeam?.totalScore ?? 0
         };
       }

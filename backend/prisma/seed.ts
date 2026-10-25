@@ -156,6 +156,146 @@ const ROUND1_QUESTIONS = [
     ],
     correctOption: "A",
     explanation: "If Delta's statement is False, Alpha is online. Alpha speaks the truth -> Beta is online. Beta speaks the truth -> Gamma is offline. Gamma speaks the truth -> Delta is online. The online servers are Alpha, Beta, Delta (exactly 3). The single false statement was made by Delta."
+  },
+  {
+    orderIndex: 11,
+    topic: "Bitwise Operations & Masks",
+    prompt: "In an embedded system, register R holds the 8-bit value 0x5C. An engineer executes: R = (R ^ 0xA5) & 0x7E. What is the final hexadecimal value of register R?",
+    codeSnippet: "uint8_t R = 0x5C;\nR = (R ^ 0xA5) & 0x7E;",
+    options: [
+      { id: "A", text: "0x78" },
+      { id: "B", text: "0xF9" },
+      { id: "C", text: "0x3C" },
+      { id: "D", text: "0x79" }
+    ],
+    correctOption: "A",
+    explanation: "0x5C (01011100) XOR 0xA5 (10100101) = 0xF9 (11111001). Bitwise AND with 0x7E (01111110) clears the highest and lowest bits: 01111000, which is hexadecimal 0x78."
+  },
+  {
+    orderIndex: 12,
+    topic: "Operating Systems & Scheduling",
+    prompt: "Consider three processes arriving at time t=0 with CPU burst times: P1=12ms, P2=4ms, P3=6ms. The scheduler uses Round Robin (RR) with a time quantum of 4ms (no context switch overhead). What is the average turnaround time across all three processes?",
+    codeSnippet: "Processes: P1 (12ms), P2 (4ms), P3 (6ms)\nTime Quantum q = 4ms (arrived at t=0)",
+    options: [
+      { id: "A", text: "12.0 ms" },
+      { id: "B", text: "14.0 ms" },
+      { id: "C", text: "15.3 ms" },
+      { id: "D", text: "16.0 ms" }
+    ],
+    correctOption: "D",
+    explanation: "Gantt chart execution: [0-4 P1], [4-8 P2: done], [8-12 P3], [12-16 P1], [16-18 P3: done], [18-22 P1: done]. Completion times: P1=22ms, P2=8ms, P3=18ms. Average turnaround time = (22 + 8 + 18) / 3 = 48 / 3 = 16.0 ms."
+  },
+  {
+    orderIndex: 13,
+    topic: "Recursion & Call Stacks",
+    prompt: "Consider the following recursive function in pseudo-C. What is the value returned by mystery(3, 4)?",
+    codeSnippet: "int mystery(int m, int n) {\n  if (m == 0) return n + 1;\n  if (n == 0) return mystery(m - 1, 1);\n  return mystery(m - 1, mystery(m, n - 1));\n}",
+    options: [
+      { id: "A", text: "13" },
+      { id: "B", text: "61" },
+      { id: "C", text: "125" },
+      { id: "D", text: "29" }
+    ],
+    correctOption: "C",
+    explanation: "This is the Ackermann function A(m, n). For m=3, A(3, n) = 2^(n+3) - 3. Thus A(3, 4) = 2^(4+3) - 3 = 2^7 - 3 = 128 - 3 = 125."
+  },
+  {
+    orderIndex: 14,
+    topic: "Computer Architecture & Caches",
+    prompt: "A CPU has a 64 KB 4-way set associative L1 data cache with 64-byte cache lines on a 32-bit physical address space. How many bits are used for the Tag, Set Index, and Block Offset fields respectively?",
+    codeSnippet: "Cache Size: 64 KB\nAssociativity: 4-way\nBlock/Line Size: 64 Bytes\nPhysical Address: 32 bits",
+    options: [
+      { id: "A", text: "Tag: 18 bits, Index: 8 bits, Offset: 6 bits" },
+      { id: "B", text: "Tag: 20 bits, Index: 6 bits, Offset: 6 bits" },
+      { id: "C", text: "Tag: 16 bits, Index: 10 bits, Offset: 6 bits" },
+      { id: "D", text: "Tag: 19 bits, Index: 7 bits, Offset: 6 bits" }
+    ],
+    correctOption: "A",
+    explanation: "Block size 64B requires log2(64) = 6 offset bits. Total lines = 64KB / 64B = 1024 lines. In 4-way associativity, number of sets = 1024 / 4 = 256 sets, requiring log2(256) = 8 index bits. Tag bits = 32 - (8 + 6) = 18 bits."
+  },
+  {
+    orderIndex: 15,
+    topic: "Graph Theory & Pathfinding",
+    prompt: "In a directed graph with V vertices and E edges containing negative weight edges but NO negative cycles, which algorithm correctly finds single-source shortest paths in O(V * E) worst-case time?",
+    codeSnippet: null,
+    options: [
+      { id: "A", text: "Dijkstra's Algorithm with Min-Heap" },
+      { id: "B", text: "Bellman-Ford Algorithm" },
+      { id: "C", text: "Floyd-Warshall Algorithm" },
+      { id: "D", text: "Prim's Algorithm" }
+    ],
+    correctOption: "B",
+    explanation: "Dijkstra's algorithm fails with negative edge weights. The Bellman-Ford algorithm relaxes all edges V-1 times and correctly determines single-source shortest paths in O(V * E) time while detecting negative cycles."
+  },
+  {
+    orderIndex: 16,
+    topic: "Network Protocols & TCP",
+    prompt: "During a standard TCP connection teardown, why does the initiating host enter the TIME_WAIT state and remain in it for 2MSL (Maximum Segment Lifetime)?",
+    codeSnippet: null,
+    options: [
+      { id: "A", text: "To renegotiate the sliding window buffer before opening another socket" },
+      { id: "B", text: "To ensure the final ACK arrives at the remote peer and allow lingering duplicate segments on the network to expire" },
+      { id: "C", text: "To allow the TCP SYN cookies to authenticate the next connection" },
+      { id: "D", text: "To flush the DNS resolver cache on the local network interface" }
+    ],
+    correctOption: "B",
+    explanation: "TIME_WAIT (lasting 2 * MSL) guarantees that if the final ACK is lost, the retransmitted FIN from the remote peer can be handled, and prevents stale delayed packets from colliding with a new connection reusing the same socket pair."
+  },
+  {
+    orderIndex: 17,
+    topic: "Concurrency & Deadlocks",
+    prompt: "According to Coffman's conditions, which of the following is NOT an essential necessary condition for a system deadlock to occur?",
+    codeSnippet: null,
+    options: [
+      { id: "A", text: "Mutual Exclusion" },
+      { id: "B", text: "Hold and Wait" },
+      { id: "C", text: "Priority Inversion" },
+      { id: "D", text: "Circular Wait" }
+    ],
+    correctOption: "C",
+    explanation: "The four Coffman conditions required for deadlock are: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Priority Inversion is a scheduling issue where a low-priority thread blocks a high-priority thread, not a prerequisite for deadlock."
+  },
+  {
+    orderIndex: 18,
+    topic: "Discrete Mathematics & Number Theory",
+    prompt: "What is the remainder when 3^2026 is divided by 13?",
+    codeSnippet: "Evaluate: 3^2026 mod 13",
+    options: [
+      { id: "A", text: "3" },
+      { id: "B", text: "9" },
+      { id: "C", text: "1" },
+      { id: "D", text: "12" }
+    ],
+    correctOption: "A",
+    explanation: "Since 3^3 = 27 ≡ 1 (mod 13), powers of 3 repeat modulo 13 with cycle length 3. Calculating 2026 mod 3 gives 1 (since 2026 = 3 * 675 + 1). Therefore, 3^2026 ≡ (3^3)^675 * 3^1 ≡ 1^675 * 3 ≡ 3 (mod 13)."
+  },
+  {
+    orderIndex: 19,
+    topic: "Hashing & Distributed Systems",
+    prompt: "In Consistent Hashing, why are multiple 'virtual nodes' (replicas) typically mapped to each physical server on the hash ring?",
+    codeSnippet: null,
+    options: [
+      { id: "A", text: "To encrypt communications between physical nodes with zero network overhead" },
+      { id: "B", text: "To achieve uniform key distribution and prevent hotspot imbalances across heterogeneous servers" },
+      { id: "C", text: "To eliminate the need for hash functions by using binary search trees instead" },
+      { id: "D", text: "To guarantee strict linearizable consistency across all concurrent reads" }
+    ],
+    correctOption: "B",
+    explanation: "Virtual nodes divide a physical node's capacity into multiple pseudo-tokens across the ring, significantly reducing variance in partition sizes, smoothing load distribution, and avoiding hotspots."
+  },
+  {
+    orderIndex: 20,
+    topic: "Pattern Matching & Automata",
+    prompt: "A deterministic finite automaton (DFA) has states {q0, q1, q2} over alphabet {0, 1}, where q0 is both the start state and the only accept state. The state transitions are: delta(q0, '0')=q0, delta(q0, '1')=q1, delta(q1, '0')=q2, delta(q1, '1')=q0, delta(q2, '0')=q1, delta(q2, '1')=q2. Which language does this DFA recognize?",
+    codeSnippet: null,
+    options: [
+      { id: "A", text: "Binary representations of non-negative integers divisible by 3" },
+      { id: "B", text: "Binary strings containing an even number of both 0s and 1s" },
+      { id: "C", text: "Binary strings ending with the substring '11'" },
+      { id: "D", text: "Binary strings that are palindromes" }
+    ],
+    correctOption: "A",
+    explanation: "State qi corresponds to the value of the binary string modulo 3. Reading a new bit b updates the remainder via (2*r + b) mod 3. q0 represents remainder 0. Since q0 is the sole accept state, the DFA recognizes binary numbers divisible by 3."
   }
 ];
 
@@ -249,7 +389,7 @@ export async function seed() {
   });
 
 
-  // 4. 20 Teams and Credentials
+  // 4. 20 Tournament Teams (TEAM01 to TEAM20)
   for (let i = 0; i < 20; i++) {
     const teamNum = (i + 1).toString().padStart(2, "0");
     const teamCode = `TEAM${teamNum}`;
@@ -258,9 +398,25 @@ export async function seed() {
     const members = `Operative ${teamNum}-A, Operative ${teamNum}-B, Operative ${teamNum}-C`;
     const tokenCode = ACCESS_TOKENS[i];
 
+    // Clean existing test progress for this team to establish fresh, consistent test state
+    const existingTeam = await prisma.team.findUnique({ where: { teamCode } });
+    if (existingTeam) {
+      await prisma.submission.deleteMany({ where: { teamId: existingTeam.id } });
+      await prisma.scoreEvent.deleteMany({ where: { teamId: existingTeam.id } });
+    }
+
     const team = await prisma.team.upsert({
       where: { teamCode },
-      update: { name, members },
+      update: {
+        name,
+        members,
+        currentRound: 1,
+        currentStage: 1,
+        totalScore: 0,
+        finalBreachCompletedAt: null,
+        finalBreachPosition: null,
+        finalBreachPoints: null
+      },
       create: {
         teamCode,
         name,
@@ -274,7 +430,7 @@ export async function seed() {
     // Create user login for team
     await prisma.user.upsert({
       where: { username: teamCode.toLowerCase() },
-      update: { passwordHash: teamPasswordHash, teamId: team.id },
+      update: { passwordHash: teamPasswordHash, teamId: team.id, role: UserRole.TEAM },
       create: {
         username: teamCode.toLowerCase(),
         passwordHash: teamPasswordHash,
@@ -286,10 +442,76 @@ export async function seed() {
     // Create access token for Round 3 QR code
     await prisma.accessToken.upsert({
       where: { teamId: team.id },
-      update: { tokenCode },
+      update: { tokenCode, isRedeemed: false, redeemedAt: null },
       create: {
         teamId: team.id,
         tokenCode,
+        isRedeemed: false
+      }
+    });
+  }
+
+  // 5. 10 Dedicated Development & Testing Accounts (TEST01 to TEST10)
+  for (let i = 0; i < 10; i++) {
+    const num = (i + 1).toString().padStart(2, "0");
+    const testUsername = `TEST${num}`;
+    const testPassword = `team${num}#2026`; // Mandatory required password format
+    const testPasswordHash = await bcrypt.hash(testPassword, 10);
+    const testTeamCode = `TEST${num}`;
+    const testTokenCode = `TEST${num}#2026`;
+
+    // Clean existing test game progress for this test account to ensure fresh state
+    const existingTestTeam = await prisma.team.findUnique({ where: { teamCode: testTeamCode } });
+    if (existingTestTeam) {
+      await prisma.submission.deleteMany({ where: { teamId: existingTestTeam.id } });
+      await prisma.scoreEvent.deleteMany({ where: { teamId: existingTestTeam.id } });
+    }
+
+    const testTeam = await prisma.team.upsert({
+      where: { teamCode: testTeamCode },
+      update: {
+        name: `Test Squad ${num}`,
+        members: `Test Operative ${num}-A, Test Operative ${num}-B, Test Operative ${num}-C`,
+        currentRound: 1,
+        currentStage: 1,
+        totalScore: 0,
+        finalBreachCompletedAt: null,
+        finalBreachPosition: null,
+        finalBreachPoints: null
+      },
+      create: {
+        teamCode: testTeamCode,
+        name: `Test Squad ${num}`,
+        members: `Test Operative ${num}-A, Test Operative ${num}-B, Test Operative ${num}-C`,
+        currentRound: 1,
+        currentStage: 1,
+        totalScore: 0
+      }
+    });
+
+    // Upsert exact username TEST01 through TEST10 with participant TEAM role
+    await prisma.user.upsert({
+      where: { username: testUsername },
+      update: {
+        passwordHash: testPasswordHash,
+        role: UserRole.TEAM,
+        teamId: testTeam.id
+      },
+      create: {
+        username: testUsername,
+        passwordHash: testPasswordHash,
+        role: UserRole.TEAM,
+        teamId: testTeam.id
+      }
+    });
+
+    // Access token for test team Round 3 QR code
+    await prisma.accessToken.upsert({
+      where: { teamId: testTeam.id },
+      update: { tokenCode: testTokenCode, isRedeemed: false, redeemedAt: null },
+      create: {
+        teamId: testTeam.id,
+        tokenCode: testTokenCode,
         isRedeemed: false
       }
     });
@@ -414,7 +636,8 @@ int main() {
   console.log("✅ Seed completed successfully!");
   console.log("   - Admin user seeded: admin / Admin#2026");
   console.log("   - 20 Teams seeded (TEAM01 to TEAM20) with team-specific PINs: teamXX#2026");
-  console.log("   - Round 1: 10 Verified MCQs seeded (UPCOMING)");
+  console.log("   - 10 Test Accounts seeded (TEST01 to TEST10) with passwords: team01#2026 to team10#2026");
+  console.log("   - Round 1: 20 Verified MCQs seeded (UPCOMING)");
   console.log("   - Round 2: Verified 6x6 Shape Sudoku & Broken Logic puzzle seeded (UPCOMING)");
   console.log("   - Round 3: Unique Single-Use QR Access Tokens & Debug Challenge seeded (UPCOMING)");
 }

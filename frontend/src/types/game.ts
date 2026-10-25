@@ -128,6 +128,7 @@ export interface Round3Data {
 export interface LeaderboardTeam {
   id: string;
   teamCode: string;
+  username?: string;
   name: string;
   members: string;
   currentRound: number;
@@ -136,8 +137,31 @@ export interface LeaderboardTeam {
   r1Score: number;
   r2Score: number;
   r3Score: number;
+  r3Position?: number | null;
+  r3Points?: number | null;
   finalBreachCompletedAt?: string | null;
   isDisqualified: boolean;
+}
+
+export interface WinnerAnnouncement {
+  id: number;
+  isFinalized: boolean;
+  finalizedAt?: string | null;
+  finalizedByAdminUsername?: string | null;
+  winners: Array<{
+    rank: number;
+    teamCode: string;
+    username?: string;
+    name: string;
+    totalScore: number;
+    r1Score: number;
+    r2Score: number;
+    r3Score: number;
+    r3Position?: number | null;
+    r3Points?: number | null;
+    finalBreachCompletedAt?: string | null;
+  }>;
+  notes?: string | null;
 }
 
 export interface SubmissionItem {

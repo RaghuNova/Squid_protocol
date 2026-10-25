@@ -166,16 +166,17 @@ export const RULES: CodifiedRule[] = [
     id: 9,
     category: 'round3',
     categoryLabel: 'Round 3 — The Final Breach',
-    title: 'Final Online Debugging Challenge (+200 PTS)',
-    plainEnglishSummary: 'Redeeming your verified single-use QR code unlocks the final online debugging challenge.',
-    desc: 'The final digital stage is the Core Debugging Challenge (+200 points). Teams must redeem their unique single-use QR code obtained from the physical challenge to unlock the final problem terminal.',
-    badge: 'FINAL STAGE (+200 PTS)',
+    title: 'Final Online Challenge — Finishing Order Scoring',
+    plainEnglishSummary: 'Redeeming your verified single-use QR code unlocks the final online challenge, awarding points based on completion order.',
+    desc: 'The final digital stage awards points according to verified completion order: 1st (+200), 2nd (+175), 3rd (+150), decreasing by 25 pts down to 8th (+25), and 9th onward (-25). Teams must redeem their unique single-use QR code to unlock the problem terminal.',
+    badge: 'FINISHING ORDER',
     badgeType: 'success',
     roundSymbol: 'square',
     roundAccentColor: '#00e676',
     keyDetails: [
+      '1st: +200, 2nd: +175, 3rd: +150, ..., 8th: +25, 9th+: -25',
       'Requires single-use QR code redemption',
-      'Awards +200 PTS for the correct final breach key'
+      'Points awarded only once per verified team completion'
     ]
   },
   {
@@ -342,7 +343,7 @@ export const RulesPage: React.FC = () => {
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#12151c] border border-gray-800">
               <Award className="w-3.5 h-3.5 text-[#00e676]" aria-hidden="true" />
-              <span>2,500 Maximum Points</span>
+              <span>Strict Enforcement</span>
             </span>
           </div>
 
@@ -424,7 +425,7 @@ export const RulesPage: React.FC = () => {
                 Tournament Structure by Round
               </h2>
             </div>
-            <span className="text-xs font-mono text-gray-400">Total Competition Cap: 2,500 PTS</span>
+            <span className="text-xs font-mono text-gray-400">Official Scoring Structure</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -441,10 +442,10 @@ export const RulesPage: React.FC = () => {
               </div>
               <h3 className="font-mono text-xs font-semibold text-gray-200">The Signal Protocol</h3>
               <p className="text-xs font-mono text-gray-400 leading-relaxed">
-                10 sequential technical MCQs governed by Red Light / Green Light. Correct answers award +100 (+200 Double). Red Light submissions deduct 50 (100 Double).
+                20 sequential technical MCQs governed by Red Light / Green Light. Correct answers award +100 (+200 Double). Red Light submissions deduct 50 (100 Double).
               </p>
               <div className="pt-1 font-mono text-xs font-bold text-[#ff004f]">
-                Max Score: +2,000 PTS
+                Points: +100 / +200 per MCQ
               </div>
             </div>
 
@@ -464,7 +465,7 @@ export const RulesPage: React.FC = () => {
                 2 sequential stages. Stage 1: Solve a 6×6 Shape Sudoku (+100 PTS). Stage 2: Analyze Broken Logic firmware and submit the accumulator value (+200 PTS).
               </p>
               <div className="pt-1 font-mono text-xs font-bold text-[#00f0ff]">
-                Max Score: +300 PTS
+                Points: +100 S1 / +200 S2
               </div>
             </div>
 
@@ -481,10 +482,10 @@ export const RulesPage: React.FC = () => {
               </div>
               <h3 className="font-mono text-xs font-semibold text-gray-200">The Final Breach</h3>
               <p className="text-xs font-mono text-gray-400 leading-relaxed">
-                In-person Cup Transfer & Broken QR Assembly. Redeem your single-use QR to unlock the final multi-language debugging challenge (Java, Python, or C, +200 PTS).
+                In-person Cup Transfer & Broken QR Assembly. Redeem your single-use QR to unlock the final multi-language debugging challenge with finishing-order scoring.
               </p>
               <div className="pt-1 font-mono text-xs font-bold text-[#00e676]">
-                Max Score: +200 PTS
+                Finishing Order: +200 to -25 PTS
               </div>
             </div>
           </div>

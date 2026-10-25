@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { sseService } from './sseService.js';
 import { logAdminAction } from './auditService.js';
@@ -167,11 +168,17 @@ export class ScoringService {
    * 2. Round 3 score DESC
    * 3. Round 2 score DESC
    * 4. Earliest final breach completion ASC
+   * 5. Stable alphanumeric teamCode ASC
    */
   public async getLeaderboard() {
     const teams = await prisma.team.findMany({
       include: {
-        scoreEvents: true
+        scoreEvents: true,
+        user: {
+          select: {
+            username: true
+          }
+        }
       }
     });
 
@@ -203,6 +210,7 @@ export class ScoringService {
       return {
         id: team.id,
         teamCode: team.teamCode,
+        username: team.user?.username || team.teamCode.toLowerCase(),
         name: team.name,
         members: team.members,
         currentRound: team.currentRound,
@@ -211,12 +219,14 @@ export class ScoringService {
         r1Score,
         r2Score,
         r3Score,
+        r3Position: team.finalBreachPosition ?? null,
+        r3Points: team.finalBreachPoints ?? (r3Score !== 0 ? r3Score : null),
         finalBreachCompletedAt: team.finalBreachCompletedAt,
         isDisqualified: team.isDisqualified
       };
     });
 
-    // Sort by tie-break criteria
+    // Sort by deterministic tie-break criteria
     enriched.sort((a, b) => {
       if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
       if (b.r3Score !== a.r3Score) return b.r3Score - a.r3Score;
@@ -230,6 +240,167 @@ export class ScoringService {
     });
 
     return enriched;
+  }
+
+  /**
+   * Fetch current winner announcement state (finalized or provisional standings).
+   */
+  public async getWinnerAnnouncement() {
+    const announcement = await prisma.winnerAnnouncement.findUnique({
+      where: { id: 1 }
+    });
+
+    if (announcement && announcement.isFinalized) {
+      return {
+        isFinalized: true,
+        finalizedAt: announcement.finalizedAt?.toISOString() || null,
+        finalizedByAdminUsername: announcement.finalizedByAdminUsername,
+        winners: announcement.winners as any,
+        notes: announcement.notes
+      };
+    }
+
+    // Provisional standings derived dynamically from authoritative backend calculation
+    const currentLeaderboard = await this.getLeaderboard();
+    const activeStandings = currentLeaderboard.filter((t) => !t.isDisqualified);
+    const top3Provisional = activeStandings.slice(0, 3).map((t, idx) => ({
+      rank: idx + 1,
+      teamId: t.id,
+      teamCode: t.teamCode,
+      name: t.name,
+      username: t.username,
+      totalScore: t.totalScore,
+      r1Score: t.r1Score,
+      r2Score: t.r2Score,
+      r3Score: t.r3Score,
+      r3Position: t.r3Position,
+      r3Points: t.r3Points,
+      completedAt: t.finalBreachCompletedAt ? new Date(t.finalBreachCompletedAt).toISOString() : null
+    }));
+
+    return {
+      isFinalized: false,
+      finalizedAt: null,
+      finalizedByAdminUsername: null,
+      winners: top3Provisional,
+      notes: null
+    };
+  }
+
+  /**
+   * Finalize and publish official tournament winners after admin confirmation.
+   */
+  public async finalizeWinners(params: {
+    adminUserId: string;
+    adminUsername: string;
+    notes?: string;
+    ipAddress?: string;
+  }) {
+    const leaderboard = await this.getLeaderboard();
+    if (!leaderboard || leaderboard.length === 0) {
+      throw new Error("Cannot finalize winners: No participating teams found in system.");
+    }
+
+    const top3 = leaderboard.filter((t) => !t.isDisqualified).slice(0, 3).map((t, idx) => ({
+      rank: idx + 1,
+      teamId: t.id,
+      teamCode: t.teamCode,
+      name: t.name,
+      username: t.username,
+      totalScore: t.totalScore,
+      r1Score: t.r1Score,
+      r2Score: t.r2Score,
+      r3Score: t.r3Score,
+      r3Position: t.r3Position,
+      r3Points: t.r3Points,
+      completedAt: t.finalBreachCompletedAt ? new Date(t.finalBreachCompletedAt).toISOString() : null
+    }));
+
+    const finalizedAt = new Date();
+
+    const record = await prisma.winnerAnnouncement.upsert({
+      where: { id: 1 },
+      update: {
+        isFinalized: true,
+        finalizedAt,
+        finalizedByAdminId: params.adminUserId,
+        finalizedByAdminUsername: params.adminUsername,
+        winners: top3 as any,
+        notes: params.notes || 'Official tournament winners finalized by administrator.'
+      },
+      create: {
+        id: 1,
+        isFinalized: true,
+        finalizedAt,
+        finalizedByAdminId: params.adminUserId,
+        finalizedByAdminUsername: params.adminUsername,
+        winners: top3 as any,
+        notes: params.notes || 'Official tournament winners finalized by administrator.'
+      }
+    });
+
+    await logAdminAction({
+      adminUserId: params.adminUserId,
+      adminUsername: params.adminUsername,
+      action: "FINALIZE_WINNERS",
+      targetType: "WINNER_ANNOUNCEMENT",
+      targetId: "1",
+      details: {
+        winners: top3,
+        finalizedAt: finalizedAt.toISOString()
+      },
+      ipAddress: params.ipAddress
+    });
+
+    sseService.broadcast('winners_announced', {
+      isFinalized: true,
+      finalizedAt: finalizedAt.toISOString(),
+      winners: top3
+    });
+
+    return record;
+  }
+
+  /**
+   * Reopen winner announcement to provisional state if corrections are required.
+   */
+  public async reopenWinners(params: {
+    adminUserId: string;
+    adminUsername: string;
+    ipAddress?: string;
+  }) {
+    const record = await prisma.winnerAnnouncement.upsert({
+      where: { id: 1 },
+      update: {
+        isFinalized: false,
+        finalizedAt: null,
+        finalizedByAdminId: null,
+        finalizedByAdminUsername: null,
+        winners: Prisma.DbNull,
+        notes: null
+      },
+      create: {
+        id: 1,
+        isFinalized: false
+      }
+    });
+
+    await logAdminAction({
+      adminUserId: params.adminUserId,
+      adminUsername: params.adminUsername,
+      action: "REOPEN_WINNERS",
+      targetType: "WINNER_ANNOUNCEMENT",
+      targetId: "1",
+      details: { reopenedAt: new Date().toISOString() },
+      ipAddress: params.ipAddress
+    });
+
+    sseService.broadcast('winners_announced', {
+      isFinalized: false,
+      reopenedAt: new Date().toISOString()
+    });
+
+    return record;
   }
 }
 

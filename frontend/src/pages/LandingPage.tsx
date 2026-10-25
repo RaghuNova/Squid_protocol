@@ -74,7 +74,7 @@ export const LandingPage: React.FC = () => {
 
           {/* Event description */}
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-400 font-mono leading-relaxed">
-            60 participants. 20 teams. 3 elimination rounds.
+            3 elimination rounds.
             Compete in timed algorithms, geometric logic puzzles, arena teamwork, and multi-language debugging.
           </p>
 
@@ -99,13 +99,12 @@ export const LandingPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Key Event Metrics */}
-          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-8 border-t border-gray-800/60">
+          {/* Key Event Metrics (Tournament format without hardcoded participant/team counts or max points) */}
+          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto pt-8 border-t border-gray-800/60">
             {[
-              { value: '60', label: 'Participants', color: 'text-white' },
-              { value: '20', label: 'Teams', color: 'text-[#ff004f]' },
-              { value: '3', label: 'Rounds', color: 'text-[#00f0ff]' },
-              { value: '2,500', label: 'Max Points', color: 'text-[#00e676]' },
+              { value: '3', label: 'Elimination Rounds', color: 'text-[#00f0ff]' },
+              { value: '15m', label: 'Round 1 Timer', color: 'text-[#ffd166]' },
+              { value: 'Live', label: 'Signal Engine', color: 'text-[#ff004f]' },
             ].map(stat => (
               <div key={stat.label} className="p-3.5 rounded-xl bg-[#12151c]/70 border border-gray-800 card-hover">
                 <dt className="text-[11px] font-mono text-gray-400 uppercase mb-1">{stat.label}</dt>
@@ -147,7 +146,7 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 font-mono text-xs text-gray-400">
               <Award className="w-4 h-4 text-[#ffd166]" aria-hidden="true" />
-              <span>Overall Cap: 2,500 PTS</span>
+              <span>Official Rules</span>
             </div>
           </div>
 
@@ -157,38 +156,34 @@ export const LandingPage: React.FC = () => {
                 <tr className="border-b border-gray-800 text-gray-400">
                   <th className="py-3 px-4 font-semibold" scope="col">Protocol Phase</th>
                   <th className="py-3 px-4 font-semibold" scope="col">Challenge Description</th>
-                  <th className="py-3 px-4 text-right font-semibold" scope="col">Max Points</th>
+                  <th className="py-3 px-4 text-right font-semibold" scope="col">Points Structure</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50 text-gray-200">
                 <tr className="hover:bg-gray-900/30 transition-colors">
                   <td className="py-3 px-4 text-[#ff004f] font-semibold">Round 1</td>
-                  <td className="py-3 px-4">10 Technical MCQs (Normal Answers)</td>
-                  <td className="py-3 px-4 text-right font-bold">1,000</td>
+                  <td className="py-3 px-4">20 Technical MCQs (Normal Answers)</td>
+                  <td className="py-3 px-4 text-right font-bold">+100 / -50</td>
                 </tr>
                 <tr className="hover:bg-gray-900/30 transition-colors">
                   <td className="py-3 px-4 text-[#ff004f] font-semibold">Round 1 Bonus</td>
-                  <td className="py-3 px-4">Double Points Multiplier (+100 extra per question)</td>
-                  <td className="py-3 px-4 text-right font-bold">+1,000</td>
+                  <td className="py-3 px-4">Double Points Multiplier Window</td>
+                  <td className="py-3 px-4 text-right font-bold">+200 / -100</td>
                 </tr>
                 <tr className="hover:bg-gray-900/30 transition-colors">
                   <td className="py-3 px-4 text-[#00f0ff] font-semibold">Round 2 · S1</td>
                   <td className="py-3 px-4">6×6 Shape Sudoku (Unique Valid Grid)</td>
-                  <td className="py-3 px-4 text-right font-bold">100</td>
+                  <td className="py-3 px-4 text-right font-bold">+100 PTS</td>
                 </tr>
                 <tr className="hover:bg-gray-900/30 transition-colors">
                   <td className="py-3 px-4 text-[#00f0ff] font-semibold">Round 2 · S2</td>
                   <td className="py-3 px-4">Broken Logic Technical Reasoning Output</td>
-                  <td className="py-3 px-4 text-right font-bold">200</td>
+                  <td className="py-3 px-4 text-right font-bold">+200 PTS</td>
                 </tr>
                 <tr className="hover:bg-gray-900/30 transition-colors">
                   <td className="py-3 px-4 text-[#00e676] font-semibold">Round 3 · Final</td>
-                  <td className="py-3 px-4">Final System Breach Debugging Key (Java/Python/C)</td>
-                  <td className="py-3 px-4 text-right font-bold">200</td>
-                </tr>
-                <tr className="bg-[#12151c] font-bold text-white border-t border-gray-700">
-                  <td className="py-4 px-4 rounded-bl-lg" colSpan={2}>MAXIMUM POSSIBLE SCORE</td>
-                  <td className="py-4 px-4 text-right text-[#00e676] text-base rounded-br-lg">2,500 PTS</td>
+                  <td className="py-3 px-4">Final System Breach (Finishing Order)</td>
+                  <td className="py-3 px-4 text-right font-bold text-[#00e676]">+200 to -25 PTS</td>
                 </tr>
               </tbody>
             </table>

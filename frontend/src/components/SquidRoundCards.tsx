@@ -40,7 +40,7 @@ export interface RoundProtocol {
   briefing: {
     lore: string;
     duration: string;
-    maxScore: string;
+    scoreStructure: string;
     stages: Array<{
       title: string;
       desc: string;
@@ -67,18 +67,18 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     title: 'The Signal Protocol',
     subtitle: 'Red Light / Green Light Questions',
     description:
-      '10 fast-paced technical questions governed by a live Red Light / Green Light indicator. Double Points windows double rewards and penalties. Submitting during Red Light deducts points automatically.',
-    pointsText: 'Points: Up to',
-    pointsHighlight: '+2,000 PTS',
+      '20 fast-paced technical questions governed by a live Red Light / Green Light indicator. Double Points windows double rewards and penalties. Submitting during Red Light deducts points automatically.',
+    pointsText: 'Scoring:',
+    pointsHighlight: '+100 / +200 per MCQ',
     footerStatus: 'Green Light Accept',
     footerStatusColorClass: 'text-[#00e676]',
     briefing: {
       lore: 'Watch the signal light on your screen. Submitting an answer while the light is red triggers an automatic penalty deduction.',
       duration: '15 Minutes',
-      maxScore: '+2,000 PTS (with Double Points Multiplier)',
+      scoreStructure: '+100 per MCQ (+200 with Double Points)',
       stages: [
         {
-          title: '10 Technical Challenges',
+          title: '20 Technical Challenges',
           desc: 'Fast-paced systems engineering, algorithms, networking and cryptography questions.',
           points: '+100 PTS per correct answer',
           tag: 'Base Mode'
@@ -86,7 +86,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
         {
           title: 'Double Points Multiplier Window',
           desc: 'Officials trigger high-stakes windows. Correct answers double to +200 PTS; errors double to -100 PTS.',
-          points: 'Up to +200 / -100 PTS',
+          points: '+200 / -100 PTS',
           tag: 'Bonus Option'
         },
         {
@@ -115,14 +115,14 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     subtitle: 'Two-Stage Shape & Logic Puzzles',
     description:
       'Stage 1: Solve an interactive 6×6 Shape Sudoku puzzle. Stage 2: Unlock the Broken Logic challenge to trace an operator precedence flaw in firmware code.',
-    pointsText: 'Points:',
-    pointsHighlight: '+300 PTS',
+    pointsText: 'Scoring:',
+    pointsHighlight: '+100 S1 / +200 S2',
     footerStatus: '2 Sequential Stages',
     footerStatusColorClass: 'text-[#00f0ff]',
     briefing: {
       lore: 'Two sequential problem-solving gates. Teams must solve the 6×6 geometric shape grid before unlocking the firmware code challenge.',
       duration: '20 Minutes',
-      maxScore: '+300 PTS (+100 S1 + +200 S2)',
+      scoreStructure: '+100 PTS (Stage 1) + +200 PTS (Stage 2)',
       stages: [
         {
           title: 'Stage 1: 6×6 Geometric Shape Sudoku',
@@ -155,15 +155,15 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     title: 'The Final Breach',
     subtitle: 'In-Person Trials + Core Code Debugging',
     description:
-      'Activity 1: Cup Transfer Relay judged in person by officials. Activity 2: Reconstruct broken QR code pieces. Final Challenge: Debug identical code in Java, Python, or C to find the Final Breach Key.',
-    pointsText: 'Points:',
-    pointsHighlight: '+200 PTS',
+      'Activity 1: Cup Transfer Relay judged in person by officials. Activity 2: Reconstruct broken QR code pieces. Final Challenge: Debug multi-language code and claim your verified finishing position.',
+    pointsText: 'Finishing Order:',
+    pointsHighlight: '+200 to -25 PTS',
     footerStatus: 'Champion Race',
     footerStatusColorClass: 'text-[#ffd166]',
     briefing: {
       lore: 'The final championship trial combining teamwork dexterity, physical QR assembly, and multi-language code debugging.',
       duration: '25–30 Minutes',
-      maxScore: '+200 PTS (Final Breach Key)',
+      scoreStructure: '+200 (1st) down to -25 (9th+)',
       stages: [
         {
           title: 'Activity 1: Physical Cup-Transfer Arena',
@@ -180,7 +180,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
         {
           title: 'Final Online Challenge: Kernel Debugging',
           desc: 'Debug identical flawed firmware implementations in Java, Python, or C to calculate checksum 1040 and submit PROTOCOL_BREACH_1040.',
-          points: '+200 PTS',
+          points: '+200 to -25 PTS (by Finishing Order)',
           tag: 'Final Trophy'
         }
       ],
@@ -406,10 +406,10 @@ export const SquidRoundCards: React.FC = () => {
               </div>
               <div className="p-3 rounded-xl bg-[#141721] border border-gray-800">
                 <div className="text-gray-400 text-[10px] uppercase flex items-center gap-1.5 mb-1">
-                  <Award className="w-3.5 h-3.5 text-amber-400" /> Max Yield
+                  <Award className="w-3.5 h-3.5 text-amber-400" /> Scoring
                 </div>
                 <div className="text-[#00e676] font-bold text-sm">
-                  {activeModalRound.briefing.maxScore}
+                  {activeModalRound.briefing.scoreStructure}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-[#141721] border border-gray-800 col-span-2 sm:col-span-1">

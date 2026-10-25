@@ -28,7 +28,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
   timer,
   currentQuestion,
   questionNumber,
-  totalQuestions = 10,
+  totalQuestions = 20,
   isCompleted,
   onRefresh,
 }) => {
@@ -66,7 +66,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-          Round 1 has not started yet. When it begins, your team will answer 10 questions in sequence. Watch the Red Light / Green Light indicator before submitting!
+          Round 1 has not started yet. When it begins, your team will answer {totalQuestions} questions in sequence. Watch the Red Light / Green Light indicator before submitting!
         </p>
         <div className="p-4 rounded-xl bg-black/40 border border-gray-800/80 inline-flex items-center gap-3 font-mono text-xs text-gray-400">
           <Clock className="w-4 h-4 text-cyan-400" aria-hidden="true" />
@@ -88,7 +88,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
             Round 1 Completed
           </h2>
           <p className="text-sm font-mono text-[#00e676]">
-            All 10 questions have been finalized and scored.
+            All {totalQuestions} questions have been finalized and scored.
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">

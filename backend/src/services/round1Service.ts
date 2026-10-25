@@ -86,7 +86,7 @@ export class Round1Service {
         serverTime: new Date().toISOString(),
         currentQuestion: null,
         questionNumber: 0,
-        totalQuestions: 10,
+        totalQuestions: 20,
         isCompleted: false,
         teamSubmissions: {},
         lastSubmission: null
