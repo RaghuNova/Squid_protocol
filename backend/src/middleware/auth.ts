@@ -152,6 +152,38 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function optionalAuthenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
+  let token: string | undefined;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.squid_token) {
+    token = req.cookies.squid_token;
+  }
+
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+    if (!decoded.teamId && decoded.userId) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { teamId: true, role: true }
+        });
+        if (user?.teamId) {
+          decoded.teamId = user.teamId;
+        }
+      } catch {}
+    }
+    req.user = decoded;
+  } catch {}
+  next();
+}
+
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {

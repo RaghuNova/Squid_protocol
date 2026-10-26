@@ -28,6 +28,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV ENABLE_GAME_RESET=true
 
 # Security: Run as non-root user
 USER node

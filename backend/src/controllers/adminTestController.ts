@@ -7,6 +7,15 @@ import { acquireGameResetLocks } from '../services/gameResetLock.js';
 let isResetInProgress = false;
 
 export function resetEnvironmentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+  // If explicitly disabled, block reset
+  if (env.ENABLE_GAME_RESET === 'false') return false;
+
+  // Explicitly enabled via environment variable
+  if (env.ENABLE_GAME_RESET === 'true') return true;
+
+  // Render cloud deployment: allow reset unless explicitly disabled with ENABLE_GAME_RESET=false
+  if (env.RENDER === 'true') return true;
+
   // Keep production resets behind an explicit deployment setting, in addition
   // to the ADMIN route middleware and the exact RESET GAME confirmation.
   if (env.NODE_ENV === 'production') return env.ENABLE_GAME_RESET === 'true';
