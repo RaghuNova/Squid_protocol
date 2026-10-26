@@ -207,6 +207,9 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(round3Routes).not.toContain("router.post('/qr/mobile-redeem', authenticate");
       const adminController = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminController.ts'), 'utf-8');
       const round3Service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
+      const adminQrPage = fs.readFileSync(path.resolve(__dirname, '../pages/admin/AdminQRCodes.tsx'), 'utf-8');
+      expect(adminQrPage).toContain('open the link it detects');
+      expect(adminQrPage).toContain('The QR text itself is not the laptop key');
       expect(adminController).toContain('/qr/redeem#code=');
       expect(adminController).toContain('PUBLIC_APP_URL || process.env.FRONTEND_URL');
       expect(round3Service).toContain('const accessKey = generateQrToken()');

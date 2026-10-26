@@ -34,7 +34,7 @@ export const Round3View: React.FC<Round3ViewProps> = ({ round, timer, isUnlocked
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-[#12151c] border border-gray-800">
       <div>
         <span className="font-display font-bold text-sm text-white block">ROUND 3: THE FINAL BREACH</span>
-        <span className="text-[11px] font-mono text-gray-400">Scan the physical team QR code with a mobile phone, enter its access key here, then submit the final answer.</span>
+        <span className="text-[11px] font-mono text-gray-400">Scan your team QR with a phone and open the link. Copy the separate access key shown after verification, enter it here, then submit the final answer.</span>
       </div>
       {timer?.endTime && <CountdownTimer endTime={timer.endTime} remainingSeconds={timer.remainingSeconds} status={status} isPaused={isPaused} onExpire={onRefresh} />}
     </div>

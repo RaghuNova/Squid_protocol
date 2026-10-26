@@ -61,7 +61,7 @@ export const AdminQRCodes: React.FC = () => {
             Printable Squad QR Codes
           </h1>
           <p className="text-xs font-mono text-gray-400 mt-1">
-            Scan a card with a phone camera, copy the plain-text code shown by the scanner, then paste it into Round 3 on that team’s laptop.
+            Scan the card with a phone camera and open the link it detects. After the phone verifies the QR, copy the separate access key shown on that page and enter it in Round 3 on the team laptop. The QR text itself is not the laptop key.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export const AdminQRCodes: React.FC = () => {
 
             <div className="space-y-1 w-full pt-2 border-t border-gray-800 print:border-black">
               <span className="font-mono text-[10px] text-gray-400 print:text-gray-700 uppercase block">Single-use physical QR</span>
-              <span className="font-mono text-xs text-cyan-300 print:text-black">Scan to verify team access</span>
+              <span className="font-mono text-xs text-cyan-300 print:text-black">Open link on phone; copy the key shown after verification</span>
             </div>
           </div>
         ))}
