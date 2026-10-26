@@ -160,27 +160,20 @@ export class Round3Service {
     await teamRoundProgressService.reconcileTeam(teamId);
     const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
     if (!progress?.nextRoundEligible) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team is not eligible for Round 3 yet.' };
-    // Accept a preassigned QR code as plain text for the phone camera's native
-    // copy flow. The account-authenticated laptop binds redemption to its team.
-    const qrToken = await prisma.accessToken.findFirst({ where: { teamId, tokenCode: accessKey } });
-    if (qrToken && !qrToken.accessKey && !qrToken.authorizedAt) {
-      const now = new Date();
-      const claimed = await prisma.accessToken.updateMany({
-        where: { id: qrToken.id, teamId, tokenCode: accessKey, accessKey: null, authorizedAt: null },
-        data: { isRedeemed: true, redeemedAt: qrToken.redeemedAt ?? now, accessKey, authorizedAt: now }
-      });
-      if (claimed.count === 1) return { success: true, isAuthorized: true, message: 'Round 3 access code verified. The final challenge is unlocked.' };
-    }
-
-    // Keep retries and previously issued mobile-page keys working.
-    const token = await prisma.accessToken.findFirst({ where: { teamId, isRedeemed: true, accessKey } });
+    const submittedKey = accessKey.trim();
+    // The phone redemption exchange issues a distinct laptop key. Never treat
+    // the printed QR bearer token itself as an access key.
+    const token = await prisma.accessToken.findFirst({ where: { teamId, isRedeemed: true, accessKey: submittedKey } });
     if (!token) {
-      const owner = await prisma.accessToken.findUnique({ where: { tokenCode: accessKey }, select: { team: { select: { teamCode: true } } } });
-      if (owner?.team?.teamCode) return { success: false, error: 'WRONG_TEAM_CODE', message: `This QR code belongs to ${owner.team.teamCode}. Sign into that team on the laptop and try again.` };
-      return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Code could not be verified. Use the current code from your team’s freshly printed QR.' };
+      const owner = await prisma.accessToken.findUnique({ where: { accessKey: submittedKey }, select: { teamId: true, team: { select: { teamCode: true } } } });
+      if (owner?.teamId && owner.teamId !== teamId) return { success: false, error: 'WRONG_TEAM_CODE', message: `This access key belongs to ${owner.team?.teamCode || 'another team'}. Sign into that team on the laptop and try again.` };
+      return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid access key. Scan your team’s current physical QR code and enter the key shown on your phone.' };
+    }
+    if (token.accessKey !== submittedKey) {
+      return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid access key. Please scan your team’s physical QR code and enter the key shown on your phone.' };
     }
     if (!token.authorizedAt) {
-      await prisma.accessToken.updateMany({ where: { id: token.id, isRedeemed: true, accessKey, authorizedAt: null }, data: { authorizedAt: new Date() } });
+      await prisma.accessToken.updateMany({ where: { id: token.id, teamId, isRedeemed: true, accessKey: submittedKey, authorizedAt: null }, data: { authorizedAt: new Date() } });
     }
     return { success: true, isAuthorized: true, message: 'Round 3 access key verified. The final challenge is unlocked.' };
   }

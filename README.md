@@ -112,7 +112,7 @@ The repeatable seed script (`npm run db:seed`) creates all necessary tournament 
   - `TEAM20`: `team20#2026`
 
 ### Round 3 QR Redemption Codes
-Each team has a single-use, cryptographically random QR token. Print QR codes from the admin panel; token values are not shown as text or returned by participant APIs. The physical QR opens the mobile redemption page, where the token is exchanged for a separate Round 3 access key. Enter that key on the team laptop to unlock the debugging challenge. Set `PUBLIC_APP_URL` (or `FRONTEND_URL`) to the public frontend origin before generating printable QR codes. Print fresh QR codes after deployment.
+Each team has a single-use, cryptographically random QR token. Printed QR codes encode `${PUBLIC_APP_URL}/qr/redeem#code=<opaque-token>` (or `FRONTEND_URL` when `PUBLIC_APP_URL` is unset). The phone opens the redemption page, which sends only the token to `POST /api/v1/round3/qr/mobile-redeem`. The backend returns a separate one-time laptop key, stored in `AccessToken.accessKey`; the team submits it as `{ "accessKey": "…" }` to `POST /api/v1/round3/debug/authorize`. The backend matches that key to the authenticated team and records `authorizedAt` before revealing the challenge. The QR token itself is never accepted as the laptop key. Configure the public frontend origin before generating printable QR codes, then regenerate and reprint cards after deployment.
 
 The administrator Question Matrix includes the Round 2 debugging question and Round 3 final debugging challenge, expected answers, and reference solutions. Those values are available only through admin-protected endpoints; participant APIs expose challenge content only after its required stage and access checks.
 

@@ -782,10 +782,44 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.body.accessKey).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(res.body.accessKey).not.toBe(teamWithToken!.accessToken!.tokenCode);
 
+      const pendingData = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
+      expect(pendingData.body.challenge).toBeNull();
+
+      const rawQrKeyAttempt = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ accessKey: teamWithToken!.accessToken!.tokenCode });
+      expect(rawQrKeyAttempt.status).toBe(400);
+      expect(rawQrKeyAttempt.body.error).toBe('INVALID_ACCESS_KEY');
+
+      const invalidAttempt = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ accessKey: 'x'.repeat(43) });
+      expect(invalidAttempt.status).toBe(400);
+      expect(invalidAttempt.body.error).toBe('INVALID_ACCESS_KEY');
+
+      const team02Login = await request(app)
+        .post('/api/v1/auth/team/login')
+        .send({ teamCode: 'TEAM02', pin: 'team02#2026' });
+      const crossTeamAttempt = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${team02Login.body.token}`)
+        .send({ accessKey: res.body.accessKey });
+      expect(crossTeamAttempt.status).toBe(400);
+      expect(crossTeamAttempt.body.error).toBe('WRONG_TEAM_CODE');
+
+      const retry = await request(app)
+        .post('/api/v1/round3/qr/mobile-redeem')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ code: teamWithToken!.accessToken!.tokenCode });
+      expect(retry.status).toBe(200);
+      expect(retry.body.accessKey).toBe(res.body.accessKey);
+
       const authorized = await request(app)
         .post('/api/v1/round3/debug/authorize')
         .set('Authorization', `Bearer ${teamToken}`)
-        .send({ accessKey: res.body.accessKey });
+        .send({ accessKey: ` ${res.body.accessKey} ` });
       expect(authorized.status).toBe(200);
       const round3 = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
       expect(round3.body.challenge).toBeTruthy();

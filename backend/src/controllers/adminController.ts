@@ -452,6 +452,13 @@ export async function getAuditLogs(req: Request, res: Response, next: NextFuncti
 
 export async function generateQRCodes(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const appUrl = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '')).replace(/\/+$/, '');
+    if (!appUrl) throw new Error('PUBLIC_APP_URL or FRONTEND_URL must be configured before generating Round 3 QR codes.');
+    const parsedAppUrl = new URL(appUrl);
+    if (process.env.NODE_ENV === 'production' && (parsedAppUrl.protocol !== 'https:' || ['localhost', '127.0.0.1'].includes(parsedAppUrl.hostname))) {
+      throw new Error('Round 3 QR codes require a public HTTPS frontend URL in production.');
+    }
     const teams = await prisma.team.findMany({
       orderBy: { teamCode: 'asc' },
       include: { accessToken: true }
@@ -477,9 +484,9 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
         token = await prisma.accessToken.findUniqueOrThrow({ where: { id: token.id } });
       }
 
-      // Encode only the opaque team code. Phone camera apps show plain text
-      // with a copy action; QR cards must never point participants at localhost.
-      const qrContent = token.tokenCode;
+      // The QR must open the redemption page so the bearer token can be
+      // exchanged for a separate, one-time laptop access key.
+      const qrContent = `${appUrl}/qr/redeem#code=${encodeURIComponent(token.tokenCode)}`;
       const dataUrl = await QRCode.toDataURL(qrContent, {
         errorCorrectionLevel: 'H',
         margin: 2,

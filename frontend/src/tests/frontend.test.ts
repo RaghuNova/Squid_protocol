@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { SymbolMap } from '../components/GeometricShapes';
+import { parseRound3QrPayload } from '../features/round3/qrPayload';
 
 describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
+  it('extracts the opaque redemption token from the printed QR URL without altering it', () => {
+    const token = 'Abcdefghijklmnopqrstuvwxyz0123456789_-ABCDEF';
+    expect(parseRound3QrPayload(`https://event.example/qr/redeem#code=${encodeURIComponent(token)}`)).toBe(token);
+    expect(parseRound3QrPayload(` https://event.example/qr/redeem?code=${encodeURIComponent(token)} `)).toBe(token);
+    expect(parseRound3QrPayload('https://event.example/other#code=not-a-token')).toBeNull();
+    expect(parseRound3QrPayload('')).toBeNull();
+  });
+
   it('contains all 6 distinct geometric shape definitions', () => {
     const keys = Object.keys(SymbolMap);
     expect(keys).toEqual(['S', 'T', 'C', 'U', 'A', 'D']);
@@ -198,11 +207,11 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(round3Routes).not.toContain("router.post('/qr/mobile-redeem', authenticate");
       const adminController = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminController.ts'), 'utf-8');
       const round3Service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
-      expect(adminController).toContain('const qrContent = token.tokenCode');
-      expect(adminController).not.toContain("'http://localhost:5173'");
-      expect(round3Service).toContain('tokenCode: accessKey');
-      expect(round3Service).toContain('teamId, tokenCode: accessKey');
-      expect(round3Service).toContain('qrToken && !qrToken.accessKey && !qrToken.authorizedAt');
+      expect(adminController).toContain('/qr/redeem#code=');
+      expect(adminController).toContain('PUBLIC_APP_URL || process.env.FRONTEND_URL');
+      expect(round3Service).toContain('const accessKey = generateQrToken()');
+      expect(round3Service).toContain('where: { teamId, isRedeemed: true, accessKey: submittedKey }');
+      expect(round3Service).not.toContain('tokenCode: accessKey');
       expect(round3Service).toContain('WRONG_TEAM_CODE');
     });
   });

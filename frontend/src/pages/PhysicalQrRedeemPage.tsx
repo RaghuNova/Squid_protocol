@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../services/api';
 import { CheckCircle2, LoaderCircle, ShieldAlert } from 'lucide-react';
+import { parseRound3QrPayload } from '../features/round3/qrPayload';
 
 export const PhysicalQrRedeemPage: React.FC = () => {
   const started = useRef(false);
@@ -10,7 +11,7 @@ export const PhysicalQrRedeemPage: React.FC = () => {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const code = new URLSearchParams(window.location.hash.slice(1)).get('code');
+    const code = parseRound3QrPayload(window.location.href);
     window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
     if (!code) {
       setState({ loading: false, error: 'QR code is missing or invalid. Scan the event QR again.' });
