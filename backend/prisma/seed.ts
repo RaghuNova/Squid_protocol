@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole, RoundStatus, SignalState } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { generateQrToken, isStrongQrToken } from '../src/utils/qrToken.js';
 
 const prisma = new PrismaClient();
 
@@ -10,11 +11,6 @@ const TEAM_NAMES = [
   "Cipher Legion", "Root Enforcers", "Echo Syndicate", "Glitch Mob",
   "Vector Wardens", "Dark Silicon", "Iron Daemons", "Omega Breach"
 ];
-
-const ACCESS_TOKENS = Array.from({ length: 20 }, (_, i) => {
-  const num = (i + 1).toString().padStart(2, "0");
-  return `TEAM${num}#2026`;
-});
 
 const ROUND1_QUESTIONS = [
   {
@@ -396,7 +392,6 @@ export async function seed() {
     const teamPasswordHash = await bcrypt.hash(`${teamCode.toLowerCase()}#2026`, 10);
     const name = TEAM_NAMES[i];
     const members = `Operative ${teamNum}-A, Operative ${teamNum}-B, Operative ${teamNum}-C`;
-    const tokenCode = ACCESS_TOKENS[i];
 
     const team = await prisma.team.upsert({
       where: { teamCode },
@@ -426,16 +421,13 @@ export async function seed() {
       }
     });
 
-    // Create access token for Round 3 QR code
-    await prisma.accessToken.upsert({
-      where: { teamId: team.id },
-      update: { tokenCode },
-      create: {
-        teamId: team.id,
-        tokenCode,
-        isRedeemed: false
-      }
-    });
+    // Keep QR secrets cryptographically random; retain already printed strong tokens.
+    const existingToken = await prisma.accessToken.findUnique({ where: { teamId: team.id } });
+    if (!existingToken) {
+      await prisma.accessToken.create({ data: { teamId: team.id, tokenCode: generateQrToken(), isRedeemed: false } });
+    } else if (!isStrongQrToken(existingToken.tokenCode)) {
+      await prisma.accessToken.update({ where: { id: existingToken.id }, data: { tokenCode: generateQrToken() } });
+    }
   }
 
   // 5. Round 1 Questions

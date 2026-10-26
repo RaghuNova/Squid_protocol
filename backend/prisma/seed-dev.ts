@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { generateQrToken } from '../src/utils/qrToken.js';
 
 const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || '';
 const parsedUrl = new URL(databaseUrl);
@@ -26,7 +27,7 @@ async function seedDevAccounts() {
       prisma.submission.deleteMany({ where: { teamId: team.id } }),
       prisma.scoreEvent.deleteMany({ where: { teamId: team.id } }),
       prisma.teamRoundProgress.deleteMany({ where: { teamId: team.id } }),
-      prisma.accessToken.upsert({ where: { teamId: team.id }, update: { tokenCode: `${username}#2026`, isRedeemed: false, redeemedAt: null }, create: { teamId: team.id, tokenCode: `${username}#2026` } }),
+      prisma.accessToken.upsert({ where: { teamId: team.id }, update: { tokenCode: generateQrToken(), isRedeemed: false, redeemedAt: null }, create: { teamId: team.id, tokenCode: generateQrToken() } }),
       prisma.user.upsert({ where: { username }, update: { passwordHash: await bcrypt.hash(`team${suffix}#2026`, 10), role: UserRole.TEAM, teamId: team.id }, create: { username, passwordHash: await bcrypt.hash(`team${suffix}#2026`, 10), role: UserRole.TEAM, teamId: team.id } })
     ]);
   }

@@ -28,7 +28,7 @@ export async function getRound3(req: Request, res: Response, next: NextFunction)
 
 export async function redeemQRCode(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = await resolveEffectiveTeamId(req);
+    const teamId = await resolveSubmittingTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED' });
       return;

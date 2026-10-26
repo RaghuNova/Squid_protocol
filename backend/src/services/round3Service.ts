@@ -123,25 +123,19 @@ export class Round3Service {
     }
 
 
-    // Check if team already redeemed a token
-    const alreadyRedeemed = await prisma.accessToken.findFirst({
-      where: { teamId: params.teamId, isRedeemed: true }
-    });
-    if (alreadyRedeemed) {
-      return {
-        success: true,
-        alreadyRedeemed: true,
-        isQrRedeemed: true,
-        message: 'QR Access Code has already been successfully redeemed for your team. Challenge unlocked!'
-      };
-    }
-
     // Normalize code: strip URL prefix if scanned as SQUID://ACCESS/CODE
     let rawCode = params.code.trim();
     if (rawCode.toUpperCase().startsWith('SQUID://ACCESS/')) {
       rawCode = rawCode.substring(15);
     }
     const normalizedCode = rawCode.trim().toUpperCase();
+
+    const alreadyRedeemed = await prisma.accessToken.findFirst({
+      where: { teamId: params.teamId, isRedeemed: true, tokenCode: { equals: normalizedCode, mode: 'insensitive' } }
+    });
+    if (alreadyRedeemed) {
+      return { success: true, alreadyRedeemed: true, isQrRedeemed: true, message: 'This team QR code is already verified.' };
+    }
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
@@ -154,15 +148,7 @@ export class Round3Service {
           return {
             success: false,
             error: 'INVALID_QR_CODE',
-            message: 'Invalid QR redemption code. Please check your reconstructed code.'
-          };
-        }
-
-        if (token.isRedeemed) {
-          return {
-            success: false,
-            error: 'CODE_ALREADY_USED',
-            message: 'This QR code has already been redeemed.'
+            message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
           };
         }
 
@@ -170,20 +156,26 @@ export class Round3Service {
         if (token.teamId && token.teamId !== params.teamId) {
           return {
             success: false,
-            error: 'CODE_ASSIGNED_TO_OTHER',
-            message: 'This QR code is designated for a different team.'
+            error: 'INVALID_QR_CODE',
+            message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
           };
         }
+        if (token.isRedeemed) {
+          return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. Scan your assigned event QR code and try again.' };
+        }
 
-        // Mark redeemed atomically
-        await tx.accessToken.update({
-          where: { id: token.id },
+        // Conditional claim makes one-time redemption safe across concurrent requests.
+        const claimed = await tx.accessToken.updateMany({
+          where: { id: token.id, isRedeemed: false },
           data: {
             teamId: params.teamId,
             isRedeemed: true,
             redeemedAt: new Date()
           }
         });
+        if (claimed.count !== 1) {
+          return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. Scan your assigned event QR code and try again.' };
+        }
 
         // Record submission for audit
         await tx.submission.create({
@@ -201,7 +193,8 @@ export class Round3Service {
         return {
           success: true,
           isQrRedeemed: true,
-          message: 'QR Code verified! The Final Debugging Challenge has been unlocked.'
+          redemptionKey: token.tokenCode,
+          message: 'QR code verified. The Final Debugging Challenge is unlocked.'
         };
       });
 
@@ -210,8 +203,8 @@ export class Round3Service {
       if (err.code === 'P2002') {
         return {
           success: false,
-          error: 'CONCURRENT_REDEMPTION',
-          message: 'This QR code was redeemed in a concurrent transaction.'
+          error: 'INVALID_QR_CODE',
+          message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
         };
       }
       throw err;

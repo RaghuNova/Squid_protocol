@@ -7,9 +7,9 @@ import { sseService } from '../services/sseService.js';
 import { scoringService } from '../services/scoringService.js';
 import { logAdminAction } from '../services/auditService.js';
 import { computeRoundTimer } from '../services/round1Service.js';
-import { resetTestDatabase } from '../scripts/reset-test-db.js';
 import { RoundStatus, SignalState, UserRole } from '@prisma/client';
 import { teamRoundProgressService } from '../services/teamRoundProgressService.js';
+import { generateQrToken, isStrongQrToken } from '../utils/qrToken.js';
 
 export async function getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -72,7 +72,7 @@ export async function getTeams(req: Request, res: Response, next: NextFunction):
     const teams = await prisma.team.findMany({
       orderBy: { teamCode: 'asc' },
       include: {
-        accessToken: true,
+        accessToken: { select: { isRedeemed: true, redeemedAt: true } },
         user: { select: { id: true, username: true } },
         roundProgress: { orderBy: { round: 'asc' } }
       }
@@ -425,7 +425,7 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
     for (const team of teams) {
       let token = team.accessToken;
       if (!token) {
-        const tokenCode = `${team.teamCode}#2026`;
+        const tokenCode = generateQrToken();
         token = await prisma.accessToken.create({
           data: {
             teamId: team.id,
@@ -433,6 +433,12 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
             isRedeemed: false
           }
         });
+      } else if (!isStrongQrToken(token.tokenCode)) {
+        await prisma.accessToken.updateMany({
+          where: { id: token.id, tokenCode: token.tokenCode },
+          data: { tokenCode: generateQrToken(), isRedeemed: false, redeemedAt: null }
+        });
+        token = await prisma.accessToken.findUniqueOrThrow({ where: { id: token.id } });
       }
 
       const qrContent = `SQUID://ACCESS/${token.tokenCode}`;
@@ -449,7 +455,6 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
         teamId: team.id,
         teamCode: team.teamCode,
         teamName: team.name,
-        tokenCode: token.tokenCode,
         isRedeemed: token.isRedeemed,
         qrDataUrl: dataUrl
       });
@@ -474,45 +479,6 @@ export async function exportCSV(req: Request, res: Response, next: NextFunction)
     res.setHeader('Content-Disposition', 'attachment; filename="squid_protocol_leaderboard.csv"');
     res.send(csv);
   } catch (err) {
-    next(err);
-  }
-}
-
-export async function triggerTestReset(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    if (process.env.NODE_ENV === 'production') {
-      res.status(403).json({
-        success: false,
-        error: 'PRODUCTION_PROTECTED',
-        message: 'CRITICAL: Test database reset cannot be executed in production environment.'
-      });
-      return;
-    }
-
-    if (process.env.TEST_RESET_ENABLED !== 'true') {
-      res.status(403).json({
-        success: false,
-        error: 'FLAG_DISABLED',
-        message: 'TEST_RESET_ENABLED environment flag is not set to true.'
-      });
-      return;
-    }
-
-    await resetTestDatabase();
-
-    await logAdminAction({
-      adminUserId: req.user!.userId,
-      adminUsername: req.user!.username,
-      action: "SAFE_TEST_RESET_TRIGGERED",
-      targetType: "TEST_DATABASE",
-      ipAddress: req.ip
-    });
-
-    res.json({
-      success: true,
-      message: 'Safe test database reset completed successfully.'
-    });
-  } catch (err: any) {
     next(err);
   }
 }

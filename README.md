@@ -112,11 +112,12 @@ The repeatable seed script (`npm run db:seed`) creates all necessary tournament 
   - `TEAM20`: `team20#2026`
 
 ### Round 3 QR Redemption Codes
-Each team has a single-use token code to unlock the debugging challenge:
-- `TEAM01`: `TEAM01#2026` (or scanned as `SQUID://ACCESS/TEAM01#2026`)
-- `TEAM02`: `TEAM02#2026`
-- ...
-- `TEAM20`: `TEAM20#2026`
+Each team has a single-use, cryptographically random QR token. Print QR codes from the admin panel; token values are not shown as text or returned by participant APIs. Scanning the assigned physical QR through Round 3 redeems it for the authenticated team and reveals the challenge key only after successful redemption. The secure QR migration rotates legacy predictable tokens, so print fresh QR codes after deployment.
+
+### Admin Game Reset and Winner Board
+The admin dashboard provides a two-step **Reset Game** flow (checkbox confirmation, then the exact text `RESET GAME`). It clears gameplay progress and scores in one transaction, rotates all QR tokens, and clears the finalized winner snapshot while preserving accounts, teams, puzzles, questions, and event setup. Every reset attempt is audited.
+
+To prevent accidental data loss, reset is disabled by default. In production, it is available only when `ENABLE_GAME_RESET=true` is explicitly configured. Outside production, it is allowed only for a local database whose name contains `test` or `dev`. The admin Winner Board shows the backend-calculated standings for all non-disqualified teams and can save a finalized snapshot.
 
 ### Isolated Test Accounts
 

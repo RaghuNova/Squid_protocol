@@ -10,7 +10,7 @@ interface TeamItem {
   currentRound: number;
   currentStage: number;
   totalScore: number;
-  accessToken?: { tokenCode: string; isRedeemed: boolean };
+  accessToken?: { isRedeemed: boolean; redeemedAt?: string | null };
   physicalVerification?: { verifiedByName: string };
 }
 
@@ -197,7 +197,7 @@ export const AdminTeams: React.FC = () => {
                 <th className="py-3 px-3">Operatives</th>
                 <th className="py-3 px-3">Stage</th>
                 <th className="py-3 px-3">Score</th>
-                <th className="py-3 px-3">QR Access Token</th>
+                <th className="py-3 px-3">QR Redemption</th>
                 <th className="py-3 px-3">Cup Verified</th>
                 <th className="py-3 px-3 text-right">Actions</th>
               </tr>
@@ -211,8 +211,8 @@ export const AdminTeams: React.FC = () => {
                   <td className="py-3 px-3 text-[#00f0ff]">R{t.currentRound}.S{t.currentStage}</td>
                   <td className="py-3 px-3 text-[#00e676] font-bold">{t.totalScore}</td>
                   <td className="py-3 px-3">
-                    <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-black/60 border border-gray-800 text-gray-300">
-                      {t.accessToken?.tokenCode || 'N/A'}
+                    <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${t.accessToken?.isRedeemed ? 'text-[#00e676] bg-[#00e676]/10' : 'text-amber-300 bg-amber-300/10'}`}>
+                      {t.accessToken?.isRedeemed ? 'REDEEMED' : 'UNREDEEMED'}
                     </span>
                   </td>
                   <td className="py-3 px-3">

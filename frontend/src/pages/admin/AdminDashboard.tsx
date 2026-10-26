@@ -14,7 +14,6 @@ import {
   Download,
   CheckCircle2,
   AlertTriangle,
-  Flame,
   Activity,
   FileText,
   RotateCcw
@@ -22,9 +21,12 @@ import {
 import { RestartGameModal } from '../../components/admin/RestartGameModal';
 import { AdminStatusStrip, AdminSyncStatus } from '../../components/admin/AdminStatusStrip';
 
+const ordinal = (rank: number) => `${rank}${rank % 100 >= 11 && rank % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[rank % 10] || 'th'}`;
+
 export const AdminDashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [winnerAnnouncement, setWinnerAnnouncement] = useState<any>(null);
   const [qrCodes, setQrCodes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
@@ -38,12 +40,14 @@ export const AdminDashboard: React.FC = () => {
 
   const fetchAll = async () => {
     try {
-      const [dashRes, leadRes] = await Promise.all([
+      const [dashRes, leadRes, winnerRes] = await Promise.all([
         apiRequest('/admin/dashboard'),
         apiRequest('/leaderboard').catch(() => ({ teams: [] })),
+        apiRequest('/leaderboard/winners').catch(() => null),
       ]);
       setData(dashRes);
       setLeaderboard(leadRes.teams || []);
+      setWinnerAnnouncement(winnerRes);
       setLastUpdated(new Date());
       setPollErrorCount(0);
       setFetchError(null);
@@ -151,16 +155,31 @@ export const AdminDashboard: React.FC = () => {
   const handleConfirmRestart = async () => {
     setIsRestarting(true);
     try {
-      const res = await apiRequest('/admin/restart-game', {
+      const res = await apiRequest('/admin/reset-game', {
         method: 'POST',
+        body: JSON.stringify({ confirmation: 'RESET GAME' }),
       });
-      setMessage(res.message || 'Game successfully restarted to initial state.');
+      setMessage(res.message || 'Game successfully reset to the initial state.');
       setIsRestartModalOpen(false);
       await fetchAll();
     } catch (err: unknown) {
       setMessage(`Restart error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsRestarting(false);
+    }
+  };
+
+  const handleFinalizeWinners = async () => {
+    if (winnerAnnouncement?.isFinalized || !window.confirm('Finalize the complete current team ranking? This stores an official snapshot and cannot be finalized again until the game is reset.')) return;
+    setIsActionLoading(true);
+    try {
+      await apiRequest('/leaderboard/winners/finalize', { method: 'POST', body: JSON.stringify({}) });
+      setMessage('Final winner board has been finalized.');
+      await fetchAll();
+    } catch (error) {
+      setMessage(`Winner finalization failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -173,6 +192,9 @@ export const AdminDashboard: React.FC = () => {
     if (elapsed > 8000) return 'stale';
     return 'live';
   })();
+  const boardTeams = winnerAnnouncement?.isFinalized
+    ? (winnerAnnouncement.winners || []).map((team: any) => ({ ...team, finalBreachCompletedAt: team.finalBreachCompletedAt ?? team.completedAt }))
+    : leaderboard.filter(team => !team.isDisqualified);
 
   if (isLoading && !data) {
     return (
@@ -281,16 +303,14 @@ export const AdminDashboard: React.FC = () => {
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
           </button>
-          {stats.enableTestGameReset && (
-            <button
-              onClick={() => setIsRestartModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/50 font-mono text-xs font-bold uppercase transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-pointer"
-              title="Development only: Reset game progress, scores, and round locks back to original state"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>↻ RESTART GAME (TESTING)</span>
-            </button>
-          )}
+          <button
+            onClick={() => setIsRestartModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/50 font-mono text-xs font-bold uppercase transition-all cursor-pointer"
+            title="Reset game progress after two confirmations"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Game</span>
+          </button>
         </div>
       </div>
 
@@ -345,7 +365,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="p-3 rounded-xl bg-black/40 border border-gray-800/80">
               <span className="text-gray-500 block">Total Teams</span>
-              <span className="text-white font-bold text-sm">{stats.totalTeams} (60 Operatives)</span>
+              <span className="text-white font-bold text-sm">{stats.totalTeams} Teams</span>
             </div>
             <div className="p-3 rounded-xl bg-black/40 border border-gray-800/80">
               <span className="text-gray-500 block">Submissions</span>
@@ -419,15 +439,6 @@ export const AdminDashboard: React.FC = () => {
               Start each round in sequential order. Starting a new round automatically closes and archives submissions from earlier rounds.
             </p>
           </div>
-          {stats.enableTestGameReset && (
-            <button
-              onClick={() => setIsRestartModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer self-start sm:self-auto"
-            >
-              <RotateCcw className="w-4 h-4 animate-spin-reverse" />
-              <span>↻ RESTART GAME (TESTING)</span>
-            </button>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
@@ -676,7 +687,7 @@ export const AdminDashboard: React.FC = () => {
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            Confidential Leaderboard ({leaderboard.length})
+            Winner Board ({leaderboard.filter(team => !team.isDisqualified).length})
           </button>
           <button
             onClick={() => {
@@ -705,45 +716,57 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Tab 1: Leaderboard */}
         {activeTab === 'leaderboard' && (
+          <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="font-display font-bold text-white">{winnerAnnouncement?.isFinalized ? 'FINALIZED WINNER BOARD' : 'LIVE / PROVISIONAL WINNER BOARD'}</h3>
+              <p className="font-mono text-[10px] text-gray-500">Total score, then Round 3 place, earlier final answer, earlier overall completion, then team code.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => void fetchAll()} className="px-3 py-2 rounded-lg bg-gray-800 text-xs font-mono text-white hover:bg-gray-700">Refresh</button>
+              <button onClick={() => void handleFinalizeWinners()} disabled={winnerAnnouncement?.isFinalized || isActionLoading || leaderboard.every(team => team.isDisqualified)} className="px-3 py-2 rounded-lg bg-amber-500 text-black text-xs font-mono font-bold disabled:opacity-40">{winnerAnnouncement?.isFinalized ? 'WINNERS FINALIZED' : 'FINALIZE WINNERS'}</button>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
               <thead>
                 <tr className="border-b border-gray-800 bg-[#090b0f] text-gray-400">
-                  <th className="py-3 px-3 text-center w-12">#</th>
-                  <th className="py-3 px-3">Squad Code & Name</th>
-                  <th className="py-3 px-3 text-center">R1</th>
-                  <th className="py-3 px-3 text-center">R2</th>
-                  <th className="py-3 px-3 text-center">R3</th>
-                  <th className="py-3 px-3 text-right">Total</th>
+                  <th className="py-3 px-3">Rank</th><th className="py-3 px-3">Team</th><th className="py-3 px-3 text-right">Total</th>
+                  <th className="py-3 px-3 text-center">Round 1</th><th className="py-3 px-3 text-center">Round 2</th>
+                  <th className="py-3 px-3 text-center">R3 Place</th><th className="py-3 px-3 text-center">R3 Award</th>
+                  <th className="py-3 px-3">Final Answer</th><th className="py-3 px-3">Completed</th><th className="py-3 px-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/60">
-                {leaderboard.length === 0 ? (
+                {boardTeams.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 px-4 text-center text-gray-500 font-mono text-xs">
+                    <td colSpan={10} className="py-8 px-4 text-center text-gray-500 font-mono text-xs">
                       No squad rankings available yet.
                     </td>
                   </tr>
                 ) : (
-                  leaderboard.map((t, idx) => (
-                    <tr key={t.teamCode} className="hover:bg-gray-800/30">
-                      <td className="py-2.5 px-3 text-center font-bold text-gray-500">#{idx + 1}</td>
+                  boardTeams.map((t: any, idx: number) => (
+                    <tr key={t.teamCode} className={`hover:bg-gray-800/30 ${idx === 0 ? 'bg-amber-500/5' : idx < 3 ? 'bg-gray-300/[0.025]' : ''}`}>
+                      <td className={`py-2.5 px-3 font-bold ${idx < 3 ? 'text-amber-300' : 'text-gray-500'}`}>{ordinal(idx + 1)}</td>
                       <td className="py-2.5 px-3">
                         <span className="font-bold text-white mr-2">{t.teamCode}</span>
                         <span className="text-gray-300">{t.name}</span>
-                        {t.finalBreachCompletedAt && (
-                          <Flame className="w-3.5 h-3.5 text-[#ff004f] inline-block ml-1.5 animate-pulse motion-reduce:animate-none" />
-                        )}
+                        {t.members && <small className="block text-gray-500 mt-1">{t.members}</small>}
                       </td>
-                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r1Score}</td>
-                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r2Score}</td>
-                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r3Score}</td>
                       <td className="py-2.5 px-3 text-right font-bold text-[#00e676] text-sm">{t.totalScore} PTS</td>
+                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r1Score}<small className="block text-gray-500">{t.round1Status}</small></td>
+                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r2Score}<small className="block text-gray-500">{t.round2Status}</small></td>
+                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r3Position ? ordinal(t.r3Position) : '—'}</td>
+                      <td className="py-2.5 px-3 text-center text-gray-300">{t.r3Points ?? '—'}</td>
+                      <td className="py-2.5 px-3 text-gray-400">{t.finalAnswerSubmittedAt ? new Date(t.finalAnswerSubmittedAt).toLocaleString() : '—'}</td>
+                      <td className="py-2.5 px-3 text-gray-400">{t.finalBreachCompletedAt ? new Date(t.finalBreachCompletedAt).toLocaleString() : '—'}</td>
+                      <td className="py-2.5 px-3 text-gray-300">{t.gameStatus}</td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         )}
 
@@ -764,13 +787,12 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {qrCodes.map((q) => (
-                <div key={q.tokenCode} className="p-3 rounded-xl bg-black/40 border border-gray-800 text-center space-y-2">
+                <div key={q.teamId} className="p-3 rounded-xl bg-black/40 border border-gray-800 text-center space-y-2">
                   {q.qrDataUrl && (
-                    <img src={q.qrDataUrl} alt={q.tokenCode} className="w-24 h-24 mx-auto rounded-lg bg-white p-1" />
+                    <img src={q.qrDataUrl} alt={`${q.teamCode} physical QR code`} className="w-24 h-24 mx-auto rounded-lg bg-white p-1" />
                   )}
                   <div className="font-mono text-xs">
                     <span className="font-bold text-white block">{q.teamCode}</span>
-                    <span className="text-gray-400 text-[10px] block">{q.tokenCode}</span>
                     <span className={`text-[10px] font-bold ${q.isRedeemed ? 'text-[#00e676]' : 'text-amber-400'}`}>
                       {q.isRedeemed ? 'REDEEMED' : 'UNREDEEMED'}
                     </span>

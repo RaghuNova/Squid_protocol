@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { apiRequest } from '../../services/api';
-import { Settings, Download, Eye, EyeOff, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Settings, Download, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
   const [isPublished, setIsPublished] = useState<boolean>(true);
-  const [confirmText, setConfirmText] = useState<string>('');
-  const [isResetting, setIsResetting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const handleTogglePublish = async (publish: boolean) => {
@@ -37,25 +35,6 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const handleTestReset = async () => {
-    if (confirmText !== 'RESET-TEST-DATABASE') {
-      alert("You must type exactly 'RESET-TEST-DATABASE' to execute this test safeguard.");
-      return;
-    }
-
-    setIsResetting(true);
-    setFeedback(null);
-
-    try {
-      const res = await apiRequest('/admin/test-reset', { method: 'POST' });
-      setFeedback(res.message || 'Test database reset completed.');
-      setConfirmText('');
-    } catch (err: any) {
-      setFeedback(`Reset Rejected: ${err.message}`);
-    } finally {
-      setIsResetting(false);
-    }
-  };
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -126,44 +105,9 @@ export const AdminSettings: React.FC = () => {
         </button>
       </div>
 
-      {/* Guarded Test Database Reset */}
-      <div className="p-6 rounded-2xl bg-red-950/20 border-2 border-red-900/50 space-y-4">
-        <div className="flex items-center gap-2 text-red-400">
-          <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-          <h3 className="font-display font-bold text-lg uppercase tracking-wide">
-            Test Environment Reset (Guarded)
-          </h3>
-        </div>
-
-        <p className="text-xs font-mono text-gray-400 leading-relaxed">
-          <strong>CRITICAL SAFETY NOTICE:</strong> This action strictly refuses to execute if <code>NODE_ENV=production</code> or if <code>TEST_RESET_ENABLED</code> is not explicitly set to <code>true</code>. It only resets test database tables and restores seeded teams to Round 1 Stage 1 with 0 points.
-        </p>
-
-        <div className="space-y-3 pt-2 font-mono text-xs">
-          <label className="text-gray-400 block">
-            Type <strong>RESET-TEST-DATABASE</strong> below to unlock execution:
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="RESET-TEST-DATABASE"
-              className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#090b0f] border border-red-900/50 text-white font-mono text-sm focus:outline-none focus:border-red-500"
-            />
-            <button
-              onClick={handleTestReset}
-              disabled={confirmText !== 'RESET-TEST-DATABASE' || isResetting}
-              className={`px-5 py-2.5 rounded-xl font-display font-bold text-xs tracking-wider transition-all cursor-pointer ${
-                confirmText === 'RESET-TEST-DATABASE' && !isResetting
-                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]'
-                  : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {isResetting ? 'EXECUTING RESET...' : 'TRIGGER SAFE TEST RESET'}
-            </button>
-          </div>
-        </div>
+      <div className="p-6 rounded-2xl bg-red-950/20 border border-red-900/50 space-y-3">
+        <h3 className="font-display font-bold text-lg text-red-300">Game Recovery</h3>
+        <p className="text-xs font-mono text-gray-400">Use the Reset Game action on the Tournament Operations Console. It requires two confirmations and preserves permanent event setup data.</p>
       </div>
     </div>
   );

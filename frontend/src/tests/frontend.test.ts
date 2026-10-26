@@ -167,24 +167,25 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
     });
   });
 
-  describe('Admin Restart Game Modal & Feature Flag Verification', () => {
-    it('verifies exact confirmation dialog warning text is specified', () => {
-      const requiredWarning =
-        'Are you sure you want to restart the entire game? All current scores, answers, round progress and QR redemptions will be reset. Your teams, participants, questions and admin account will be preserved.';
-      expect(requiredWarning).toContain('restart the entire game');
-      expect(requiredWarning).toContain('All current scores, answers, round progress and QR redemptions will be reset');
-      expect(requiredWarning).toContain('Your teams, participants, questions and admin account will be preserved');
+  describe('Admin Game Reset Confirmation', () => {
+    it('requires two confirmations and the exact phrase before sending the reset action', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const modal = fs.readFileSync(path.resolve(__dirname, '../components/admin/RestartGameModal.tsx'), 'utf-8');
+      expect(modal).toContain('firstConfirmed');
+      expect(modal).toContain("typedConfirmation !== 'RESET GAME'");
+      expect(modal).toContain("if (!firstConfirmed || typedConfirmation !== 'RESET GAME'");
     });
 
-    it('verifies restart control is hidden unless explicitly enabled in dashboard stats', () => {
-      function shouldShowRestartButton(stats: { enableTestGameReset?: boolean } | null | undefined) {
-        return Boolean(stats?.enableTestGameReset);
-      }
-
-      expect(shouldShowRestartButton({ enableTestGameReset: false })).toBe(false);
-      expect(shouldShowRestartButton({ enableTestGameReset: undefined })).toBe(false);
-      expect(shouldShowRestartButton(null)).toBe(false);
-      expect(shouldShowRestartButton({ enableTestGameReset: true })).toBe(true);
+    it('does not put QR redemption secrets in participant Round 3 markup', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const round3 = fs.readFileSync(path.resolve(__dirname, '../features/round3/Round3View.tsx'), 'utf-8');
+      const scanner = fs.readFileSync(path.resolve(__dirname, '../features/round3/BrokenQrPuzzle.tsx'), 'utf-8');
+      expect(round3).not.toContain('tokenCode');
+      expect(round3).toContain('<BrokenQrPuzzle');
+      expect(scanner).toContain('redemptionKey');
+      expect(scanner).toContain("'/round3/qr/redeem'");
     });
   });
 

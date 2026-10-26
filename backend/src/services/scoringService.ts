@@ -13,6 +13,28 @@ export interface AwardScoreParams {
   createdByAdminId?: string;
 }
 
+export interface LeaderboardSortRecord {
+  totalScore: number;
+  r3Position: number | null;
+  finalAnswerSubmittedAt: Date | null;
+  finalBreachCompletedAt: Date | null;
+  teamCode: string;
+}
+
+export function compareLeaderboardTeams(a: LeaderboardSortRecord, b: LeaderboardSortRecord): number {
+  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+  if (a.finalBreachCompletedAt && b.finalBreachCompletedAt && a.r3Position !== null && b.r3Position !== null && a.r3Position !== b.r3Position) return a.r3Position - b.r3Position;
+  if (a.finalAnswerSubmittedAt && b.finalAnswerSubmittedAt) {
+    const answerDiff = a.finalAnswerSubmittedAt.getTime() - b.finalAnswerSubmittedAt.getTime();
+    if (answerDiff !== 0) return answerDiff;
+  }
+  if (a.finalBreachCompletedAt && b.finalBreachCompletedAt) {
+    const completedDiff = a.finalBreachCompletedAt.getTime() - b.finalBreachCompletedAt.getTime();
+    if (completedDiff !== 0) return completedDiff;
+  }
+  return a.teamCode.localeCompare(b.teamCode);
+}
+
 export class ScoringService {
   /**
    * Atomically award or deduct points for a team.
@@ -170,10 +192,17 @@ export class ScoringService {
    * 4. Earliest final breach completion ASC
    * 5. Stable alphanumeric teamCode ASC
    */
-  public async getLeaderboard() {
-    const teams = await prisma.team.findMany({
+  public async getLeaderboard(db: Prisma.TransactionClient | typeof prisma = prisma) {
+    const teams = await db.team.findMany({
       include: {
         scoreEvents: true,
+        submissions: {
+          where: { round: 3, stage: 3, status: 'CORRECT' },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          select: { createdAt: true }
+        },
+        roundProgress: { select: { round: true, status: true } },
         user: {
           select: {
             username: true
@@ -186,7 +215,6 @@ export class ScoringService {
       let r1Score = 0;
       let r2Score = 0;
       let r3Score = 0;
-      let adminAdjustmentScore = 0;
       let totalLedgerScore = 0;
 
       for (const ev of team.scoreEvents) {
@@ -200,12 +228,28 @@ export class ScoringService {
           if (!ev.source.includes('CUP') && !ev.source.includes('ACCESS')) {
             r3Score += ev.pointsDelta;
           }
-        } else if (ev.round === 0) {
-          adminAdjustmentScore += ev.pointsDelta;
         }
       }
 
       const cleanTotalScore = team.scoreEvents.length > 0 ? totalLedgerScore : team.totalScore;
+
+      const round1Status = team.roundProgress.find(progress => progress.round === 1)?.status ?? 'LOCKED';
+      const round2Status = team.roundProgress.find(progress => progress.round === 2)?.status ?? 'LOCKED';
+      const gameStatus = team.isDisqualified
+        ? 'DISQUALIFIED'
+        : team.finalBreachCompletedAt
+          ? 'COMPLETED'
+          : round2Status === 'TIMED_OUT' || team.roundProgress.find(progress => progress.round === 2)?.status === 'COMPLETED'
+            ? 'ROUND_3_READY'
+            : round2Status === 'IN_PROGRESS'
+              ? 'ROUND_2_IN_PROGRESS'
+              : round1Status === 'TIMED_OUT'
+                ? 'ROUND_2_READY'
+                : round1Status === 'IN_PROGRESS'
+                  ? 'ROUND_1_IN_PROGRESS'
+                  : round1Status === 'COMPLETED'
+                    ? 'ROUND_2_READY'
+                    : 'NOT_STARTED';
 
       return {
         id: team.id,
@@ -216,28 +260,24 @@ export class ScoringService {
         currentRound: team.currentRound,
         currentStage: team.currentStage,
         totalScore: cleanTotalScore,
+        scoreLedgerConsistent: team.scoreEvents.length === 0 ? team.totalScore === 0 : totalLedgerScore === team.totalScore,
         r1Score,
         r2Score,
         r3Score,
         r3Position: team.finalBreachPosition ?? null,
         r3Points: team.finalBreachPoints ?? (r3Score !== 0 ? r3Score : null),
         finalBreachCompletedAt: team.finalBreachCompletedAt,
+        finalAnswerSubmittedAt: team.submissions[0]?.createdAt ?? null,
+        round1Status,
+        round2Status,
+        gameStatus,
         isDisqualified: team.isDisqualified
       };
     });
 
-    // Sort by deterministic tie-break criteria
-    enriched.sort((a, b) => {
-      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-      if (b.r3Score !== a.r3Score) return b.r3Score - a.r3Score;
-      if (b.r2Score !== a.r2Score) return b.r2Score - a.r2Score;
-      if (a.finalBreachCompletedAt && b.finalBreachCompletedAt) {
-        return new Date(a.finalBreachCompletedAt).getTime() - new Date(b.finalBreachCompletedAt).getTime();
-      }
-      if (a.finalBreachCompletedAt) return -1;
-      if (b.finalBreachCompletedAt) return 1;
-      return a.teamCode.localeCompare(b.teamCode);
-    });
+    // Total score descending, then shared valid Round 3 results, final-answer
+    // timestamps, overall completion timestamps, and stable team-code order.
+    enriched.sort(compareLeaderboardTeams);
 
     return enriched;
   }
@@ -263,11 +303,12 @@ export class ScoringService {
     // Provisional standings derived dynamically from authoritative backend calculation
     const currentLeaderboard = await this.getLeaderboard();
     const activeStandings = currentLeaderboard.filter((t) => !t.isDisqualified);
-    const top3Provisional = activeStandings.slice(0, 3).map((t, idx) => ({
+    const provisionalWinners = activeStandings.map((t, idx) => ({
       rank: idx + 1,
       teamId: t.id,
       teamCode: t.teamCode,
       name: t.name,
+      members: t.members,
       username: t.username,
       totalScore: t.totalScore,
       r1Score: t.r1Score,
@@ -282,7 +323,7 @@ export class ScoringService {
       isFinalized: false,
       finalizedAt: null,
       finalizedByAdminUsername: null,
-      winners: top3Provisional,
+      winners: provisionalWinners,
       notes: null
     };
   }
@@ -296,66 +337,58 @@ export class ScoringService {
     notes?: string;
     ipAddress?: string;
   }) {
-    const leaderboard = await this.getLeaderboard();
-    if (!leaderboard || leaderboard.length === 0) {
-      throw new Error("Cannot finalize winners: No participating teams found in system.");
-    }
-
-    const top3 = leaderboard.filter((t) => !t.isDisqualified).slice(0, 3).map((t, idx) => ({
-      rank: idx + 1,
-      teamId: t.id,
-      teamCode: t.teamCode,
-      name: t.name,
-      username: t.username,
-      totalScore: t.totalScore,
-      r1Score: t.r1Score,
-      r2Score: t.r2Score,
-      r3Score: t.r3Score,
-      r3Position: t.r3Position,
-      r3Points: t.r3Points,
-      completedAt: t.finalBreachCompletedAt ? new Date(t.finalBreachCompletedAt).toISOString() : null
-    }));
-
     const finalizedAt = new Date();
-
-    const record = await prisma.winnerAnnouncement.upsert({
-      where: { id: 1 },
-      update: {
-        isFinalized: true,
-        finalizedAt,
-        finalizedByAdminId: params.adminUserId,
-        finalizedByAdminUsername: params.adminUsername,
-        winners: top3 as any,
-        notes: params.notes || 'Official tournament winners finalized by administrator.'
-      },
-      create: {
-        id: 1,
-        isFinalized: true,
-        finalizedAt,
-        finalizedByAdminId: params.adminUserId,
-        finalizedByAdminUsername: params.adminUsername,
-        winners: top3 as any,
-        notes: params.notes || 'Official tournament winners finalized by administrator.'
-      }
-    });
-
-    await logAdminAction({
-      adminUserId: params.adminUserId,
-      adminUsername: params.adminUsername,
-      action: "FINALIZE_WINNERS",
-      targetType: "WINNER_ANNOUNCEMENT",
-      targetId: "1",
-      details: {
-        winners: top3,
-        finalizedAt: finalizedAt.toISOString()
-      },
-      ipAddress: params.ipAddress
+    const record = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(1567324401, 2)`;
+      const existing = await tx.winnerAnnouncement.findUnique({ where: { id: 1 } });
+      if (existing?.isFinalized) throw new Error('Winner results are already finalized.');
+      const leaderboard = (await this.getLeaderboard(tx)).filter(team => !team.isDisqualified);
+      if (leaderboard.length === 0) throw new Error('Cannot finalize winners: No eligible teams found.');
+      const inconsistentTeams = leaderboard.filter(team => !team.scoreLedgerConsistent || (team.finalBreachCompletedAt && (!team.r3Position || team.r3Points === null)));
+      if (inconsistentTeams.length) throw new Error(`Cannot finalize winners: scoring or completion data is inconsistent for ${inconsistentTeams.map(team => team.teamCode).join(', ')}.`);
+      const positions = leaderboard.filter(team => team.finalBreachCompletedAt).map(team => team.r3Position);
+      if (new Set(positions).size !== positions.length) throw new Error('Cannot finalize winners: duplicate Round 3 finishing positions were found.');
+      const snapshot = leaderboard.map((team, idx) => ({
+        rank: idx + 1,
+        teamId: team.id,
+        teamCode: team.teamCode,
+        name: team.name,
+        members: team.members,
+        username: team.username,
+        totalScore: team.totalScore,
+        r1Score: team.r1Score,
+        r2Score: team.r2Score,
+        r3Score: team.r3Score,
+        r3Position: team.r3Position,
+        r3Points: team.r3Points,
+        round1Status: team.round1Status,
+        round2Status: team.round2Status,
+        finalAnswerSubmittedAt: team.finalAnswerSubmittedAt?.toISOString() || null,
+        completedAt: team.finalBreachCompletedAt?.toISOString() || null,
+        finalBreachCompletedAt: team.finalBreachCompletedAt?.toISOString() || null,
+        gameStatus: team.gameStatus
+      }));
+      const saved = await tx.winnerAnnouncement.upsert({
+        where: { id: 1 },
+        update: { isFinalized: true, finalizedAt, finalizedByAdminId: params.adminUserId, finalizedByAdminUsername: params.adminUsername, winners: snapshot as any, notes: params.notes || 'Official tournament results finalized by administrator.' },
+        create: { id: 1, isFinalized: true, finalizedAt, finalizedByAdminId: params.adminUserId, finalizedByAdminUsername: params.adminUsername, winners: snapshot as any, notes: params.notes || 'Official tournament results finalized by administrator.' }
+      });
+      await tx.adminAuditLog.create({ data: {
+        adminUserId: params.adminUserId,
+        adminUsername: params.adminUsername,
+        action: 'FINALIZE_WINNERS',
+        targetType: 'WINNER_ANNOUNCEMENT',
+        targetId: '1',
+        details: { teamCount: snapshot.length, finalizedAt: finalizedAt.toISOString() },
+        ipAddress: params.ipAddress
+      } });
+      return saved;
     });
 
     sseService.broadcast('winners_announced', {
       isFinalized: true,
       finalizedAt: finalizedAt.toISOString(),
-      winners: top3
+      winners: record.winners
     });
 
     return record;

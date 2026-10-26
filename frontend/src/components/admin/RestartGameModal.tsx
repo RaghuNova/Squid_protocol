@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, RotateCcw, X, ShieldAlert } from 'lucide-react';
 
 interface RestartGameModalProps {
@@ -8,96 +8,56 @@ interface RestartGameModalProps {
   isLoading: boolean;
 }
 
-/**
- * RESTART GAME (TESTING) Modal
- * Isolated development-only confirmation dialog for resetting game progress.
- */
-export const RestartGameModal: React.FC<RestartGameModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  isLoading,
-}) => {
+export const RestartGameModal: React.FC<RestartGameModalProps> = ({ isOpen, onClose, onConfirm, isLoading }) => {
+  const [firstConfirmed, setFirstConfirmed] = useState(false);
+  const [typedConfirmation, setTypedConfirmation] = useState('');
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-[#12151c] border border-amber-500/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-[0_0_50px_rgba(245,158,11,0.2)]">
-        {/* Header with warning icon */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
-              <RotateCcw className="w-6 h-6 animate-spin-reverse motion-reduce:animate-none" />
-            </div>
-            <div>
-              <span className="font-mono text-[10px] text-amber-400 uppercase tracking-widest block font-bold">
-                DEVELOPMENT / TESTING SAFEGUARD
-              </span>
-              <h3 className="font-display font-black text-xl text-white tracking-wide">
-                Restart Entire Game Engine?
-              </h3>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close restart confirmation dialog"
-            disabled={isLoading}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+  const close = () => {
+    if (isLoading) return;
+    setFirstConfirmed(false);
+    setTypedConfirmation('');
+    onClose();
+  };
 
-        {/* Explicit confirmation message required by tournament rules */}
-        <div className="p-4 rounded-xl bg-black/40 border border-gray-800 text-gray-300 font-mono text-xs leading-relaxed space-y-3">
-          <p className="font-medium text-white">
-            Are you sure you want to restart the entire game? All current scores, answers, round progress and QR redemptions will be reset. Your teams, participants, questions and admin account will be preserved.
-          </p>
-          <div className="space-y-1.5 text-gray-400 text-[11px] pt-1 border-t border-gray-800">
-            <p className="flex items-center gap-1.5 text-amber-400">
-              <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>All 3 rounds will be locked in WAITING (UPCOMING) status.</span>
-            </p>
-            <p className="flex items-center gap-1.5 text-gray-400">
-              <span>• Timers, paused clocks, and Double Points will return to default.</span>
-            </p>
-            <p className="flex items-center gap-1.5 text-gray-400">
-              <span>• Teams will start fresh from Question #1 upon official round start.</span>
-            </p>
-          </div>
-        </div>
+  const confirm = async () => {
+    if (!firstConfirmed || typedConfirmation !== 'RESET GAME' || isLoading) return;
+    await onConfirm();
+    setFirstConfirmed(false);
+    setTypedConfirmation('');
+  };
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            className="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-mono text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-          >
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                <span>Restarting Game Engine...</span>
-              </>
-            ) : (
-              <>
-                <RotateCcw className="w-4 h-4" />
-                <span>Confirm Restart</span>
-              </>
-            )}
-          </button>
+  return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" role="presentation">
+    <section role="dialog" aria-modal="true" aria-labelledby="reset-game-title" className="relative w-full max-w-xl bg-[#12151c] border border-red-500/50 rounded-2xl p-6 sm:p-8 space-y-5 shadow-[0_0_50px_rgba(255,0,79,0.2)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400"><RotateCcw className="w-6 h-6" /></div>
+          <div><span className="font-mono text-[10px] text-red-400 uppercase tracking-widest block font-bold">IRREVERSIBLE ACTION</span><h3 id="reset-game-title" className="font-display font-black text-xl text-white">Reset Game?</h3></div>
         </div>
+        <button type="button" onClick={close} disabled={isLoading} aria-label="Close reset confirmation" className="p-1.5 rounded-lg text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
       </div>
-    </div>
-  );
+
+      <div className="p-4 rounded-xl bg-black/40 border border-gray-800 text-gray-300 font-mono text-xs leading-relaxed space-y-3">
+        <p className="font-medium text-white">This clears all scores, submissions, round progress, verification records, QR redemptions, finish positions, and finalized winners. Teams, accounts, memberships, questions, puzzles, solutions, and event configuration remain.</p>
+        <p className="flex gap-2 text-amber-300"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> Every team's QR token will be replaced. Previously printed QR codes will stop working.</p>
+      </div>
+
+      <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-800 text-xs text-gray-300 font-mono">
+        <input type="checkbox" checked={firstConfirmed} onChange={e => setFirstConfirmed(e.target.checked)} disabled={isLoading} className="mt-0.5 accent-red-500" />
+        <span><AlertTriangle className="w-4 h-4 inline text-red-400 mr-1" /> I understand this will reset the current event's game progress.</span>
+      </label>
+
+      {firstConfirmed && <label className="block space-y-2 font-mono text-xs text-gray-300">
+        <span>Type <strong className="text-white">RESET GAME</strong> to enable the final confirmation.</span>
+        <input value={typedConfirmation} onChange={e => setTypedConfirmation(e.target.value)} disabled={isLoading} autoComplete="off" className="w-full px-3 py-2 rounded-lg bg-black border border-gray-700 text-white" />
+      </label>}
+
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <button type="button" onClick={close} disabled={isLoading} className="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono text-xs font-bold">Cancel</button>
+        <button type="button" onClick={() => void confirm()} disabled={isLoading || !firstConfirmed || typedConfirmation !== 'RESET GAME'} className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-black uppercase flex items-center gap-2 disabled:opacity-40">
+          {isLoading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Resetting…</> : <><RotateCcw className="w-4 h-4" /> Reset Game</>}
+        </button>
+      </div>
+    </section>
+  </div>;
 };

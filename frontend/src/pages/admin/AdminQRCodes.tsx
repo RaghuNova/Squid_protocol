@@ -6,7 +6,6 @@ interface QRItem {
   teamId: string;
   teamCode: string;
   teamName: string;
-  tokenCode: string;
   isRedeemed: boolean;
   qrDataUrl: string;
 }
@@ -95,12 +94,8 @@ export const AdminQRCodes: React.FC = () => {
             </div>
 
             <div className="space-y-1 w-full pt-2 border-t border-gray-800 print:border-black">
-              <span className="font-mono text-[10px] text-gray-400 print:text-gray-700 uppercase block">
-                Access ID Token:
-              </span>
-              <span className="font-mono font-bold text-sm text-cyan-300 print:text-black tracking-widest">
-                {item.tokenCode}
-              </span>
+              <span className="font-mono text-[10px] text-gray-400 print:text-gray-700 uppercase block">Single-use physical QR</span>
+              <span className="font-mono text-xs text-cyan-300 print:text-black">Scan to verify team access</span>
             </div>
           </div>
         ))}

@@ -610,6 +610,21 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
   });
 
   describe('5. Round 3 — QR Redemption Gate & Final Online Debugging Challenge', () => {
+    beforeAll(async () => {
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: testTeam.id, round: 2 } },
+        create: { teamId: testTeam.id, round: 2, status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() },
+        update: { status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() }
+      });
+    });
+
+    it('does not expose a QR redemption secret from the Round 3 read endpoint', async () => {
+      const teamWithToken = await prisma.team.findUnique({ where: { id: testTeam.id }, include: { accessToken: true } });
+      const res = await request(app).get('/api/v1/round3').set('Authorization', `Bearer ${teamToken}`);
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toContain(teamWithToken!.accessToken!.tokenCode);
+      expect(res.body).not.toHaveProperty('tokenCode');
+    });
     it('verifies Java, Python, and C challenge code versions produce the exact same result', async () => {
       const challenge = await prisma.debugChallenge.findFirst({ where: { isActive: true } });
       expect(challenge).toBeDefined();
@@ -765,6 +780,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.isQrRedeemed).toBe(true);
+      expect(res.body.redemptionKey).toBe(teamWithToken!.accessToken!.tokenCode);
     });
 
     it('rejects attempt to reuse an already redeemed QR code', async () => {
@@ -786,7 +802,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
         .send({ code: teamWithToken!.accessToken!.tokenCode });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toBe('CODE_ALREADY_USED');
+      expect(res.body.error).toBe('INVALID_QR_CODE');
     });
 
     it('rejects incorrect final keys with 0 points awarded', async () => {
@@ -876,6 +892,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.qrCodes).toBeDefined();
       expect(res.body.qrCodes.length).toBeGreaterThanOrEqual(20);
+      expect(res.body.qrCodes[0]).not.toHaveProperty('tokenCode');
     });
 
     it('exports leaderboard CSV', async () => {
@@ -889,10 +906,10 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
     });
   });
 
-  describe('7. Admin-Only Restart Game (Testing)', () => {
+  describe('7. Admin-Only Reset Game', () => {
     it('blocks participant accounts from calling the reset endpoint', async () => {
       const res = await request(app)
-        .post('/api/v1/admin/restart-game')
+        .post('/api/v1/admin/reset-game')
         .set('Authorization', `Bearer ${teamToken}`);
 
       expect(res.status).toBe(403);
@@ -900,56 +917,38 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
     it('blocks unauthenticated callers from calling the reset endpoint', async () => {
       const res = await request(app)
-        .post('/api/v1/admin/restart-game');
+        .post('/api/v1/admin/reset-game');
 
       expect(res.status).toBe(401);
     });
 
-    it('refuses to operate in production mode', async () => {
+    it('blocks production reset unless explicitly enabled', async () => {
       const origEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
 
       try {
         const res = await request(app)
-          .post('/api/v1/admin/restart-game')
-          .set('Authorization', `Bearer ${adminToken}`);
+          .post('/api/v1/admin/reset-game')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ confirmation: 'RESET GAME' });
 
         expect(res.status).toBe(403);
-        expect(res.body.error).toBe('PRODUCTION_PROTECTED');
+        expect(res.body.error).toBe('RESET_ENVIRONMENT_BLOCKED');
       } finally {
         process.env.NODE_ENV = origEnv;
       }
     });
 
-    it('refuses to operate when ENABLE_TEST_GAME_RESET is not true', async () => {
-      const origFlag = process.env.ENABLE_TEST_GAME_RESET;
-      process.env.ENABLE_TEST_GAME_RESET = 'false';
-
-      try {
-        const res = await request(app)
-          .post('/api/v1/admin/restart-game')
-          .set('Authorization', `Bearer ${adminToken}`);
-
-        expect(res.status).toBe(403);
-        expect(res.body.error).toBe('TEST_RESET_DISABLED');
-      } finally {
-        process.env.ENABLE_TEST_GAME_RESET = origFlag;
-      }
-    });
-
-    it('reports enableTestGameReset in admin dashboard stats during local development', async () => {
-      process.env.ENABLE_TEST_GAME_RESET = 'true';
-
+    it('requires the exact typed confirmation before resetting', async () => {
       const res = await request(app)
-        .get('/api/v1/admin/dashboard')
+        .post('/api/v1/admin/reset-game')
         .set('Authorization', `Bearer ${adminToken}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body.stats.enableTestGameReset).toBe(true);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('CONFIRMATION_REQUIRED');
     });
 
     it('successfully resets game to initial waiting state while preserving non-game data', async () => {
-      process.env.ENABLE_TEST_GAME_RESET = 'true';
+      process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost/squid_protocol_test';
 
       // 1. Setup dirty game state:
       // Give team score, active round, red light, double points, redeemed QR token
@@ -999,11 +998,13 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       const questionCountBefore = await prisma.question.count();
       const teamCountBefore = await prisma.team.count();
       const userCountBefore = await prisma.user.count();
+      const oldQrToken = (await prisma.accessToken.findUnique({ where: { teamId: testTeam.id } }))!.tokenCode;
 
       // 2. Admin triggers restart game
       const resetRes = await request(app)
-        .post('/api/v1/admin/restart-game')
-        .set('Authorization', `Bearer ${adminToken}`);
+        .post('/api/v1/admin/reset-game')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ confirmation: 'RESET GAME' });
 
       expect(resetRes.status).toBe(200);
       expect(resetRes.body.success).toBe(true);
@@ -1027,6 +1028,9 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       // QR tokens reset to unredeemed
       const redeemedTokensCount = await prisma.accessToken.count({ where: { isRedeemed: true } });
       expect(redeemedTokensCount).toBe(0);
+      expect((await prisma.accessToken.findUnique({ where: { teamId: testTeam.id } }))!.tokenCode).not.toBe(oldQrToken);
+      expect(await prisma.teamRoundProgress.count()).toBe(0);
+      expect((await prisma.winnerAnnouncement.findUnique({ where: { id: 1 } }))?.isFinalized).toBe(false);
 
       // Rounds reset to UPCOMING
       const r1 = await prisma.roundControl.findUnique({ where: { id: 1 } });

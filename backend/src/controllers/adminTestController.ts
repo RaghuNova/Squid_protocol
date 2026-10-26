@@ -1,168 +1,125 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma, RoundStatus, SignalState } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { sseService } from '../services/sseService.js';
-import { logAdminAction } from '../services/auditService.js';
-import { RoundStatus, SignalState } from '@prisma/client';
+import { generateQrToken } from '../utils/qrToken.js';
 
 let isResetInProgress = false;
+const RESET_LOCK_A = 1567324401;
+const RESET_LOCK_B = 1;
 
-/**
- * RESTART GAME (TESTING) - Admin-Only Game State Reset
- * Strictly intended for local development and integration testing.
- * Protected by NODE_ENV !== 'production' AND ENABLE_TEST_GAME_RESET === 'true'.
- */
-export async function restartGameTesting(req: Request, res: Response, next: NextFunction): Promise<void> {
+function resetEnvironmentAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') return process.env.ENABLE_GAME_RESET === 'true';
+  const url = process.env.DATABASE_URL;
+  if (!url) return false;
   try {
-    // 1. Guardrail: Must NOT be production
-    if (process.env.NODE_ENV === 'production') {
-      res.status(403).json({
-        success: false,
-        error: 'PRODUCTION_PROTECTED',
-        message: 'CRITICAL SAFETY GUARD: Game restart endpoint is strictly prohibited in production environment.'
-      });
-      return;
-    }
+    const parsed = new URL(url);
+    const databaseName = parsed.pathname.replace(/^\//, '').split('?')[0];
+    return ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname) && /(test|dev)/i.test(databaseName);
+  } catch {
+    return false;
+  }
+}
 
-    // 2. Guardrail: Explicit ENABLE_TEST_GAME_RESET flag
-    const isFlagEnabled = process.env.ENABLE_TEST_GAME_RESET === 'true' || process.env.ENABLE_TEST_GAME_RESET === '1';
-    if (!isFlagEnabled) {
-      res.status(403).json({
-        success: false,
-        error: 'TEST_RESET_DISABLED',
-        message: 'ENABLE_TEST_GAME_RESET environment flag is not enabled. Set ENABLE_TEST_GAME_RESET=true in local .env to enable.'
-      });
-      return;
-    }
+async function newUniqueQrToken(tx: Prisma.TransactionClient): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const tokenCode = generateQrToken();
+    const exists = await tx.accessToken.findUnique({ where: { tokenCode }, select: { id: true } });
+    if (!exists) return tokenCode;
+  }
+  throw new Error('Unable to allocate a unique QR token.');
+}
 
-    // 3. Concurrency guard to prevent race conditions on rapid double-clicks
-    if (isResetInProgress) {
-      res.status(429).json({
-        success: false,
-        error: 'RESET_IN_PROGRESS',
-        message: 'A game reset operation is currently executing. Please wait.'
-      });
-      return;
-    }
+export async function resetGame(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (req.body?.confirmation !== 'RESET GAME') {
+    res.status(400).json({ success: false, error: 'CONFIRMATION_REQUIRED', message: 'Type RESET GAME in the confirmation dialog before resetting.' });
+    return;
+  }
+  if (!resetEnvironmentAllowed()) {
+    res.status(403).json({ success: false, error: 'RESET_ENVIRONMENT_BLOCKED', message: 'Game reset is disabled for this database environment.' });
+    return;
+  }
+  if (isResetInProgress) {
+    res.status(409).json({ success: false, error: 'RESET_IN_PROGRESS', message: 'A game reset is already running.' });
+    return;
+  }
 
-    isResetInProgress = true;
-
-    try {
-      // 4. Transactional game state wipe & restoration
-      await prisma.$transaction(async (tx) => {
-        // Clear all gameplay submissions across all rounds
-        await tx.submission.deleteMany({});
-
-        // Clear all score ledger events
-        await tx.scoreEvent.deleteMany({});
-
-        // Clear any physical verification data
-        await tx.physicalVerification.deleteMany({});
-
-        // Reset all teams back to starting state (scores = 0, progression = round 1 / stage 1)
-        await tx.team.updateMany({
-          data: {
-            totalScore: 0,
-            currentRound: 1,
-            currentStage: 1,
-            isDisqualified: false,
-            finalBreachCompletedAt: null
-          }
-        });
-
-        // Safely reset Round 3 QR Access Tokens (unredeemed, clear redemption timestamps)
-        await tx.accessToken.updateMany({
-          data: {
-            isRedeemed: false,
-            redeemedAt: null
-          }
-        });
-
-        // Reset all 3 rounds to UPCOMING, clear all running and paused timer state
-        await tx.roundControl.updateMany({
-          where: { id: { in: [1, 2, 3] } },
-          data: {
-            status: RoundStatus.UPCOMING,
-            startTime: null,
-            endTime: null,
-            pausedAt: null,
-            remainingSeconds: null
-          }
-        });
-
-        // Restore initial Round 1 configuration: Green Light, Double Points OFF
-        await tx.roundControl.update({
-          where: { id: 1 },
-          data: {
-            signalState: SignalState.GREEN,
-            doublePointsEnabled: false,
-            redLightPenaltyMode: false,
-            durationMinutes: 15
-          }
-        });
-
-        await tx.roundControl.update({
-          where: { id: 2 },
-          data: {
-            durationMinutes: 20
-          }
-        });
-
-        await tx.roundControl.update({
-          where: { id: 3 },
-          data: {
-            durationMinutes: 30
-          }
-        });
+  isResetInProgress = true;
+  const resetAt = new Date();
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}, ${RESET_LOCK_B})`;
+      await tx.submission.deleteMany({});
+      await tx.scoreEvent.deleteMany({});
+      await tx.physicalVerification.deleteMany({});
+      await tx.teamRoundProgress.deleteMany({});
+      await tx.team.updateMany({
+        data: {
+          totalScore: 0,
+          currentRound: 1,
+          currentStage: 1,
+          isDisqualified: false,
+          finalBreachCompletedAt: null,
+          finalBreachPosition: null,
+          finalBreachPoints: null
+        }
       });
 
-      // 5. Audit Logging
-      await logAdminAction({
+      const tokens = await tx.accessToken.findMany({ select: { id: true } });
+      for (const token of tokens) {
+        await tx.accessToken.update({
+          where: { id: token.id },
+          data: { tokenCode: await newUniqueQrToken(tx), isRedeemed: false, redeemedAt: null }
+        });
+      }
+
+      await tx.roundControl.updateMany({
+        where: { id: { in: [1, 2, 3] } },
+        data: { status: RoundStatus.UPCOMING, startTime: null, endTime: null, pausedAt: null, remainingSeconds: null }
+      });
+      await tx.roundControl.update({
+        where: { id: 1 },
+        data: { durationMinutes: 15, remainingSeconds: 900, signalState: SignalState.GREEN, doublePointsEnabled: false, redLightPenaltyMode: false }
+      });
+      await tx.roundControl.update({ where: { id: 2 }, data: { durationMinutes: 20, remainingSeconds: 1200 } });
+      await tx.roundControl.update({ where: { id: 3 }, data: { durationMinutes: 30, remainingSeconds: 1800 } });
+
+      await tx.winnerAnnouncement.upsert({
+        where: { id: 1 },
+        update: { isFinalized: false, finalizedAt: null, finalizedByAdminId: null, finalizedByAdminUsername: null, winners: Prisma.DbNull, notes: null },
+        create: { id: 1, isFinalized: false }
+      });
+      await tx.adminAuditLog.create({
+        data: {
+          adminUserId: req.user!.userId,
+          adminUsername: req.user!.username,
+          action: 'RESET_GAME_SUCCEEDED',
+          targetType: 'GAME_STATE',
+          details: { resetAt: resetAt.toISOString() },
+          ipAddress: req.ip
+        }
+      });
+    }, { isolationLevel: 'Serializable', timeout: 30000 });
+
+    sseService.broadcast('game_reset', { timestamp: resetAt.toISOString(), message: 'The game has been reset by an administrator.' });
+    sseService.broadcast('round_state_change', { roundId: 1, status: RoundStatus.UPCOMING, timestamp: resetAt.toISOString() });
+    sseService.broadcast('signal_change', { roundId: 1, signalState: SignalState.GREEN, doublePointsEnabled: false, redLightPenaltyMode: false, timestamp: resetAt.toISOString() });
+    sseService.broadcast('score_update', { teamId: 'ALL', pointsDelta: 0, newTotalScore: 0, source: 'RESET_GAME' });
+    sseService.broadcast('winners_announced', { isFinalized: false, resetAt: resetAt.toISOString() });
+    res.json({ success: true, message: 'Game reset completed. Teams, accounts, questions, puzzles, solutions and event settings were preserved.' });
+  } catch (error) {
+    await prisma.adminAuditLog.create({
+      data: {
         adminUserId: req.user!.userId,
         adminUsername: req.user!.username,
-        action: "RESTART_GAME_TESTING",
-        targetType: "GAME_STATE",
-        details: {
-          nodeEnv: process.env.NODE_ENV,
-          resetTimestamp: new Date().toISOString()
-        },
+        action: 'RESET_GAME_FAILED',
+        targetType: 'GAME_STATE',
+        details: { resetAt: resetAt.toISOString(), outcome: 'rolled back' },
         ipAddress: req.ip
-      });
-
-      // 6. Broadcast real-time notifications to all connected participant consoles
-      sseService.broadcast('game_reset', {
-        timestamp: new Date().toISOString(),
-        message: 'Game has been restarted by tournament administrator.'
-      });
-
-      sseService.broadcast('round_state_change', {
-        roundId: 1,
-        status: 'UPCOMING',
-        timestamp: new Date().toISOString()
-      });
-
-      sseService.broadcast('signal_change', {
-        roundId: 1,
-        signalState: 'GREEN',
-        doublePointsEnabled: false,
-        redLightPenaltyMode: false,
-        timestamp: new Date().toISOString()
-      });
-
-      sseService.broadcast('score_update', {
-        teamId: 'ALL',
-        pointsDelta: 0,
-        newTotalScore: 0,
-        source: 'RESTART_GAME_TESTING'
-      });
-
-      res.json({
-        success: true,
-        message: 'Game successfully restarted to initial waiting state. All scores and rounds reset.'
-      });
-    } finally {
-      isResetInProgress = false;
-    }
-  } catch (err) {
-    next(err);
+      }
+    }).catch(() => undefined);
+    next(error);
+  } finally {
+    isResetInProgress = false;
   }
 }

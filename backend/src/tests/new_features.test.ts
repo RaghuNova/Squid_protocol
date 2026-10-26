@@ -52,6 +52,11 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
           finalBreachPoints: null
         }
       });
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: t.id, round: 2 } },
+        create: { teamId: t.id, round: 2, status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() },
+        update: { status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() }
+      });
       if (t.accessToken) {
         await prisma.accessToken.update({
           where: { id: t.accessToken.id },
@@ -215,7 +220,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
         .send({ code: team!.accessToken!.tokenCode });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toBe('CODE_ALREADY_USED');
+      expect(res.body.error).toBe('INVALID_QR_CODE');
     });
 
     it('correct submission awards 1st place (+200 pts) and records completion timestamp', async () => {

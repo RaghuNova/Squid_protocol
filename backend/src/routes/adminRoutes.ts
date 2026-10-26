@@ -12,10 +12,9 @@ import {
   toggleLeaderboardPublish,
   getAuditLogs,
   generateQRCodes,
-  exportCSV,
-  triggerTestReset
+  exportCSV
 } from '../controllers/adminController.js';
-import { restartGameTesting } from '../controllers/adminTestController.js';
+import { resetGame } from '../controllers/adminTestController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { UserRole } from '@prisma/client';
 
@@ -39,7 +38,6 @@ router.get('/audit-logs', getAuditLogs);
 router.get('/qr-codes', generateQRCodes);
 router.get('/qrcodes', generateQRCodes);
 router.get('/export/csv', exportCSV);
-router.post('/test-reset', restartGameTesting);
-router.post('/restart-game', restartGameTesting);
+router.post('/reset-game', resetGame);
 
 export default router;
