@@ -1,6 +1,7 @@
 import { prisma } from '../prisma.js';
 import { sseService } from './sseService.js';
 import { RoundStatus, SignalState, SubmissionStatus, RoundControl } from '@prisma/client';
+import { teamRoundProgressService } from './teamRoundProgressService.js';
 
 export function computeRoundTimer(round: RoundControl | null) {
   const now = Date.now();
@@ -76,10 +77,11 @@ export class Round1Service {
       where: { id: 1 }
     });
 
-    const timer = computeRoundTimer(roundControl);
+    const progress = teamId ? await teamRoundProgressService.enterRound1(teamId) : null;
+    const timer = teamId ? teamRoundProgressService.timer(progress, roundControl?.status) : computeRoundTimer(roundControl);
 
     // If Round 1 is upcoming, do not return any question content
-    if (!roundControl || roundControl.status === RoundStatus.UPCOMING) {
+    if (!roundControl || roundControl.status !== RoundStatus.ACTIVE || (teamId && progress?.status !== 'IN_PROGRESS' && progress?.status !== 'COMPLETED')) {
       return {
         round: roundControl,
         timer,
@@ -87,7 +89,7 @@ export class Round1Service {
         currentQuestion: null,
         questionNumber: 0,
         totalQuestions: 20,
-        isCompleted: false,
+        isCompleted: progress?.status === 'COMPLETED',
         teamSubmissions: {},
         lastSubmission: null
       };
@@ -95,7 +97,7 @@ export class Round1Service {
 
     // Fetch all active questions ordered by sequence
     const allQuestions = await prisma.question.findMany({
-      where: { isActive: true },
+      where: { isActive: true, round: 1 },
       orderBy: { orderIndex: 'asc' },
       select: {
         id: true,
@@ -221,12 +223,15 @@ export class Round1Service {
     }
 
     // 2. Authoritative server-side deadline enforcement
-    if (roundControl.endTime && new Date() > new Date(roundControl.endTime)) {
-      return {
-        success: false,
-        error: 'ROUND_EXPIRED',
-        message: 'Round 1 submission deadline has passed.'
-      };
+    await teamRoundProgressService.reconcileTeam(params.teamId);
+    const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 1 } } });
+    const alreadyRecorded = await prisma.submission.findFirst({ where: { teamId: params.teamId, questionId: params.questionId } });
+    if (alreadyRecorded) {
+      const currentTeam = await prisma.team.findUnique({ where: { id: params.teamId } });
+      return { success: true, alreadySubmitted: true, status: alreadyRecorded.status, isCorrect: alreadyRecorded.status === SubmissionStatus.CORRECT, pointsAwarded: alreadyRecorded.pointsAwarded, doublePointsSelected: alreadyRecorded.doublePointsSelected, message: 'This question has already been submitted and finalized by your team.', newTotalScore: currentTeam?.totalScore ?? 0 };
+    }
+    if (!progress || progress.status !== 'IN_PROGRESS' || !progress.deadlineAt || progress.deadlineAt <= new Date()) {
+      return { success: false, error: progress?.status === 'TIMED_OUT' ? 'ROUND_EXPIRED' : 'ROUND_INACTIVE', message: 'Your team Round 1 timer is not active.' };
     }
 
     // 3. Question lookup
@@ -242,7 +247,7 @@ export class Round1Service {
     // 4. One-question-at-a-time enforcement:
     // Verify that this question is the team's current question in sequence
     const allQuestions = await prisma.question.findMany({
-      where: { isActive: true },
+      where: { isActive: true, round: 1 },
       orderBy: { orderIndex: 'asc' },
       select: { id: true, orderIndex: true }
     });
@@ -325,6 +330,10 @@ export class Round1Service {
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
+        const currentProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 1 } } });
+        if (!currentProgress || currentProgress.status !== 'IN_PROGRESS' || !currentProgress.deadlineAt || currentProgress.deadlineAt <= new Date()) {
+          return { notActive: true as const, success: false as const, error: 'ROUND_EXPIRED', message: 'Your team Round 1 deadline has passed.' };
+        }
         const existingSubmission = await tx.submission.findFirst({
           where: {
             teamId: params.teamId,
@@ -405,6 +414,14 @@ export class Round1Service {
           }
         });
 
+        const submittedQuestionIds = (await tx.submission.findMany({
+          where: { teamId: params.teamId, round: 1, questionId: { not: null } },
+          distinct: ['questionId'], select: { questionId: true }
+        })).length;
+        if (allQuestions.length > 0 && submittedQuestionIds >= allQuestions.length) {
+          await teamRoundProgressService.completeRoundInTransaction(tx, params.teamId, 1);
+        }
+
         return {
           alreadySubmitted: false,
           submissionId: submission.id,
@@ -416,6 +433,8 @@ export class Round1Service {
           newTotalScore: updatedTeam.totalScore
         };
       });
+
+      if ('notActive' in txResult && txResult.notActive) return txResult;
 
       if (!txResult.alreadySubmitted) {
         sseService.broadcast('score_update', {

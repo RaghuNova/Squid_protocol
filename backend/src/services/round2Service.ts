@@ -1,7 +1,7 @@
 import { prisma } from '../prisma.js';
 import { scoringService } from './scoringService.js';
-import { computeRoundTimer } from './round1Service.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
+import { teamRoundProgressService } from './teamRoundProgressService.js';
 
 export class Round2Service {
   /**
@@ -11,10 +11,10 @@ export class Round2Service {
   public async getRound2Data(teamId: string) {
     const roundControl = await prisma.roundControl.findUnique({ where: { id: 2 } });
     const team = await prisma.team.findUnique({ where: { id: teamId } });
-    const timer = computeRoundTimer(roundControl);
+    const progress = await teamRoundProgressService.enterRound2(teamId);
+    const timer = teamRoundProgressService.timer(progress, roundControl?.status);
 
-    const isRoundActive = roundControl?.status === RoundStatus.ACTIVE || roundControl?.status === RoundStatus.PAUSED;
-    const isRoundUnlocked = isRoundActive || roundControl?.status === RoundStatus.ENDED;
+    const isRoundUnlocked = !!progress && ['IN_PROGRESS', 'COMPLETED'].includes(progress.status);
 
     if (!isRoundUnlocked) {
       return {
@@ -23,7 +23,9 @@ export class Round2Service {
         serverTime: new Date().toISOString(),
         currentStage: 1,
         isUnlocked: false,
-        message: 'Round 2 — The Logic Protocol is currently locked. Waiting for admin to start.',
+        message: progress?.status === 'TIMED_OUT'
+          ? 'Round 2 timed out. Round 3 is now unlocked.'
+          : 'Round 2 — Complete Round 1 and wait for officials to open the round.',
         sudoku: null,
         brokenLogic: {
           puzzle: null,
@@ -38,8 +40,7 @@ export class Round2Service {
       select: {
         id: true,
         round: true,
-        initialGrid: true,
-        hintDeductionPercent: true
+        initialGrid: true
       }
     });
 
@@ -127,15 +128,6 @@ export class Round2Service {
       };
     }
 
-    if (roundControl.endTime && new Date() > new Date(roundControl.endTime)) {
-      return {
-        success: false,
-        error: 'ROUND_EXPIRED',
-        message: 'Round 2 submission deadline has passed.'
-      };
-    }
-
-    // Check if already completed
     const existing = await prisma.scoreEvent.findUnique({
       where: {
         teamId_source: {
@@ -154,6 +146,9 @@ export class Round2Service {
         message: 'Shape Sudoku has already been completed by your team.'
       };
     }
+
+    const progress = await teamRoundProgressService.getTeamRound(params.teamId, 2);
+    if (!progress || progress.status !== 'IN_PROGRESS' || !progress.deadlineAt || progress.deadlineAt <= new Date()) return { success: false, error: progress?.status === 'TIMED_OUT' ? 'ROUND_EXPIRED' : 'ROUND_INACTIVE', message: 'Your team Round 2 timer is not active.' };
 
     const puzzle = await prisma.sudokuPuzzle.findFirst({ where: { isActive: true } });
     if (!puzzle) {
@@ -213,12 +208,12 @@ export class Round2Service {
         success: false,
         isCorrect: false,
         error: 'INVALID_SUDOKU',
-        message: 'Sudoku solution contains conflicts or does not match the system target.'
+        message: 'That Sudoku submission is not correct. Check the grid and try again.'
       };
     }
 
     const basePoints = 100;
-    const points = params.usedHint ? Math.round(basePoints * (1 - puzzle.hintDeductionPercent / 100)) : basePoints;
+    const points = basePoints;
 
     await prisma.submission.create({
       data: {
@@ -238,7 +233,7 @@ export class Round2Service {
       stage: 1,
       source: 'ROUND2_STAGE1_SUDOKU',
       pointsDelta: points,
-      reason: `Round 2 Shape Sudoku solved ${params.usedHint ? '(with hint penalty)' : 'cleanly'}`
+      reason: 'Round 2 Shape Sudoku solved'
     });
 
     await prisma.team.update({
@@ -288,13 +283,11 @@ export class Round2Service {
       };
     }
 
-    if (roundControl.endTime && new Date() > new Date(roundControl.endTime)) {
-      return {
-        success: false,
-        error: 'ROUND_EXPIRED',
-        message: 'Round 2 submission deadline has passed.'
-      };
-    }
+    const existing = await prisma.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE2_BROKEN_LOGIC' } } });
+    if (existing) return { success: true, alreadySubmitted: true, isCorrect: true, pointsAwarded: 0, message: 'Broken Logic challenge has already been solved by your team.' };
+
+    const progress = await teamRoundProgressService.getTeamRound(params.teamId, 2);
+    if (!progress || progress.status !== 'IN_PROGRESS' || !progress.deadlineAt || progress.deadlineAt <= new Date()) return { success: false, error: progress?.status === 'TIMED_OUT' ? 'ROUND_EXPIRED' : 'ROUND_INACTIVE', message: 'Your team Round 2 timer is not active.' };
 
     // Stage Order Enforcement: Check if Sudoku was solved first!
     const sudokuCompleted = await prisma.scoreEvent.findUnique({
@@ -311,26 +304,6 @@ export class Round2Service {
         success: false,
         error: 'STAGE_LOCKED',
         message: 'Stage 2 is locked. You must successfully solve Shape Sudoku first.'
-      };
-    }
-
-    // Check if already completed
-    const existing = await prisma.scoreEvent.findUnique({
-      where: {
-        teamId_source: {
-          teamId: params.teamId,
-          source: 'ROUND2_STAGE2_BROKEN_LOGIC'
-        }
-      }
-    });
-
-    if (existing) {
-      return {
-        success: true,
-        alreadySubmitted: true,
-        isCorrect: true,
-        pointsAwarded: 0,
-        message: 'Broken Logic challenge has already been solved by your team.'
       };
     }
 
@@ -391,6 +364,7 @@ export class Round2Service {
         currentStage: 1
       }
     });
+    await teamRoundProgressService.completeRound(params.teamId, 2);
 
     return {
       success: true,

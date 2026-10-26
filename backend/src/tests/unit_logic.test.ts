@@ -2,8 +2,33 @@ import { describe, it, expect } from 'vitest';
 import { computeRoundTimer } from '../services/round1Service.js';
 import { RoundStatus, SignalState } from '@prisma/client';
 import { z } from 'zod';
+import { teamRoundProgressService } from '../services/teamRoundProgressService.js';
+import { TeamRoundProgressStatus } from '@prisma/client';
 
 describe('SQUID PROTOCOL — Backend Business Logic & Integrity Unit Tests', () => {
+
+  describe('Team-specific round timer presentation', () => {
+    it('keeps completed and timed-out states distinct from active timers', () => {
+      const completed = teamRoundProgressService.timer({ round: 1, status: TeamRoundProgressStatus.COMPLETED } as any);
+      const timedOut = teamRoundProgressService.timer({ round: 2, status: TeamRoundProgressStatus.TIMED_OUT } as any);
+      expect(completed.progressStatus).toBe(TeamRoundProgressStatus.COMPLETED);
+      expect(completed.isExpired).toBe(false);
+      expect(timedOut.progressStatus).toBe(TeamRoundProgressStatus.TIMED_OUT);
+      expect(timedOut.isExpired).toBe(true);
+    });
+
+    it('shows the frozen remaining time when officials pause a team round', () => {
+      const timer = teamRoundProgressService.timer({
+        round: 2,
+        status: TeamRoundProgressStatus.IN_PROGRESS,
+        remainingSeconds: 347,
+        deadlineAt: null
+      } as any, RoundStatus.PAUSED);
+      expect(timer.status).toBe(RoundStatus.PAUSED);
+      expect(timer.remainingSeconds).toBe(347);
+      expect(timer.isPaused).toBe(true);
+    });
+  });
 
   describe('1. Authoritative Round Timer Computation', () => {
     it('returns UPCOMING with full duration when round control is null or UPCOMING', () => {

@@ -3,6 +3,7 @@ import { scoringService } from './scoringService.js';
 import { sseService } from './sseService.js';
 import { computeRoundTimer } from './round1Service.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
+import { teamRoundProgressService } from './teamRoundProgressService.js';
 
 export function getRound3FinishingPoints(position: number): number {
   switch (position) {
@@ -28,9 +29,9 @@ export class Round3Service {
     const roundControl = await prisma.roundControl.findUnique({ where: { id: 3 } });
     const team = await prisma.team.findUnique({ where: { id: teamId } });
     const timer = computeRoundTimer(roundControl);
-
-    const isRoundActive = roundControl?.status === RoundStatus.ACTIVE || roundControl?.status === RoundStatus.PAUSED;
-    const isRoundUnlocked = isRoundActive || roundControl?.status === RoundStatus.ENDED;
+    await teamRoundProgressService.reconcileTeam(teamId);
+    const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+    const isRoundUnlocked = !!secondRound?.nextRoundEligible;
 
     if (!isRoundUnlocked) {
       return {
@@ -42,7 +43,7 @@ export class Round3Service {
         isCompleted: false,
         position: null,
         pointsAwarded: null,
-        message: 'Round 3 — The Final Breach is currently locked. Waiting for admin to start.',
+        message: 'Round 3 — Complete or time out in Round 2 to unlock the final breach.',
         challenge: null
       };
     }
@@ -111,21 +112,16 @@ export class Round3Service {
       };
     }
 
-    if (roundControl.status !== RoundStatus.ACTIVE) {
+    await teamRoundProgressService.reconcileTeam(params.teamId);
+    const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+    if (!secondRound?.nextRoundEligible) {
       return {
         success: false,
         error: 'ROUND_INACTIVE',
-        message: 'Round 3 is not currently active.'
+        message: 'Complete or time out in Round 2 before entering Round 3.'
       };
     }
 
-    if (roundControl.endTime && new Date() > new Date(roundControl.endTime)) {
-      return {
-        success: false,
-        error: 'ROUND_EXPIRED',
-        message: 'Round 3 submission deadline has passed.'
-      };
-    }
 
     // Check if team already redeemed a token
     const alreadyRedeemed = await prisma.accessToken.findFirst({
@@ -245,22 +241,17 @@ export class Round3Service {
       };
     }
 
-    if (roundControl.status !== RoundStatus.ACTIVE) {
+    await teamRoundProgressService.reconcileTeam(params.teamId);
+    const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+    if (!secondRound?.nextRoundEligible) {
       return {
         success: false,
         error: 'ROUND_INACTIVE',
-        message: 'Round 3 — The Final Breach is not currently active.'
+        message: 'Complete or time out in Round 2 before entering Round 3.'
       };
     }
 
     // 2. Authoritative deadline check
-    if (roundControl.endTime && new Date() > new Date(roundControl.endTime)) {
-      return {
-        success: false,
-        error: 'ROUND_EXPIRED',
-        message: 'Round 3 submission deadline has passed.'
-      };
-    }
 
     // 3. Verify team has redeemed QR code first!
     const redeemedToken = await prisma.accessToken.findFirst({

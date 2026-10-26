@@ -25,7 +25,7 @@ export const Footer: React.FC = () => {
             </div>
             <p className="text-xs text-text-muted font-mono text-center md:text-left leading-relaxed">
               IEEE NISB Technical Engineering Tournament<br className="hidden sm:block" />
-              <span className="sm:hidden"> · </span>60 Participants · 20 Teams · 3 Elimination Rounds
+              <span className="sm:hidden"> · </span>3 Elimination Rounds
             </p>
           </div>
 

@@ -398,24 +398,11 @@ export async function seed() {
     const members = `Operative ${teamNum}-A, Operative ${teamNum}-B, Operative ${teamNum}-C`;
     const tokenCode = ACCESS_TOKENS[i];
 
-    // Clean existing test progress for this team to establish fresh, consistent test state
-    const existingTeam = await prisma.team.findUnique({ where: { teamCode } });
-    if (existingTeam) {
-      await prisma.submission.deleteMany({ where: { teamId: existingTeam.id } });
-      await prisma.scoreEvent.deleteMany({ where: { teamId: existingTeam.id } });
-    }
-
     const team = await prisma.team.upsert({
       where: { teamCode },
       update: {
         name,
-        members,
-        currentRound: 1,
-        currentStage: 1,
-        totalScore: 0,
-        finalBreachCompletedAt: null,
-        finalBreachPosition: null,
-        finalBreachPoints: null
+        members
       },
       create: {
         teamCode,
@@ -442,76 +429,10 @@ export async function seed() {
     // Create access token for Round 3 QR code
     await prisma.accessToken.upsert({
       where: { teamId: team.id },
-      update: { tokenCode, isRedeemed: false, redeemedAt: null },
+      update: { tokenCode },
       create: {
         teamId: team.id,
         tokenCode,
-        isRedeemed: false
-      }
-    });
-  }
-
-  // 5. 10 Dedicated Development & Testing Accounts (TEST01 to TEST10)
-  for (let i = 0; i < 10; i++) {
-    const num = (i + 1).toString().padStart(2, "0");
-    const testUsername = `TEST${num}`;
-    const testPassword = `team${num}#2026`; // Mandatory required password format
-    const testPasswordHash = await bcrypt.hash(testPassword, 10);
-    const testTeamCode = `TEST${num}`;
-    const testTokenCode = `TEST${num}#2026`;
-
-    // Clean existing test game progress for this test account to ensure fresh state
-    const existingTestTeam = await prisma.team.findUnique({ where: { teamCode: testTeamCode } });
-    if (existingTestTeam) {
-      await prisma.submission.deleteMany({ where: { teamId: existingTestTeam.id } });
-      await prisma.scoreEvent.deleteMany({ where: { teamId: existingTestTeam.id } });
-    }
-
-    const testTeam = await prisma.team.upsert({
-      where: { teamCode: testTeamCode },
-      update: {
-        name: `Test Squad ${num}`,
-        members: `Test Operative ${num}-A, Test Operative ${num}-B, Test Operative ${num}-C`,
-        currentRound: 1,
-        currentStage: 1,
-        totalScore: 0,
-        finalBreachCompletedAt: null,
-        finalBreachPosition: null,
-        finalBreachPoints: null
-      },
-      create: {
-        teamCode: testTeamCode,
-        name: `Test Squad ${num}`,
-        members: `Test Operative ${num}-A, Test Operative ${num}-B, Test Operative ${num}-C`,
-        currentRound: 1,
-        currentStage: 1,
-        totalScore: 0
-      }
-    });
-
-    // Upsert exact username TEST01 through TEST10 with participant TEAM role
-    await prisma.user.upsert({
-      where: { username: testUsername },
-      update: {
-        passwordHash: testPasswordHash,
-        role: UserRole.TEAM,
-        teamId: testTeam.id
-      },
-      create: {
-        username: testUsername,
-        passwordHash: testPasswordHash,
-        role: UserRole.TEAM,
-        teamId: testTeam.id
-      }
-    });
-
-    // Access token for test team Round 3 QR code
-    await prisma.accessToken.upsert({
-      where: { teamId: testTeam.id },
-      update: { tokenCode: testTokenCode, isRedeemed: false, redeemedAt: null },
-      create: {
-        teamId: testTeam.id,
-        tokenCode: testTokenCode,
         isRedeemed: false
       }
     });
@@ -552,7 +473,7 @@ export async function seed() {
   await prisma.sudokuPuzzle.create({
     data: {
       round: 2,
-      initialGrid: "S0C0A00A0S0CT00D0A0UA0C0C0U0D00D0C0U",
+      initialGrid: "0T0U00U0DS0C00S0U0D0000S000A0T0D0CSU",
       solutionGrid: "STCUADUADSTCTCSDUADUATCSCSUADTADTCSU",
       hintDeductionPercent: 25,
       isActive: true
@@ -635,8 +556,7 @@ int main() {
 
   console.log("✅ Seed completed successfully!");
   console.log("   - Admin user seeded: admin / Admin#2026");
-  console.log("   - 20 Teams seeded (TEAM01 to TEAM20) with team-specific PINs: teamXX#2026");
-  console.log("   - 10 Test Accounts seeded (TEST01 to TEST10) with passwords: team01#2026 to team10#2026");
+  console.log("   - 20 tournament teams seeded (TEAM01 to TEAM20)");
   console.log("   - Round 1: 20 Verified MCQs seeded (UPCOMING)");
   console.log("   - Round 2: Verified 6x6 Shape Sudoku & Broken Logic puzzle seeded (UPCOMING)");
   console.log("   - Round 3: Unique Single-Use QR Access Tokens & Debug Challenge seeded (UPCOMING)");

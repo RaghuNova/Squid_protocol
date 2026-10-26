@@ -9,6 +9,7 @@ import { logAdminAction } from '../services/auditService.js';
 import { computeRoundTimer } from '../services/round1Service.js';
 import { resetTestDatabase } from '../scripts/reset-test-db.js';
 import { RoundStatus, SignalState, UserRole } from '@prisma/client';
+import { teamRoundProgressService } from '../services/teamRoundProgressService.js';
 
 export async function getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -72,11 +73,19 @@ export async function getTeams(req: Request, res: Response, next: NextFunction):
       orderBy: { teamCode: 'asc' },
       include: {
         accessToken: true,
-        user: { select: { id: true, username: true } }
+        user: { select: { id: true, username: true } },
+        roundProgress: { orderBy: { round: 'asc' } }
       }
     });
 
-    res.json({ success: true, teams });
+    const roundGates = await prisma.roundControl.findMany({ select: { id: true, status: true } });
+    res.json({ success: true, teams: teams.map(team => ({
+      ...team,
+      roundProgress: team.roundProgress.map(progress => ({
+        ...progress,
+        timer: teamRoundProgressService.timer(progress, roundGates.find(gate => gate.id === progress.round)?.status)
+      }))
+    })) });
   } catch (err) {
     next(err);
   }
@@ -201,6 +210,7 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
       data.pausedAt = new Date();
       data.remainingSeconds = timer.remainingSeconds;
       data.endTime = null;
+      if (id === 1 || id === 2) await teamRoundProgressService.pauseRound(id);
     } else if (body.resumeTimer) {
       // Resume from frozen remaining time
       const remSec = current.remainingSeconds ?? ((body.durationMinutes || current.durationMinutes || 15) * 60);
@@ -209,12 +219,14 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
       data.startTime = current.startTime || now;
       data.endTime = new Date(now.getTime() + remSec * 1000);
       data.pausedAt = null;
+      if (id === 1 || id === 2) await teamRoundProgressService.resumeRound(id);
     } else if (body.startTimer || body.status === RoundStatus.ACTIVE) {
       const now = new Date();
-      const duration = body.durationMinutes || current.durationMinutes || 15;
+      const duration = id === 1 ? 15 : id === 2 ? 20 : body.durationMinutes || current.durationMinutes || 15;
+      data.durationMinutes = duration;
       data.startTime = now;
-      data.endTime = new Date(now.getTime() + duration * 60000);
-      data.remainingSeconds = duration * 60;
+      data.endTime = id === 3 ? new Date(now.getTime() + duration * 60000) : null;
+      data.remainingSeconds = id === 3 ? duration * 60 : null;
       data.status = RoundStatus.ACTIVE;
       data.pausedAt = null;
 
@@ -224,22 +236,6 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
         await prisma.roundControl.updateMany({
           where: { id: { in: [2, 3] } },
           data: { status: RoundStatus.UPCOMING, startTime: null, endTime: null, pausedAt: null }
-        });
-      } else if (id === 2) {
-        // Round 2 started: Round 1 ends! Round 3 is UPCOMING
-        await prisma.roundControl.update({
-          where: { id: 1 },
-          data: { status: RoundStatus.ENDED, endTime: new Date(), remainingSeconds: 0, pausedAt: null }
-        });
-        await prisma.roundControl.update({
-          where: { id: 3 },
-          data: { status: RoundStatus.UPCOMING, startTime: null, endTime: null, pausedAt: null }
-        });
-      } else if (id === 3) {
-        // Round 3 started: Round 1 and 2 end!
-        await prisma.roundControl.updateMany({
-          where: { id: { in: [1, 2] } },
-          data: { status: RoundStatus.ENDED, endTime: new Date(), remainingSeconds: 0, pausedAt: null }
         });
       }
     } else if (body.endRound || body.status === RoundStatus.ENDED) {

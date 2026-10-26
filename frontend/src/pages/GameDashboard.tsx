@@ -229,7 +229,7 @@ export const GameDashboard: React.FC = () => {
         protocolNumber: 1,
         protocolTitle: 'The Signal Protocol',
         stageName: round1Data.isCompleted
-          ? 'Completed (10/10 Solved)'
+          ? 'Completed (20/20 Solved)'
           : `Question ${round1Data.questionNumber} of ${round1Data.totalQuestions}`,
         timerEndTime: round1Data.timer?.endTime ?? round1Data.round?.endTime,
         timerRemainingSeconds: round1Data.timer?.remainingSeconds ?? round1Data.round?.remainingSeconds,
@@ -279,7 +279,7 @@ export const GameDashboard: React.FC = () => {
       id: 1,
       num: '01',
       title: 'THE SIGNAL PROTOCOL',
-      subtitle: '10 Sequential Questions • Red / Green Light',
+      subtitle: '20 Sequential Questions • Red / Green Light',
       status: round1Data.isCompleted
         ? 'COMPLETED'
         : round1Data.round?.status === 'PAUSED'
@@ -289,7 +289,7 @@ export const GameDashboard: React.FC = () => {
         : round1Data.round?.status === 'ENDED'
         ? 'ENDED'
         : 'UPCOMING',
-      pointsBadge: '+1,000 PTS (2X Available)',
+      pointsBadge: 'Scoring varies by answer and signal',
     },
     {
       id: 2,

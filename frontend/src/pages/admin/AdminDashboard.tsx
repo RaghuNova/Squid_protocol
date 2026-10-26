@@ -442,7 +442,7 @@ export const AdminDashboard: React.FC = () => {
               </span>
             </div>
             <p className="text-xs font-mono text-gray-400">
-              10 sequential MCQs with Red Light / Green Light rules. 15 minutes.
+              20 sequential MCQs with Red Light / Green Light rules. 15 minutes per team.
             </p>
             {r1?.status === 'UPCOMING' ? (
               <button

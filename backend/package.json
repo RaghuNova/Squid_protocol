@@ -15,7 +15,8 @@
     "db:reset:test": "tsx src/scripts/reset-test-db.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "prisma generate && tsc --noEmit"
+    "typecheck": "prisma generate && tsc --noEmit",
+    "db:seed:dev": "tsx prisma/seed-dev.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

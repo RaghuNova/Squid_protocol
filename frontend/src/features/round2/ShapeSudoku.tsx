@@ -20,7 +20,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
   const [grid, setGrid] = useState<string[]>([]);
   const [fixedCells, setFixedCells] = useState<boolean[]>([]);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
-  const [useHint, setUseHint] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -98,52 +97,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedCell, fixedCells, data.isCompleted, handleSetSymbol, handleClearCell]);
 
-  // Check conflicts in the grid for user highlighting
-  const getConflicts = () => {
-    const conflicts = new Set<number>();
-
-    for (let i = 0; i < 36; i++) {
-      const val = grid[i];
-      if (!val || val === '0') continue;
-
-      const r = Math.floor(i / 6);
-      const c = i % 6;
-
-      // Row check
-      for (let col = 0; col < 6; col++) {
-        const otherIdx = r * 6 + col;
-        if (otherIdx !== i && grid[otherIdx] === val) {
-          conflicts.add(i);
-          conflicts.add(otherIdx);
-        }
-      }
-
-      // Column check
-      for (let row = 0; row < 6; row++) {
-        const otherIdx = row * 6 + c;
-        if (otherIdx !== i && grid[otherIdx] === val) {
-          conflicts.add(i);
-          conflicts.add(otherIdx);
-        }
-      }
-
-      // 2x3 block check
-      const br = Math.floor(r / 2) * 2;
-      const bc = Math.floor(c / 3) * 3;
-      for (let ro = 0; ro < 2; ro++) {
-        for (let co = 0; co < 3; co++) {
-          const otherIdx = (br + ro) * 6 + (bc + co);
-          if (otherIdx !== i && grid[otherIdx] === val) {
-            conflicts.add(i);
-            conflicts.add(otherIdx);
-          }
-        }
-      }
-    }
-    return conflicts;
-  };
-
-  const conflicts = getConflicts();
   const isFilled = grid.length === 36 && !grid.includes('0');
 
   const handleSubmit = async () => {
@@ -157,7 +110,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
         method: 'POST',
         body: JSON.stringify({
           submittedGrid: grid.join(''),
-          usedHint: useHint
         })
       });
 
@@ -166,7 +118,7 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
       onSuccess();
     } catch (err: any) {
       playError();
-      setErrorMessage(err.message || 'Grid solution contains errors. Verify all rows, columns, and 2x3 boxes.');
+      setErrorMessage('Incorrect solution. Review the grid and try again while time remains.');
     } finally {
       setIsSubmitting(false);
     }
@@ -192,15 +144,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 font-mono text-xs text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useHint}
-                onChange={(e) => setUseHint(e.target.checked)}
-                className="w-3.5 h-3.5 rounded bg-black border-gray-700 text-[#00f0ff] focus:ring-0 cursor-pointer"
-              />
-              <span>Use Hint (-25% pts)</span>
-            </label>
             <button
               onClick={handleResetToInitial}
               aria-label="Reset puzzle to starting state"
@@ -230,7 +173,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
             {grid.map((cellVal, idx) => {
               const isFixed = fixedCells[idx];
               const isSelected = selectedCell === idx;
-              const hasConflict = conflicts.has(idx);
               const symbolObj = cellVal !== '0' ? SymbolMap[cellVal] : null;
               const Icon = symbolObj ? symbolObj.component : null;
 
@@ -242,9 +184,7 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
 
               const cellLabel = `Cell Row ${r + 1}, Column ${c + 1}: ${
                 symbolObj ? symbolObj.label : 'Empty'
-              }${isFixed ? ', fixed starting clue' : ''}${
-                hasConflict ? ', conflict detected' : ''
-              }${isSelected ? ', selected' : ''}`;
+              }${isFixed ? ', fixed starting clue' : ''}${isSelected ? ', selected' : ''}`;
 
               return (
                 <button
@@ -258,8 +198,6 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
                   className={`w-11 h-11 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#090b0f] ${
                     isSelected
                       ? 'ring-2 ring-[#00f0ff] bg-[#00f0ff]/15 shadow-[0_0_15px_rgba(0,240,255,0.4)]'
-                      : hasConflict
-                      ? 'bg-red-950/40 border border-red-500/70 animate-pulse motion-reduce:animate-none'
                       : isFixed
                       ? 'bg-[#181c26] border border-gray-700/60 opacity-90'
                       : 'bg-[#12151c] border border-gray-800/80 hover:border-gray-600 hover:bg-[#1a202c]'
@@ -268,7 +206,7 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
                   {Icon && (
                     <Icon
                       size={28}
-                      color={hasConflict ? '#ff004f' : isFixed ? '#e2e8f0' : symbolObj?.color}
+                      color={isFixed ? '#e2e8f0' : symbolObj?.color}
                     />
                   )}
                 </button>

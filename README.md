@@ -118,6 +118,20 @@ Each team has a single-use token code to unlock the debugging challenge:
 - ...
 - `TEAM20`: `TEAM20#2026`
 
+### Isolated Test Accounts
+
+The production tournament seed does not create TEST accounts. To create or refresh TEST01–TEST10, use the dedicated development command from `backend/`:
+
+```bash
+npm run db:seed:dev
+```
+
+It refuses non-local database hosts and database names that do not contain `test` or `dev`. It resets only those ten named test teams and their associated game data.
+
+| Username | Password |
+|---|---|
+| TEST01–TEST10 | `team01#2026` through `team10#2026` respectively |
+
 ---
 
 ## 5. Exact Scoring Matrix
@@ -137,9 +151,9 @@ Each team has a single-use token code to unlock the debugging challenge:
 ## 6. Running Tests
 
 ```bash
-# Run backend regression tests (43 test suites covering all round logic, timer pause, and security)
+# Run backend regression tests
 npm run test:backend
 
-# Run frontend unit tests (4 test suites covering puzzle logic and multi-language compiler verification)
+# Run frontend unit tests
 npm run test:frontend
 ```

@@ -20,6 +20,14 @@ enum RoundStatus {
   ENDED
 }
 
+enum TeamRoundProgressStatus {
+  LOCKED
+  READY
+  IN_PROGRESS
+  COMPLETED
+  TIMED_OUT
+}
+
 enum SignalState {
   GREEN
   RED
@@ -65,8 +73,28 @@ model Team {
   accessToken            AccessToken?
   submissions            Submission[]
   scoreEvents            ScoreEvent[]
+  roundProgress          TeamRoundProgress[]
 
   @@index([totalScore(sort: Desc)])
+}
+
+model TeamRoundProgress {
+  id                  String                   @id @default(uuid())
+  teamId              String
+  team                Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round               Int
+  status              TeamRoundProgressStatus  @default(LOCKED)
+  startedAt           DateTime?
+  deadlineAt          DateTime?
+  completedAt         DateTime?
+  timedOutAt          DateTime?
+  remainingSeconds    Int?
+  nextRoundEligible   Boolean                  @default(false)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@unique([teamId, round])
+  @@index([round, status, deadlineAt])
 }
 
 model WinnerAnnouncement {
