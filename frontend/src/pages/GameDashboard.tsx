@@ -324,8 +324,12 @@ export const GameDashboard: React.FC = () => {
         ? 'COMPLETED'
         : round2Data.round?.status === 'PAUSED'
         ? 'PAUSED'
-        : round2Data.isUnlocked
+        : round2Data.isUnlocked && round2Data.round?.status === 'ACTIVE'
         ? 'ACTIVE'
+        : round2Data.isUnlocked
+        ? 'READY'
+        : round1Data.isCompleted
+        ? 'READY'
         : 'LOCKED',
       pointsBadge: '+300 PTS Total',
     },
@@ -338,8 +342,12 @@ export const GameDashboard: React.FC = () => {
         ? 'COMPLETED'
         : round3Data.round?.status === 'PAUSED'
         ? 'PAUSED'
-        : round3Data.isUnlocked
+        : round3Data.isUnlocked && round3Data.round?.status === 'ACTIVE'
         ? 'ACTIVE'
+        : round3Data.isUnlocked
+        ? 'READY'
+        : round2Data.brokenLogic?.isCompleted
+        ? 'READY'
         : 'LOCKED',
       pointsBadge: '+200 PTS Champion Key',
     },
@@ -406,6 +414,7 @@ export const GameDashboard: React.FC = () => {
               const isCompleted = p.status === 'COMPLETED';
               const isPaused = p.status === 'PAUSED';
               const isActive = p.status === 'ACTIVE';
+              const isReady = p.status === 'READY';
               const isLocked = p.status === 'LOCKED' || p.status === 'UPCOMING';
 
               return (
@@ -436,6 +445,8 @@ export const GameDashboard: React.FC = () => {
                           ? 'bg-amber-950/60 border border-amber-500/50 text-amber-300'
                           : isActive
                           ? 'bg-cyan-950/60 border border-cyan-800/60 text-cyan-300'
+                          : isReady
+                          ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
                           : 'bg-gray-800/80 border border-gray-700/60 text-gray-400'
                       }`}
                     >
@@ -453,6 +464,11 @@ export const GameDashboard: React.FC = () => {
                         <>
                           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
                           <span>ACTIVE</span>
+                        </>
+                      ) : isReady ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" aria-hidden="true" />
+                          <span>READY</span>
                         </>
                       ) : (
                         <>
@@ -497,6 +513,8 @@ export const GameDashboard: React.FC = () => {
               questionNumber={round1Data.questionNumber}
               totalQuestions={round1Data.totalQuestions}
               isCompleted={round1Data.isCompleted}
+              round2Unlocked={round2Data.isUnlocked}
+              onEnterRound2={() => setActiveTab(2)}
               onRefresh={loadAll}
             />
           )}
@@ -553,6 +571,8 @@ export const GameDashboard: React.FC = () => {
                   {round2Data.brokenLogic?.isUnlocked && round2Data.brokenLogic.puzzle && (
                     <BrokenLogicView
                       data={round2Data.brokenLogic}
+                      round3Unlocked={round3Data.isUnlocked}
+                      onEnterRound3={() => setActiveTab(3)}
                       onSuccess={loadAll}
                     />
                   )}

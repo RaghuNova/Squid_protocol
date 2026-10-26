@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question, RoundControl, SubmissionStatus } from '../../types/game';
 import { SignalIndicator } from '../../components/SignalIndicator';
 import { CountdownTimer } from '../../components/CountdownTimer';
@@ -18,8 +18,10 @@ interface Round1ViewProps {
   };
   currentQuestion: Question | null;
   questionNumber: number;
-  totalQuestions: number;
+  totalQuestions?: number;
   isCompleted: boolean;
+  round2Unlocked?: boolean;
+  onEnterRound2?: () => void;
   onRefresh: () => void;
 }
 
@@ -30,6 +32,8 @@ export const Round1View: React.FC<Round1ViewProps> = ({
   questionNumber,
   totalQuestions = 20,
   isCompleted,
+  round2Unlocked = false,
+  onEnterRound2,
   onRefresh,
 }) => {
   const { refreshMe } = useAuth();
@@ -43,6 +47,16 @@ export const Round1View: React.FC<Round1ViewProps> = ({
     points?: number;
   } | null>(null);
 
+  useEffect(() => {
+    const handleReset = () => {
+      setSelectedOption('');
+      setFeedback(null);
+      setIsSubmitting(false);
+    };
+    window.addEventListener('squid-game-reset', handleReset);
+    return () => window.removeEventListener('squid-game-reset', handleReset);
+  }, []);
+
   const status = timer?.status || round?.status || 'UPCOMING';
   const isUpcoming = status === 'UPCOMING';
   const isPaused = status === 'PAUSED' || timer?.isPaused;
@@ -55,14 +69,14 @@ export const Round1View: React.FC<Round1ViewProps> = ({
     return (
       <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
         <div className="w-16 h-16 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
-          <Lock className="w-8 h-8" />
+          <Clock className="w-8 h-8" />
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-display font-bold text-white tracking-wide">
             Round 1 — The Signal Protocol
           </h2>
-          <p className="text-sm font-mono text-gray-400">
-            Status: <span className="text-cyan-400 font-bold uppercase">Waiting to Start</span>
+          <p className="text-sm font-mono text-cyan-400 font-bold uppercase">
+            Status: Waiting to Start
           </p>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
@@ -91,15 +105,32 @@ export const Round1View: React.FC<Round1ViewProps> = ({
             All {totalQuestions} questions have been finalized and scored.
           </p>
         </div>
-        <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-          Your Round 1 answers have been submitted. Wait for tournament officials to announce the start of Round 2.
-        </p>
-        <button
-          onClick={onRefresh}
-          className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
-        >
-          Refresh Status
-        </button>
+        {round2Unlocked && onEnterRound2 ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
+              Round 2 (The Logic Protocol) is currently OPEN. Enter immediately without waiting for any timer!
+            </p>
+            <button
+              onClick={onEnterRound2}
+              className="px-8 py-3 rounded-xl bg-[#00f0ff] hover:bg-[#00f0ff]/90 text-black font-display font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(0,240,255,0.35)] flex items-center gap-2 mx-auto cursor-pointer"
+            >
+              <span>ENTER ROUND 2</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
+              Your Round 1 answers have been submitted. Your team is eligible for Round 2. Waiting for tournament officials to open the Round 2 access gate.
+            </p>
+            <button
+              onClick={onRefresh}
+              className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff004f] cursor-pointer"
+            >
+              Check Round 2 Status
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -119,9 +150,32 @@ export const Round1View: React.FC<Round1ViewProps> = ({
             The 15-minute time limit for Round 1 has expired.
           </p>
         </div>
-        <p className="text-sm text-gray-300 max-w-md mx-auto">
-          Submissions for Round 1 are now closed. Wait for tournament officials to begin Round 2.
-        </p>
+        {round2Unlocked && onEnterRound2 ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300 max-w-md mx-auto">
+              Round 1 has concluded. Under tournament rules, you are eligible to proceed to Round 2.
+            </p>
+            <button
+              onClick={onEnterRound2}
+              className="px-8 py-3 rounded-xl bg-[#00f0ff] hover:bg-[#00f0ff]/90 text-black font-display font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(0,240,255,0.35)] flex items-center gap-2 mx-auto cursor-pointer"
+            >
+              <span>PROCEED TO ROUND 2</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300 max-w-md mx-auto">
+              Submissions for Round 1 are now closed. You are eligible for Round 2. Waiting for tournament officials to begin Round 2.
+            </p>
+            <button
+              onClick={onRefresh}
+              className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Check Round 2 Status
+            </button>
+          </div>
+        )}
       </div>
     );
   }

@@ -104,24 +104,34 @@ export class TeamRoundProgressService {
   async reconcileTeam(teamId: string, now = new Date()) {
     await prisma.$transaction(async (tx) => {
       await acquireGameplayWriteLock(tx);
+      const roundGates = await tx.roundControl.findMany({
+        where: { id: { in: [1, 2, 3] } },
+        select: { id: true, status: true }
+      });
+      const r1Ended = roundGates.find(g => g.id === 1)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 2)?.status === RoundStatus.ACTIVE || roundGates.find(g => g.id === 2)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 3)?.status === RoundStatus.ACTIVE;
+      const r2Ended = roundGates.find(g => g.id === 2)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 3)?.status === RoundStatus.ACTIVE;
+
       const expired = await tx.teamRoundProgress.findMany({
         where: {
           teamId,
           round: { in: [1, 2] },
-          status: TeamRoundProgressStatus.IN_PROGRESS,
-          deadlineAt: { lte: now }
+          status: { in: [TeamRoundProgressStatus.IN_PROGRESS, TeamRoundProgressStatus.READY] },
+          OR: [
+            { deadlineAt: { lte: now } },
+            ...(r1Ended ? [{ round: 1 }] : []),
+            ...(r2Ended ? [{ round: 2 }] : [])
+          ]
         }
       });
       for (const progress of expired) {
         const update = await tx.teamRoundProgress.updateMany({
           where: {
             id: progress.id,
-            status: TeamRoundProgressStatus.IN_PROGRESS,
-            deadlineAt: { lte: now }
+            status: { in: [TeamRoundProgressStatus.IN_PROGRESS, TeamRoundProgressStatus.READY] }
           },
           data: {
             status: TeamRoundProgressStatus.TIMED_OUT,
-            timedOutAt: now,
+            timedOutAt: progress.timedOutAt ?? now,
             deadlineAt: null,
             remainingSeconds: 0,
             nextRoundEligible: true

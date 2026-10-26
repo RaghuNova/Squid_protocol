@@ -71,9 +71,8 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
         data: { accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
       });
 
-      const roundControls = await tx.roundControl.findMany({ where: { id: { in: [1, 2, 3] } } });
-      if (roundControls.length !== 3) throw new Error('Reset verification failed: all three round controls must exist.');
-      for (const round of roundControls) {
+      const existingRounds = await tx.roundControl.findMany({ where: { id: { in: [1, 2, 3] } } });
+      for (const round of existingRounds) {
         await tx.roundControl.update({
           where: { id: round.id },
           data: {
@@ -130,6 +129,8 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
 
     sseService.broadcast('game_reset', { timestamp: resetAt.toISOString(), message: 'The game has been reset by an administrator.' });
     sseService.broadcast('round_state_change', { roundId: 1, status: RoundStatus.UPCOMING, timestamp: resetAt.toISOString() });
+    sseService.broadcast('round_state_change', { roundId: 2, status: RoundStatus.UPCOMING, timestamp: resetAt.toISOString() });
+    sseService.broadcast('round_state_change', { roundId: 3, status: RoundStatus.UPCOMING, timestamp: resetAt.toISOString() });
     sseService.broadcast('signal_change', { roundId: 1, signalState: SignalState.GREEN, doublePointsEnabled: false, redLightPenaltyMode: false, timestamp: resetAt.toISOString() });
     sseService.broadcast('score_update', { teamId: 'ALL', pointsDelta: 0, newTotalScore: 0, source: 'RESET_GAME' });
     sseService.broadcast('winners_announced', { isFinalized: false, resetAt: resetAt.toISOString() });

@@ -41,6 +41,16 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ isError: boolean; message: string; isFirstChampion?: boolean } | null>(null);
 
+  React.useEffect(() => {
+    const handleReset = () => {
+      setFinalKey('');
+      setFeedback(null);
+      setIsSubmitting(false);
+    };
+    window.addEventListener('squid-game-reset', handleReset);
+    return () => window.removeEventListener('squid-game-reset', handleReset);
+  }, []);
+
   if (!isUnlocked) {
     return (
       <div className="p-8 text-center bg-[#12151c]/60 rounded-2xl border border-gray-800/80">

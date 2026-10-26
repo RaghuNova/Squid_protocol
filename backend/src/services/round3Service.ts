@@ -42,13 +42,18 @@ export class Round3Service {
     const timer = computeRoundTimer(roundControl);
     await teamRoundProgressService.reconcileTeam(teamId);
     const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
-    const isRoundUnlocked = !!secondRound?.nextRoundEligible;
+    const isEligible = !!secondRound?.nextRoundEligible;
+    const isGateOpen = roundControl?.status === RoundStatus.ACTIVE;
+    const isCompleted = !!team?.finalBreachCompletedAt;
+    const isRoundUnlocked = isEligible;
 
     if (!isRoundUnlocked) {
       return {
         round: roundControl,
         timer,
         serverTime: new Date().toISOString(),
+        isEligible: false,
+        isGateOpen,
         isUnlocked: false,
         isAccessKeyAuthorized: false,
         isCompleted: false,
@@ -61,8 +66,6 @@ export class Round3Service {
 
     const accessState = await prisma.accessToken.findUnique({ where: { teamId }, select: { authorizedAt: true } });
     const isAccessKeyAuthorized = !!accessState?.authorizedAt;
-
-    const isCompleted = !!team?.finalBreachCompletedAt;
 
     let debugChallenge: any = null;
     // Keep challenge content server-side until the authenticated team's PIN is validated.
@@ -85,16 +88,23 @@ export class Round3Service {
       });
     }
 
+    const message = !isGateOpen && !isCompleted
+      ? 'Your team is eligible for Round 3. Waiting for tournament officials to open the Round 3 access gate.'
+      : null;
+
     return {
       round: roundControl,
       timer,
       serverTime: new Date().toISOString(),
+      isEligible: true,
+      isGateOpen,
       isUnlocked: true,
       isAccessKeyAuthorized,
       isCompleted,
       position: team?.finalBreachPosition ?? null,
       pointsAwarded: team?.finalBreachPoints ?? null,
       completedAt: team?.finalBreachCompletedAt?.toISOString() || null,
+      message,
       challenge: debugChallenge
     };
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrokenLogicData } from '../../types/game';
 import { apiRequest } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -7,16 +7,28 @@ import { Terminal, ShieldCheck, Lock, AlertTriangle, ArrowRight, CheckCircle2 } 
 
 interface BrokenLogicViewProps {
   data: BrokenLogicData;
+  round3Unlocked?: boolean;
+  onEnterRound3?: () => void;
   onSuccess: () => void;
 }
 
-export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSuccess }) => {
+export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, round3Unlocked, onEnterRound3, onSuccess }) => {
   const { refreshMe } = useAuth();
   const { playSuccess, playError } = useSound();
 
   const [outputVal, setOutputVal] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ isError: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setOutputVal('');
+      setFeedback(null);
+      setIsSubmitting(false);
+    };
+    window.addEventListener('squid-game-reset', handleReset);
+    return () => window.removeEventListener('squid-game-reset', handleReset);
+  }, []);
 
   if (!data.isUnlocked) {
     return (
@@ -119,7 +131,7 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
         </div>
       )}
 
-      {!data.isCompleted && (
+      {!data.isCompleted ? (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 pt-2">
           <div className="relative w-full sm:w-80">
             <label htmlFor="broken-logic-accumulator" className="sr-only">
@@ -155,6 +167,37 @@ export const BrokenLogicView: React.FC<BrokenLogicViewProps> = ({ data, onSucces
             )}
           </button>
         </form>
+      ) : (
+        <div className="p-6 rounded-xl bg-black/40 border border-[#00e676]/30 text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-[#00e676] font-mono text-sm font-bold">
+            <CheckCircle2 className="w-5 h-5" />
+            <span>ROUND 2 PROTOCOL BREACH COMPLETE</span>
+          </div>
+          <p className="text-sm text-gray-300 max-w-md mx-auto">
+            All Stage 1 and Stage 2 challenges have been solved successfully! You are eligible for Round 3 immediately.
+          </p>
+          {round3Unlocked && onEnterRound3 ? (
+            <button
+              onClick={onEnterRound3}
+              className="px-8 py-3 rounded-xl bg-[#00f0ff] hover:bg-[#00f0ff]/90 text-black font-display font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(0,240,255,0.35)] flex items-center gap-2 mx-auto cursor-pointer"
+            >
+              <span>ENTER ROUND 3 (THE FINAL BREACH)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs font-mono text-gray-400">
+                Waiting for tournament officials to open the Round 3 access gate.
+              </p>
+              <button
+                onClick={onSuccess}
+                className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Check Round 3 Status
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

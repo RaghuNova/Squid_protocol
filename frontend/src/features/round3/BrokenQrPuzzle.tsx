@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
@@ -16,6 +16,16 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({ isUnlocked, isAu
   const [accessKey, setAccessKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setAccessKey('');
+      setFeedback(null);
+      setIsSubmitting(false);
+    };
+    window.addEventListener('squid-game-reset', handleReset);
+    return () => window.removeEventListener('squid-game-reset', handleReset);
+  }, []);
 
   const handleVerify = async (event: React.FormEvent) => {
     event.preventDefault();
