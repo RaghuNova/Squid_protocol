@@ -168,6 +168,9 @@ export const AdminDashboard: React.FC = () => {
       await fetchAll();
     } catch (err: unknown) {
       setMessage(`Restart error: ${err instanceof Error ? err.message : String(err)}`);
+      // Keep reset failures visible: the modal overlay sits above the dashboard
+      // status banner, so a message left behind it looks like a dead button.
+      setIsRestartModalOpen(false);
     } finally {
       setIsRestarting(false);
     }
@@ -323,10 +326,12 @@ export const AdminDashboard: React.FC = () => {
         <div
           role="status"
           aria-live="polite"
-          className="p-4 rounded-xl bg-gray-900 border border-cyan-800/60 text-cyan-300 font-mono text-xs flex items-center justify-between gap-2 shadow-lg"
+          className={`p-4 rounded-xl font-mono text-xs flex items-center justify-between gap-2 shadow-lg ${message.includes('error') || message.includes('failed') || message.includes('Failed') ? 'bg-red-950/60 border border-red-800 text-red-200' : 'bg-gray-900 border border-cyan-800/60 text-cyan-300'}`}
         >
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#00e676]" />
+            {message.includes('error') || message.includes('failed') || message.includes('Failed')
+              ? <AlertTriangle className="w-4 h-4 text-red-400" />
+              : <CheckCircle2 className="w-4 h-4 text-[#00e676]" />}
             <span>{message}</span>
           </div>
           <button onClick={() => setMessage(null)} className="text-gray-400 hover:text-white text-xs">
