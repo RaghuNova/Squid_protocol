@@ -790,7 +790,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
         .set('Authorization', `Bearer ${teamToken}`)
         .send({ accessKey: teamWithToken!.accessToken!.tokenCode });
       expect(rawQrKeyAttempt.status).toBe(400);
-      expect(rawQrKeyAttempt.body.error).toBe('INVALID_ACCESS_KEY');
+      expect(rawQrKeyAttempt.body.error).toBe('QR_TOKEN_NOT_ACCESS_KEY');
 
       const invalidAttempt = await request(app)
         .post('/api/v1/round3/debug/authorize')

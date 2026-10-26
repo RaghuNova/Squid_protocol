@@ -167,6 +167,17 @@ export class Round3Service {
     if (!token) {
       const owner = await prisma.accessToken.findUnique({ where: { accessKey: submittedKey }, select: { teamId: true, team: { select: { teamCode: true } } } });
       if (owner?.teamId && owner.teamId !== teamId) return { success: false, error: 'WRONG_TEAM_CODE', message: `This access key belongs to ${owner.team?.teamCode || 'another team'}. Sign into that team on the laptop and try again.` };
+      const qrToken = await prisma.accessToken.findUnique({ where: { tokenCode: submittedKey }, select: { teamId: true, isRedeemed: true } });
+      if (qrToken?.teamId === teamId) {
+        return {
+          success: false,
+          error: 'QR_TOKEN_NOT_ACCESS_KEY',
+          message: 'That is your printed QR scan token, not the laptop access key. Scan the QR with your phone and paste the separate key shown after verification.'
+        };
+      }
+      if (qrToken?.teamId && qrToken.teamId !== teamId) {
+        return { success: false, error: 'WRONG_TEAM_CODE', message: 'That printed QR belongs to another team. Use your team’s own QR and laptop account.' };
+      }
       return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid access key. Scan your team’s current physical QR code and enter the key shown on your phone.' };
     }
     if (token.accessKey !== submittedKey) {

@@ -211,6 +211,7 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(adminController).toContain('PUBLIC_APP_URL || process.env.FRONTEND_URL');
       expect(round3Service).toContain('const accessKey = generateQrToken()');
       expect(round3Service).toContain('where: { teamId, isRedeemed: true, accessKey: submittedKey }');
+      expect(round3Service).toContain("error: 'QR_TOKEN_NOT_ACCESS_KEY'");
       expect(round3Service).not.toContain('tokenCode: accessKey');
       expect(round3Service).toContain('WRONG_TEAM_CODE');
     });
