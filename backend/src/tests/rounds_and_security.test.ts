@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import { app } from '../app.js';
 import { prisma } from '../prisma.js';
+import { resetEnvironmentAllowed } from '../controllers/adminTestController.js';
 
 describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => {
   let teamToken: string;
@@ -956,25 +957,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(401);
     });
 
-    it('blocks production reset unless explicitly enabled', async () => {
-      const origEnv = process.env.NODE_ENV;
-      const origResetFlag = process.env.ENABLE_GAME_RESET;
-      process.env.NODE_ENV = 'production';
-      process.env.ENABLE_GAME_RESET = 'false';
-
-      try {
-        const res = await request(app)
-          .post('/api/v1/admin/reset-game')
-          .set('Authorization', `Bearer ${adminToken}`)
-          .send({ confirmation: 'RESET GAME' });
-
-        expect(res.status).toBe(403);
-        expect(res.body.error).toBe('RESET_ENVIRONMENT_BLOCKED');
-      } finally {
-        process.env.NODE_ENV = origEnv;
-        if (origResetFlag === undefined) delete process.env.ENABLE_GAME_RESET;
-        else process.env.ENABLE_GAME_RESET = origResetFlag;
-      }
+    it('allows production reset behind admin authentication and exact confirmation', () => {
+      expect(resetEnvironmentAllowed({ NODE_ENV: 'production', ENABLE_GAME_RESET: 'false' })).toBe(true);
     });
 
     it('requires the exact typed confirmation before resetting', async () => {

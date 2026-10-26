@@ -7,7 +7,10 @@ import { acquireGameResetLocks } from '../services/gameResetLock.js';
 let isResetInProgress = false;
 
 export function resetEnvironmentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.NODE_ENV === 'production') return env.ENABLE_GAME_RESET === 'true';
+  // Production access is protected by the ADMIN route middleware and the
+  // explicit RESET GAME confirmation. Do not depend on Render's per-service
+  // environment variable sync for a core admin operation.
+  if (env.NODE_ENV === 'production') return true;
   const url = env.NODE_ENV === 'test' ? env.TEST_DATABASE_URL || env.DATABASE_URL : env.DATABASE_URL;
   if (!url) return false;
   try {
