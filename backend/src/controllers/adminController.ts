@@ -477,10 +477,9 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
         token = await prisma.accessToken.findUniqueOrThrow({ where: { id: token.id } });
       }
 
-      const appUrl = process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
-      const qrUrl = new URL('/qr/redeem', appUrl);
-      qrUrl.hash = new URLSearchParams({ code: token.tokenCode }).toString();
-      const qrContent = qrUrl.toString();
+      // Encode only the opaque team code. Phone camera apps show plain text
+      // with a copy action; QR cards must never point participants at localhost.
+      const qrContent = token.tokenCode;
       const dataUrl = await QRCode.toDataURL(qrContent, {
         errorCorrectionLevel: 'H',
         margin: 2,

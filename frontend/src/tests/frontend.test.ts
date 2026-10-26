@@ -191,6 +191,17 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(laptop).not.toMatch(/BrowserQRCodeReader|decodeFromVideoDevice|<video|navigator\.mediaDevices/);
       expect(mobile).toContain("'/round3/qr/mobile-redeem'");
       expect(mobile).toContain('accessKey');
+      expect(mobile).toContain('YOUR ROUND 3 CODE');
+      expect(mobile).toContain('COPY CODE');
+      const round3Routes = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/routes/round3Routes.ts'), 'utf-8');
+      expect(round3Routes).toContain("router.post('/qr/mobile-redeem', submissionRateLimiter");
+      expect(round3Routes).not.toContain("router.post('/qr/mobile-redeem', authenticate");
+      const adminController = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminController.ts'), 'utf-8');
+      const round3Service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
+      expect(adminController).toContain('const qrContent = token.tokenCode');
+      expect(adminController).not.toContain("'http://localhost:5173'");
+      expect(round3Service).toContain('tokenCode: accessKey');
+      expect(round3Service).toContain('teamId, tokenCode: accessKey');
     });
   });
 
@@ -231,10 +242,20 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       const fs = await import('fs');
       const path = await import('path');
       const render = fs.readFileSync(path.resolve(__dirname, '../../../render.yaml'), 'utf-8');
+      const dockerfile = fs.readFileSync(path.resolve(__dirname, '../../../backend/Dockerfile'), 'utf-8');
       const dashboard = fs.readFileSync(path.resolve(__dirname, '../pages/GameDashboard.tsx'), 'utf-8');
       const qrPage = fs.readFileSync(path.resolve(__dirname, '../pages/admin/AdminQRCodes.tsx'), 'utf-8');
       const sudoku = fs.readFileSync(path.resolve(__dirname, '../features/round2/ShapeSudoku.tsx'), 'utf-8');
       expect(render).toContain('preDeployCommand: npx prisma migrate deploy');
+      expect(render).toContain('ENABLE_GAME_RESET');
+      expect(dockerfile).toContain('npx prisma migrate deploy && node dist/index.js');
+      const reset = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminTestController.ts'), 'utf-8');
+      expect(reset).toContain('await tx.submission.deleteMany({})');
+      expect(reset).toContain('await tx.scoreEvent.deleteMany({})');
+      expect(reset).toContain('await tx.teamRoundProgress.deleteMany({})');
+      expect(reset).toContain('totalScore: 0');
+      expect(reset).toContain('accessKey: null, authorizedAt: null, isRedeemed: false');
+      expect(reset).toContain("req.body?.confirmation !== 'RESET GAME'");
       expect(dashboard).toContain('Round 2 could not be loaded');
       expect(qrPage).toContain('Team QR codes could not be loaded');
       expect(sudoku).toContain("err instanceof Error ? err.message");

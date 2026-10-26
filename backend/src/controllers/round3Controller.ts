@@ -29,13 +29,11 @@ export async function getRound3(req: Request, res: Response, next: NextFunction)
 
 export async function redeemPhysicalQRCode(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const teamId = await resolveSubmittingTeamId(req);
-    if (!teamId) {
-      res.status(403).json({ success: false, error: 'TEAM_REQUIRED', message: 'Sign in with your team account on this phone, then scan the event QR again.' });
-      return;
-    }
     const { code } = QRRedeemSchema.parse(req.body);
-    const result = await round3Service.redeemPhysicalQr(teamId, code, req.ip);
+    // A logged-in team phone must scan its own QR. A phone without a team
+    // session may still scan because the high-entropy QR token is the proof.
+    const requestingTeamId = await resolveSubmittingTeamId(req);
+    const result = await round3Service.redeemPhysicalQr(code, req.ip, requestingTeamId || undefined);
     res.status(result.success ? 200 : 400).json(result);
   } catch (err) {
     next(err);

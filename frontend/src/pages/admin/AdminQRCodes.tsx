@@ -61,7 +61,7 @@ export const AdminQRCodes: React.FC = () => {
             Printable Squad QR Codes
           </h1>
           <p className="text-xs font-mono text-gray-400 mt-1">
-            Print and cut these 20 cryptographic cards into 4 quadrant pieces for the Round 3 Stage 2 physical reconstruction challenge.
+            Scan a card with a phone camera, copy the plain-text code shown by the scanner, then paste it into Round 3 on that team’s laptop.
           </p>
         </div>
 

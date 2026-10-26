@@ -44,4 +44,7 @@ EXPOSE 5000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health/live || exit 1
 
-CMD ["node", "dist/index.js"]
+# Apply additive, versioned schema updates before serving API traffic. The
+# Render pre-deploy hook also runs this, while this startup check covers
+# services whose Blueprint settings have not been synchronized yet.
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

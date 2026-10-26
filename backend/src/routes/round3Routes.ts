@@ -6,7 +6,9 @@ import { submissionRateLimiter } from '../middleware/rateLimiter.js';
 const router = Router();
 
 router.get('/data', authenticate, getRound3);
-router.post('/qr/mobile-redeem', authenticate, submissionRateLimiter, redeemPhysicalQRCode);
+// The high-entropy team QR is the bearer proof for the phone scan; requiring
+// a team login on the phone prevented the QR flow from working for participants.
+router.post('/qr/mobile-redeem', submissionRateLimiter, redeemPhysicalQRCode);
 router.post('/debug/authorize', authenticate, submissionRateLimiter, authorizeRound3Access);
 router.post('/debug/submit', authenticate, submissionRateLimiter, submitFinalKey);
 
