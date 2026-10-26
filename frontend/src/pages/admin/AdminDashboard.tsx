@@ -44,8 +44,8 @@ export const AdminDashboard: React.FC = () => {
     try {
       const [dashRes, leadRes, winnerRes] = await Promise.all([
         apiRequest('/admin/dashboard'),
-        apiRequest('/leaderboard').catch(() => ({ teams: [] })),
-        apiRequest('/leaderboard/winners').catch(() => null),
+        apiRequest('/leaderboard'),
+        apiRequest('/leaderboard/winners'),
       ]);
       if (generation !== fetchGeneration.current) return;
       setData(dashRes);
@@ -642,7 +642,7 @@ export const AdminDashboard: React.FC = () => {
               </span>
             </div>
             <p className="font-mono text-[11px] text-gray-400 text-center leading-relaxed">
-              Safe play: Correct answer +{stats.doublePointsEnabled ? '200' : '100'} pts. Wrong answer -{stats.doublePointsEnabled ? '100' : '50'} pts.
+              Safe play: Correct answer +{stats.doublePointsEnabled ? '20' : '10'} pts. Wrong answer -{stats.doublePointsEnabled ? '10' : '5'} pts.
             </p>
           </button>
 
@@ -679,7 +679,7 @@ export const AdminDashboard: React.FC = () => {
               </span>
             </div>
             <p className="font-mono text-[11px] text-gray-400 text-center leading-relaxed">
-              Multiplies both positive rewards and negative deductions by 2 (+200 / -100).
+              Multiplies both positive rewards and negative deductions by 2 (+20 / -10).
             </p>
           </button>
         </div>

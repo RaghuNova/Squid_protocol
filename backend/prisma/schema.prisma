@@ -134,8 +134,8 @@ model Question {
   options        Json         // [{ id: "A", text: "..." }, ...]
   correctOption  String       // "A", "B", "C", or "D"
   explanation    String
-  pointsNormal   Int          @default(100)
-  pointsDouble   Int          @default(200)
+  pointsNormal   Int          @default(10)
+  pointsDouble   Int          @default(20)
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

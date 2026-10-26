@@ -3,6 +3,7 @@ import { sseService } from './sseService.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
 import { acquireGameplayWriteLock } from './gameResetLock.js';
+import { invalidateFinalizedWinnerSnapshot } from './winnerSnapshotService.js';
 
 export class Round2Service {
   /**
@@ -242,6 +243,7 @@ export class Round2Service {
         await tx.submission.create({ data: { teamId: params.teamId, round: 2, stage: 1, submittedValue: normalizedSubmitted, status: SubmissionStatus.CORRECT, pointsAwarded: points, clientIp: params.clientIp } });
         await tx.scoreEvent.create({ data: { teamId: params.teamId, round: 2, stage: 1, source: 'ROUND2_STAGE1_SUDOKU', pointsDelta: points, reason: 'Round 2 Shape Sudoku solved' } });
         const team = await tx.team.update({ where: { id: params.teamId }, data: { currentRound: 2, currentStage: 2, totalScore: { increment: points } } });
+        await invalidateFinalizedWinnerSnapshot(tx);
         return { alreadyCompleted: false, newTotalScore: team.totalScore };
       }, { isolationLevel: 'Serializable' });
       if ('inactive' in result && result.inactive) return { success: false, error: 'ROUND_EXPIRED', message: 'Your team Round 2 timer is not active.' };
@@ -357,6 +359,7 @@ export class Round2Service {
         await tx.submission.create({ data: { teamId: params.teamId, round: 2, stage: 2, submittedValue: normalizedSubmitted, status: SubmissionStatus.CORRECT, pointsAwarded: puzzle.points, clientIp: params.clientIp } });
         await tx.scoreEvent.create({ data: { teamId: params.teamId, round: 2, stage: 2, source: 'ROUND2_STAGE2_BROKEN_LOGIC', pointsDelta: puzzle.points, reason: 'Round 2 Broken Logic challenge solved successfully' } });
         const team = await tx.team.update({ where: { id: params.teamId }, data: { currentRound: 3, currentStage: 1, totalScore: { increment: puzzle.points } } });
+        await invalidateFinalizedWinnerSnapshot(tx);
         await teamRoundProgressService.completeRoundInTransaction(tx, params.teamId, 2);
         return { alreadyCompleted: false, newTotalScore: team.totalScore };
       }, { isolationLevel: 'Serializable' });

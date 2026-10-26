@@ -3,6 +3,7 @@ import { prisma } from '../prisma.js';
 import { acquireGameplayWriteLock } from './gameResetLock.js';
 import { sseService } from './sseService.js';
 import { logAdminAction } from './auditService.js';
+import { invalidateFinalizedWinnerSnapshot } from './winnerSnapshotService.js';
 
 export interface AwardScoreParams {
   teamId: string;
@@ -44,6 +45,7 @@ export class ScoringService {
   public async awardScore(params: AwardScoreParams): Promise<{ success: boolean; pointsAwarded: number; alreadyAwarded: boolean; newTotalScore: number }> {
     try {
       const result = await prisma.$transaction(async (tx) => {
+        await acquireGameplayWriteLock(tx);
         // 1. Check if this score source was already recorded for this team
         const existing = await tx.scoreEvent.findUnique({
           where: {
@@ -86,6 +88,7 @@ export class ScoringService {
             }
           }
         });
+        await invalidateFinalizedWinnerSnapshot(tx);
 
         return {
           success: true,
@@ -158,6 +161,7 @@ export class ScoringService {
           }
         }
       });
+      await invalidateFinalizedWinnerSnapshot(tx);
 
       return updatedTeam;
     });
@@ -341,7 +345,7 @@ export class ScoringService {
   }) {
     const finalizedAt = new Date();
     const record = await prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(1567324401, 2)`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(1567324401, 2) IS NULL AS locked`;
       const existing = await tx.winnerAnnouncement.findUnique({ where: { id: 1 } });
       if (existing?.isFinalized) throw new Error('Winner results are already finalized.');
       const leaderboard = (await this.getLeaderboard(tx)).filter(team => !team.isDisqualified);

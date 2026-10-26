@@ -63,30 +63,30 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     description:
       '20 fast-paced technical questions governed by a live Red Light / Green Light indicator. Double Points windows double rewards and penalties. Submitting during Red Light deducts points automatically.',
     pointsText: 'Scoring:',
-    pointsHighlight: '+100 / +200 per MCQ',
+    pointsHighlight: '+10 / +20 correct; -5 / -10 penalty',
     footerStatus: 'Green Light Accept',
     footerStatusColorClass: 'text-signal-green',
     briefing: {
       lore: 'Watch the signal light on your screen. Submitting an answer while the light is red triggers an automatic penalty deduction.',
       duration: '15 Minutes',
-      scoreStructure: '+100 per MCQ (+200 with Double Points)',
+      scoreStructure: '+10 per correct answer (+20 with Double Points); -5 for penalties (-10 with Double Points)',
       stages: [
         {
           title: '20 Technical Challenges',
           desc: 'Fast-paced systems engineering, algorithms, networking and cryptography questions.',
-          points: '+100 PTS per correct answer',
+          points: '+10 PTS per correct answer',
           tag: 'Base Mode'
         },
         {
           title: 'Double Points Multiplier Window',
-          desc: 'Officials trigger high-stakes windows. Correct answers double to +200 PTS; errors double to -100 PTS.',
-          points: '+200 / -100 PTS',
+          desc: 'Officials trigger high-stakes windows. Correct answers double to +20 PTS; penalties double to -10 PTS.',
+          points: '+20 / -10 PTS',
           tag: 'Bonus Option'
         },
         {
           title: 'Red Light Elimination Penalty',
           desc: 'Any submission while the signal is in RED LIGHT state triggers an immediate automatic penalty deduction.',
-          points: '-50 to -100 PTS penalty',
+          points: '-5 to -10 PTS penalty',
           tag: 'Penalty'
         }
       ],
@@ -452,15 +452,15 @@ export const SquidRoundCards: React.FC = () => {
                   <div className="p-2.5 rounded bg-surface border border-signal-green/30">
                     <div className="text-signal-green font-semibold">Green Light Active</div>
                     <div className="text-[11px] text-text-muted mt-0.5">
-                      Correct: +100 (+200 Double)<br />
-                      Incorrect: -50 (-100 Double)
+                      Correct: +10 (+20 Double)<br />
+                      Incorrect: -5 (-10 Double)
                     </div>
                   </div>
                   <div className="p-2.5 rounded bg-surface border border-signal-red/30">
                     <div className="text-signal-red font-semibold">Red Light Active</div>
                     <div className="text-[11px] text-text-muted mt-0.5">
-                      Any Submission: -50 penalty<br />
-                      Double Window: -100 penalty
+                      Any Submission: -5 penalty<br />
+                      Double Window: -10 penalty
                     </div>
                   </div>
                 </div>

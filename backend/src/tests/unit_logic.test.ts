@@ -4,6 +4,7 @@ import { RoundStatus, SignalState } from '@prisma/client';
 import { z } from 'zod';
 import { teamRoundProgressService } from '../services/teamRoundProgressService.js';
 import { TeamRoundProgressStatus } from '@prisma/client';
+import { calculateRound1Score } from '../services/round1Scoring.js';
 
 describe('SQUID PROTOCOL — Backend Business Logic & Integrity Unit Tests', () => {
 
@@ -120,34 +121,16 @@ describe('SQUID PROTOCOL — Backend Business Logic & Integrity Unit Tests', () 
   });
 
   describe('2. Round 1 Red Light / Green Light & Double Points Matrix', () => {
-    function computePoints(signal: SignalState, isDouble: boolean, isCorrect: boolean) {
-      if (signal === SignalState.RED) {
-        return isDouble ? -100 : -50;
-      }
-      if (isCorrect) {
-        return isDouble ? 200 : 100;
-      }
-      return isDouble ? -100 : -50;
-    }
-
-    it('GREEN LIGHT Normal: awards +100 for correct, -50 for wrong', () => {
-      expect(computePoints(SignalState.GREEN, false, true)).toBe(100);
-      expect(computePoints(SignalState.GREEN, false, false)).toBe(-50);
-    });
-
-    it('GREEN LIGHT Double Points: awards +200 for correct, -100 for wrong', () => {
-      expect(computePoints(SignalState.GREEN, true, true)).toBe(200);
-      expect(computePoints(SignalState.GREEN, true, false)).toBe(-100);
-    });
-
-    it('RED LIGHT Normal: applies -50 penalty even if answer was correct', () => {
-      expect(computePoints(SignalState.RED, false, true)).toBe(-50);
-      expect(computePoints(SignalState.RED, false, false)).toBe(-50);
-    });
-
-    it('RED LIGHT Double Points: applies -100 penalty', () => {
-      expect(computePoints(SignalState.RED, true, true)).toBe(-100);
-      expect(computePoints(SignalState.RED, true, false)).toBe(-100);
+    it('calculates the exact eight signal, correctness, and multiplier outcomes', () => {
+      expect(calculateRound1Score(SignalState.GREEN, true, false).pointsAwarded).toBe(10);
+      expect(calculateRound1Score(SignalState.GREEN, false, false).pointsAwarded).toBe(-5);
+      expect(calculateRound1Score(SignalState.RED, true, false).pointsAwarded).toBe(-5);
+      expect(calculateRound1Score(SignalState.RED, false, false).pointsAwarded).toBe(-5);
+      expect(calculateRound1Score(SignalState.GREEN, true, true).pointsAwarded).toBe(20);
+      expect(calculateRound1Score(SignalState.GREEN, false, true).pointsAwarded).toBe(-10);
+      expect(calculateRound1Score(SignalState.RED, true, true).pointsAwarded).toBe(-10);
+      expect(calculateRound1Score(SignalState.RED, false, true).pointsAwarded).toBe(-10);
+      expect(calculateRound1Score(SignalState.RED, true, false).isCorrect).toBe(false);
     });
   });
 

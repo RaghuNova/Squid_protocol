@@ -226,7 +226,7 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
       const duration = id === 1 ? 15 : id === 2 ? 20 : body.durationMinutes || current.durationMinutes || 15;
       data.durationMinutes = duration;
       data.startTime = now;
-      data.endTime = id === 3 ? new Date(now.getTime() + duration * 60000) : null;
+      data.endTime = id === 1 || id === 3 ? new Date(now.getTime() + duration * 60000) : null;
       data.remainingSeconds = id === 3 ? duration * 60 : null;
       data.status = RoundStatus.ACTIVE;
       data.pausedAt = null;
@@ -256,6 +256,10 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
       where: { id },
       data
     });
+
+    if (id === 1 && updated.status === RoundStatus.ACTIVE && updated.startTime && updated.endTime) {
+      await teamRoundProgressService.startRound1ForAllTeams(updated.startTime, updated.endTime);
+    }
 
     const computed = computeRoundTimer(updated);
 
@@ -300,7 +304,7 @@ export async function getQuestions(req: Request, res: Response, next: NextFuncti
 export async function updateQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { id } = req.params;
-    const { topic, prompt, codeSnippet, options, correctOption, explanation, pointsNormal, pointsDouble, isActive } = req.body;
+    const { topic, prompt, codeSnippet, options, correctOption, explanation, isActive } = req.body;
 
     const updated = await prisma.question.update({
       where: { id },
@@ -311,8 +315,6 @@ export async function updateQuestion(req: Request, res: Response, next: NextFunc
         options,
         correctOption,
         explanation,
-        pointsNormal,
-        pointsDouble,
         isActive
       }
     });

@@ -142,7 +142,7 @@ export const AdminLiveControl: React.FC = () => {
             </span>
           </div>
           <p className="font-mono text-[11px] text-gray-400 text-center leading-relaxed">
-            Penalty active: All submissions incur {doublePoints ? '-100' : '-50'} pts deduction. Correctness concealed.
+            Penalty active: All submissions incur {doublePoints ? '-10' : '-5'} pts deduction. Correctness concealed.
           </p>
         </button>
 
@@ -169,7 +169,7 @@ export const AdminLiveControl: React.FC = () => {
             </span>
           </div>
           <p className="font-mono text-[11px] text-gray-400 text-center leading-relaxed">
-            Safe play: Correct answer +{doublePoints ? '200' : '100'} pts. Wrong answer -{doublePoints ? '100' : '50'} pts.
+            Safe play: Correct answer +{doublePoints ? '20' : '10'} pts. Wrong answer -{doublePoints ? '10' : '5'} pts.
           </p>
         </button>
 
@@ -206,7 +206,7 @@ export const AdminLiveControl: React.FC = () => {
             </span>
           </div>
           <p className="font-mono text-[11px] text-gray-400 text-center leading-relaxed">
-            Multiplies both rewards and deductions by 2 (+200 / -100). Never converts negative to positive.
+            Multiplies both rewards and deductions by 2 (+20 / -10). Never converts negative to positive.
           </p>
         </button>
       </div>
@@ -234,22 +234,22 @@ export const AdminLiveControl: React.FC = () => {
                   <td className="py-2.5 px-4 font-semibold text-[#00e676]">
                     Correct answer during Green Light
                   </td>
-                  <td className="py-2.5 px-4 text-center text-[#00e676] font-bold">+100 PTS</td>
-                  <td className="py-2.5 px-4 text-center text-[#00e676] font-bold">+200 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-[#00e676] font-bold">+10 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-[#00e676] font-bold">+20 PTS</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-semibold text-red-400">
                     Wrong answer during Green Light
                   </td>
-                  <td className="py-2.5 px-4 text-center text-red-400 font-bold">-50 PTS</td>
-                  <td className="py-2.5 px-4 text-center text-red-400 font-bold">-100 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-red-400 font-bold">-5 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-red-400 font-bold">-10 PTS</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-semibold text-[#ff004f]">
                     Any submission during Red Light
                   </td>
-                  <td className="py-2.5 px-4 text-center text-[#ff004f] font-bold">-50 PTS</td>
-                  <td className="py-2.5 px-4 text-center text-[#ff004f] font-bold">-100 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-[#ff004f] font-bold">-5 PTS</td>
+                  <td className="py-2.5 px-4 text-center text-[#ff004f] font-bold">-10 PTS</td>
                 </tr>
               </tbody>
             </table>

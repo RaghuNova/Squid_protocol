@@ -7,6 +7,7 @@ import { teamRoundProgressService } from './teamRoundProgressService.js';
 import { getRound3TeamPin } from '../utils/round3TeamPin.js';
 import bcrypt from 'bcryptjs';
 import { acquireGameplayWriteLock } from './gameResetLock.js';
+import { invalidateFinalizedWinnerSnapshot } from './winnerSnapshotService.js';
 
 export function getRound3FinishingPoints(position: number): number {
   switch (position) {
@@ -360,6 +361,7 @@ export class Round3Service {
             }
           }
         });
+        await invalidateFinalizedWinnerSnapshot(tx);
 
         return {
           alreadyCompleted: false,

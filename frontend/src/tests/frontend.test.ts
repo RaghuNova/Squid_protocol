@@ -85,94 +85,14 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
     expect(finalKey).toBe('PROTOCOL_BREACH_1040');
   });
 
-  describe('Round 1 Scoring Matrix & Feedback Logic', () => {
-    // Scoring function replicating authoritative rule engine
-    function calculateRound1Outcome(params: {
-      signal: 'GREEN' | 'RED';
-      doublePoints: boolean;
-      selectedOption: string;
-      correctOption: string;
-    }) {
-      const isMatch = params.selectedOption.trim().toUpperCase() === params.correctOption.trim().toUpperCase();
-      const mult = params.doublePoints ? 2 : 1;
-
-      if (params.signal === 'RED') {
-        return {
-          status: 'PENALIZED' as const,
-          isCorrect: false,
-          pointsAwarded: -50 * mult,
-          feedbackType: 'penalty' as const,
-          revealCorrectness: false
-        };
-      }
-
-      if (isMatch) {
-        return {
-          status: 'CORRECT' as const,
-          isCorrect: true,
-          pointsAwarded: 100 * mult,
-          feedbackType: 'success' as const,
-          revealCorrectness: true
-        };
-      }
-
-      return {
-        status: 'INCORRECT' as const,
-        isCorrect: false,
-        pointsAwarded: -50 * mult,
-        feedbackType: 'error' as const,
-        revealCorrectness: true
-      };
-    }
-
-    it('Green Light + correct answer awards +100 (Normal) and +200 (Double)', () => {
-      const normal = calculateRound1Outcome({ signal: 'GREEN', doublePoints: false, selectedOption: 'A', correctOption: 'A' });
-      expect(normal.isCorrect).toBe(true);
-      expect(normal.pointsAwarded).toBe(100);
-      expect(normal.feedbackType).toBe('success');
-
-      const double = calculateRound1Outcome({ signal: 'GREEN', doublePoints: true, selectedOption: 'A', correctOption: 'A' });
-      expect(double.isCorrect).toBe(true);
-      expect(double.pointsAwarded).toBe(200);
-      expect(double.feedbackType).toBe('success');
-    });
-
-    it('Green Light + wrong answer deducts 50 (Normal) and 100 (Double) and is never shown as correct', () => {
-      const normal = calculateRound1Outcome({ signal: 'GREEN', doublePoints: false, selectedOption: 'B', correctOption: 'A' });
-      expect(normal.isCorrect).toBe(false);
-      expect(normal.pointsAwarded).toBe(-50);
-      expect(normal.feedbackType).toBe('error');
-
-      const double = calculateRound1Outcome({ signal: 'GREEN', doublePoints: true, selectedOption: 'B', correctOption: 'A' });
-      expect(double.isCorrect).toBe(false);
-      expect(double.pointsAwarded).toBe(-100);
-      expect(double.feedbackType).toBe('error');
-    });
-
-    it('Red Light deducts 50 (Normal) and 100 (Double) on both correct and wrong answers without revealing correctness', () => {
-      const correctRed = calculateRound1Outcome({ signal: 'RED', doublePoints: false, selectedOption: 'A', correctOption: 'A' });
-      expect(correctRed.isCorrect).toBe(false);
-      expect(correctRed.pointsAwarded).toBe(-50);
-      expect(correctRed.revealCorrectness).toBe(false);
-
-      const wrongRed = calculateRound1Outcome({ signal: 'RED', doublePoints: false, selectedOption: 'B', correctOption: 'A' });
-      expect(wrongRed.isCorrect).toBe(false);
-      expect(wrongRed.pointsAwarded).toBe(-50);
-      expect(wrongRed.revealCorrectness).toBe(false);
-
-      const doubleRed = calculateRound1Outcome({ signal: 'RED', doublePoints: true, selectedOption: 'A', correctOption: 'A' });
-      expect(doubleRed.pointsAwarded).toBe(-100);
-      expect(doubleRed.revealCorrectness).toBe(false);
-    });
-
-    it('Double Points doubles negative deductions and never turns them positive', () => {
-      const wrong = calculateRound1Outcome({ signal: 'GREEN', doublePoints: true, selectedOption: 'C', correctOption: 'A' });
-      expect(wrong.pointsAwarded).toBe(-100);
-      expect(wrong.pointsAwarded < 0).toBe(true);
-
-      const red = calculateRound1Outcome({ signal: 'RED', doublePoints: true, selectedOption: 'A', correctOption: 'A' });
-      expect(red.pointsAwarded).toBe(-100);
-      expect(red.pointsAwarded < 0).toBe(true);
+  describe('Round 1 scoring display', () => {
+    it('shows the server-owned scoring rules without computing points in the frontend', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const view = fs.readFileSync(path.resolve(__dirname, '../features/round1/Round1View.tsx'), 'utf-8');
+      expect(view).toContain('Green correct:');
+      expect(view).toContain('Green wrong / Red Light:');
+      expect(view).not.toContain('pointsDelta');
     });
   });
 
@@ -277,7 +197,7 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(ROUND_PROTOCOLS[0].id).toBe(1);
       expect(ROUND_PROTOCOLS[0].title).toBe('The Signal Protocol');
       expect(ROUND_PROTOCOLS[0].guardSymbol).toBe('circle');
-      expect(ROUND_PROTOCOLS[0].pointsHighlight).toBe('+100 / +200 per MCQ');
+      expect(ROUND_PROTOCOLS[0].pointsHighlight).toBe('+10 / +20 correct; -5 / -10 penalty');
 
       // Round 2
       expect(ROUND_PROTOCOLS[1].id).toBe(2);
@@ -396,13 +316,13 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       });
     });
 
-    it('verifies Rule 4 strictly preserves scoring values (+100/+200) and penalties (-50/-100)', async () => {
+    it('verifies Rule 4 publishes the current Round 1 scoring rules', async () => {
       const { RULES } = await import('../pages/RulesPage');
       const rule4 = RULES.find(r => r.id === 4)!;
-      expect(rule4.desc).toContain('+100');
-      expect(rule4.desc).toContain('+200');
-      expect(rule4.desc).toContain('50');
-      expect(rule4.desc).toContain('100');
+      expect(rule4.desc).toContain('+10');
+      expect(rule4.desc).toContain('+20');
+      expect(rule4.desc).toContain('-5');
+      expect(rule4.desc).toContain('-10');
       expect(rule4.desc).toContain('RED LIGHT');
       expect(rule4.desc).toContain('GREEN LIGHT');
     });

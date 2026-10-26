@@ -231,7 +231,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#ff004f] fill-[#ff004f] animate-pulse motion-reduce:animate-none flex-shrink-0" aria-hidden="true" />
             <span className="font-bold text-[#ff004f] uppercase tracking-wider">DOUBLE POINTS ACTIVE:</span>
-            <span className="text-gray-300">Officials activated 2X scoring (Correct: +200 | Wrong: -100 | Red Light: -100)</span>
+            <span className="text-gray-300">Officials activated 2X scoring (Green correct: +20 | Any penalty: -10)</span>
           </div>
         </div>
       )}
@@ -250,7 +250,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
               </span>
             </div>
             <div className="font-mono text-xs text-gray-400">
-              Value: <span className="text-white font-bold tabular-nums">{isDoublePoints ? '+200 / -100' : '+100 / -50'}</span> pts
+              Green correct: <span className="text-white font-bold tabular-nums">+{isDoublePoints ? 20 : 10}</span> · Green wrong / Red Light: <span className="text-white font-bold tabular-nums">-{isDoublePoints ? 10 : 5}</span> pts
             </div>
           </div>
 
@@ -342,7 +342,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
               <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
               <div>
                 <span className="font-bold text-red-400 uppercase tracking-wider">RED LIGHT ACTIVE: </span>
-                <span>Submitting right now deducts {isDoublePoints ? '100' : '50'} points, even if your answer is correct!</span>
+                <span>Submitting right now deducts {isDoublePoints ? '10' : '5'} points, even if your answer is correct!</span>
               </div>
             </div>
           )}
@@ -367,7 +367,7 @@ export const Round1View: React.FC<Round1ViewProps> = ({
               ) : isRed ? (
                 <>
                   <AlertTriangle className="w-4 h-4" aria-hidden="true" />
-                  <span className="tabular-nums">Submit During Red Light (-{isDoublePoints ? '100' : '50'} pts)</span>
+                  <span className="tabular-nums">Submit During Red Light (-{isDoublePoints ? '10' : '5'} pts)</span>
                 </>
               ) : (
                 <>

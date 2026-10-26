@@ -1,5 +1,6 @@
 import { Prisma, RoundStatus, TeamRoundProgressStatus } from '@prisma/client';
 import { prisma } from '../prisma.js';
+import { acquireGameplayWriteLock } from './gameResetLock.js';
 
 const ROUND_MINUTES: Record<number, number> = { 1: 15, 2: 20 };
 
@@ -10,6 +11,30 @@ export function canStartTeamRound2(isEligibleFromRound1: boolean, teamStatus: Te
 type DbClient = Prisma.TransactionClient | typeof prisma;
 
 export class TeamRoundProgressService {
+  async startRound1ForAllTeams(startedAt: Date, deadlineAt: Date) {
+    await prisma.$transaction(async tx => {
+      await acquireGameplayWriteLock(tx);
+      const control = await tx.roundControl.findUnique({ where: { id: 1 } });
+      if (control?.status !== RoundStatus.ACTIVE || control.startTime?.getTime() !== startedAt.getTime() || control.endTime?.getTime() !== deadlineAt.getTime()) return;
+      const teams = await tx.team.findMany({ select: { id: true } });
+      await tx.teamRoundProgress.createMany({
+        data: teams.map(({ id }) => ({
+          teamId: id,
+          round: 1,
+          status: TeamRoundProgressStatus.IN_PROGRESS,
+          startedAt,
+          deadlineAt,
+          nextRoundEligible: false
+        })),
+        skipDuplicates: true
+      });
+      await tx.teamRoundProgress.updateMany({
+        where: { round: 1, status: { in: [TeamRoundProgressStatus.LOCKED, TeamRoundProgressStatus.IN_PROGRESS] } },
+        data: { status: TeamRoundProgressStatus.IN_PROGRESS, startedAt, deadlineAt, remainingSeconds: null }
+      });
+    });
+  }
+
   private async readyNextRound(db: DbClient, teamId: string, round: number, now: Date) {
     if (round >= 3) return;
     const nextRound = round + 1;
@@ -33,6 +58,7 @@ export class TeamRoundProgressService {
 
   async completeRound(teamId: string, round: number, now = new Date()) {
     await prisma.$transaction(async (tx) => {
+      await acquireGameplayWriteLock(tx);
       const existing = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round } } });
       const completedAt = existing?.completedAt ?? now;
       await tx.teamRoundProgress.upsert({
@@ -63,6 +89,7 @@ export class TeamRoundProgressService {
   }
 
   async completeRoundInTransaction(tx: Prisma.TransactionClient, teamId: string, round: number, now = new Date()) {
+    await acquireGameplayWriteLock(tx);
     const existing = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round } } });
     const completedAt = existing?.completedAt ?? now;
     await tx.teamRoundProgress.upsert({
@@ -76,6 +103,7 @@ export class TeamRoundProgressService {
 
   async reconcileTeam(teamId: string, now = new Date()) {
     await prisma.$transaction(async (tx) => {
+      await acquireGameplayWriteLock(tx);
       const expired = await tx.teamRoundProgress.findMany({
         where: {
           teamId,
@@ -141,6 +169,7 @@ export class TeamRoundProgressService {
           }
         });
         await this.readyNextRound(tx, teamId, 1, completedAt);
+        await tx.team.update({ where: { id: teamId }, data: { currentRound: 2, currentStage: 1 } });
       }
 
       const r2Complete = await tx.scoreEvent.findUnique({
@@ -169,6 +198,7 @@ export class TeamRoundProgressService {
           }
         });
         await this.readyNextRound(tx, teamId, 2, completedAt);
+        await tx.team.update({ where: { id: teamId }, data: { currentRound: 3, currentStage: 1 } });
       }
     });
   }
@@ -182,6 +212,9 @@ export class TeamRoundProgressService {
 
     const gate = await prisma.roundControl.findUnique({ where: { id: 1 } });
     if (!gate || gate.status !== RoundStatus.ACTIVE) return existing;
+    const startedAt = gate.startTime ?? now;
+    const deadlineAt = gate.endTime ?? new Date(startedAt.getTime() + ROUND_MINUTES[1] * 60_000);
+    if (deadlineAt <= now) return existing;
 
     return prisma.teamRoundProgress.upsert({
       where: { teamId_round: { teamId, round: 1 } },
@@ -189,13 +222,13 @@ export class TeamRoundProgressService {
         teamId,
         round: 1,
         status: TeamRoundProgressStatus.IN_PROGRESS,
-        startedAt: now,
-        deadlineAt: new Date(now.getTime() + ROUND_MINUTES[1] * 60_000)
+        startedAt,
+        deadlineAt
       },
       update: {
         status: TeamRoundProgressStatus.IN_PROGRESS,
-        startedAt: now,
-        deadlineAt: new Date(now.getTime() + ROUND_MINUTES[1] * 60_000)
+        startedAt,
+        deadlineAt
       }
     });
   }
@@ -252,6 +285,7 @@ export class TeamRoundProgressService {
       where: { round, status: TeamRoundProgressStatus.IN_PROGRESS, deadlineAt: { not: null } }
     });
     await prisma.$transaction(async tx => {
+      await acquireGameplayWriteLock(tx);
       for (const row of rows) {
         const remainingSeconds = Math.max(0, Math.ceil((row.deadlineAt!.getTime() - now.getTime()) / 1000));
         await tx.teamRoundProgress.update({ where: { id: row.id }, data: { deadlineAt: null, remainingSeconds } });
@@ -264,6 +298,7 @@ export class TeamRoundProgressService {
       where: { round, status: TeamRoundProgressStatus.IN_PROGRESS, deadlineAt: null, remainingSeconds: { not: null } }
     });
     await prisma.$transaction(async tx => {
+      await acquireGameplayWriteLock(tx);
       for (const row of rows) await tx.teamRoundProgress.update({
         where: { id: row.id },
         data: {

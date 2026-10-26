@@ -115,11 +115,11 @@ export const SignalIndicator: React.FC<SignalIndicatorProps> = ({
 
               <p className="text-xs font-mono opacity-90 mt-1 leading-relaxed">
                 {isGreen ? (
-                  'Submissions accepted safely: Correct answer awards +100 (+200 Double). Wrong answer deducts 50 (100 Double).'
+                  'Green Light: correct +10 (+20 Double); wrong -5 (-10 Double). Red Light: any answer -5 (-10 Double).'
                 ) : (
                   <span className="text-red-300 font-semibold flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5 inline flex-shrink-0 text-[#ff004f]" aria-hidden="true" />
-                    RED LIGHT ACTIVE: Submitting now will trigger an instant point deduction (-50 or -100 PTS) regardless of correctness!
+                    RED LIGHT ACTIVE: Submitting now deducts 5 points (10 with Double Points), regardless of correctness!
                   </span>
                 )}
               </p>

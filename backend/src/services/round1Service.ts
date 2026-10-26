@@ -3,6 +3,8 @@ import { sseService } from './sseService.js';
 import { RoundStatus, SignalState, SubmissionStatus, RoundControl } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
 import { acquireGameplayWriteLock } from './gameResetLock.js';
+import { calculateRound1Score } from './round1Scoring.js';
+import { invalidateFinalizedWinnerSnapshot } from './winnerSnapshotService.js';
 
 export function computeRoundTimer(round: RoundControl | null) {
   const now = Date.now();
@@ -107,8 +109,6 @@ export class Round1Service {
         prompt: true,
         codeSnippet: true,
         options: true,
-        pointsNormal: true,
-        pointsDouble: true
         // correctOption and explanation strictly omitted!
       }
     });
@@ -181,12 +181,10 @@ export class Round1Service {
 
   /**
    * Process a Round 1 question submission with authoritative server-side validation.
-   * Scoring Rules:
-   * - Green Light + Correct: +100 (Normal), +200 (Double Points)
-   * - Green Light + Wrong: -50 (Normal), -100 (Double Points)
-   * - Red Light (Any submission): -50 (Normal), -100 (Double Points)
-   * - No positive points on Red Light
-   * - Single penalty per Red Light submission (no double deduction)
+   * Scoring is calculated by round1Scoring.ts from the signal and multiplier
+   * held under a row lock inside the scoring transaction.
+   * - Green Light + Correct: +10 (Normal), +20 (Double Points)
+   * - Any other answer: -5 (Normal), -10 (Double Points)
    * - Double Points is strictly admin-controlled
    * - Questions must be submitted sequentially (one at a time)
    * - Idempotent submission: existing result returned on duplicates without re-scoring
@@ -285,53 +283,32 @@ export class Round1Service {
       };
     }
 
-    // 6. Admin-controlled Double Points
-    const isDouble = Boolean(roundControl.doublePointsEnabled);
+    const answerIsCorrect = selectedNormalized === question.correctOption.trim().toUpperCase();
 
-    // 7. Signal State determination
-    const signalAtSubmission = roundControl.signalState;
-
-    let status: SubmissionStatus;
-    let isCorrect: boolean;
-    let pointsDelta: number;
-    let message: string;
-
-    if (signalAtSubmission === SignalState.RED) {
-      // RED LIGHT:
-      // - Deduct 50 points (or 100 if Double Points enabled by admin)
-      // - No positive points, regardless of whether option was correct
-      // - Single penalty (no double deduction for wrong answer)
-      status = SubmissionStatus.PENALIZED;
-      isCorrect = false;
-      pointsDelta = isDouble ? -100 : -50;
-      message = isDouble
-        ? 'RED LIGHT — Double Points penalty applied. -100 points.'
-        : 'RED LIGHT — Submission detected. -50 points.';
-    } else {
-      // GREEN LIGHT:
-      isCorrect = selectedNormalized === question.correctOption.trim().toUpperCase();
-
-      if (isCorrect) {
-        status = SubmissionStatus.CORRECT;
-        pointsDelta = isDouble ? 200 : 100;
-        message = isDouble
-          ? 'GREEN LIGHT — Correct Double Points answer! +200 points.'
-          : 'GREEN LIGHT — Correct answer! +100 points.';
-      } else {
-        status = SubmissionStatus.INCORRECT;
-        pointsDelta = isDouble ? -100 : -50;
-        message = isDouble
-          ? 'GREEN LIGHT — Wrong Double Points answer. -100 points.'
-          : 'GREEN LIGHT — Wrong answer. -50 points.';
-      }
-    }
-
-    // 8. Atomic transaction: enforce 1 scored submission per team per question & idempotent retries
+    // Atomic transaction: serialize duplicates and read signal/multiplier at the
+    // point the answer is processed, not from a stale pre-transaction snapshot.
     const source = `ROUND1_Q_${question.orderIndex}`;
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
         await acquireGameplayWriteLock(tx);
+        // Shared reset locks permit independent gameplay writes. Serialize only
+        // requests for this team/question so duplicate concurrent posts see the
+        // first committed submission before attempting another ledger insert.
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.teamId}), hashtext(${source})) IS NULL AS locked`;
+        const controls = await tx.$queryRaw<Array<{
+          status: RoundStatus;
+          signalState: SignalState;
+          doublePointsEnabled: boolean;
+          endTime: Date | null;
+        }>>`SELECT "status", "signalState", "doublePointsEnabled", "endTime" FROM "RoundControl" WHERE "id" = 1 FOR SHARE`;
+        const currentControl = controls[0];
+        if (!currentControl || currentControl.status !== RoundStatus.ACTIVE) {
+          return { notActive: true as const, success: false as const, error: 'ROUND_INACTIVE', message: 'Round 1 is not currently active.' };
+        }
+        if (currentControl.endTime && currentControl.endTime <= new Date()) {
+          return { notActive: true as const, success: false as const, error: 'ROUND_EXPIRED', message: 'The overall Round 1 deadline has passed.' };
+        }
         const currentProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 1 } } });
         if (!currentProgress || currentProgress.status !== 'IN_PROGRESS' || !currentProgress.deadlineAt || currentProgress.deadlineAt <= new Date()) {
           return { notActive: true as const, success: false as const, error: 'ROUND_EXPIRED', message: 'Your team Round 1 deadline has passed.' };
@@ -369,14 +346,20 @@ export class Round1Service {
           const currentTeam = await tx.team.findUnique({ where: { id: params.teamId } });
           return {
             alreadySubmitted: true,
-            status: existingScore.pointsDelta > 0 ? SubmissionStatus.CORRECT : (signalAtSubmission === SignalState.RED ? SubmissionStatus.PENALIZED : SubmissionStatus.INCORRECT),
+            status: existingScore.pointsDelta > 0 ? SubmissionStatus.CORRECT : SubmissionStatus.INCORRECT,
             isCorrect: existingScore.pointsDelta > 0,
             pointsAwarded: existingScore.pointsDelta,
-            doublePointsSelected: isDouble,
+            doublePointsSelected: false,
             message: 'This question has already been submitted and scored.',
             newTotalScore: currentTeam?.totalScore ?? 0
           };
         }
+
+        const scoring = calculateRound1Score(
+          currentControl.signalState,
+          answerIsCorrect,
+          currentControl.doublePointsEnabled
+        );
 
         // Record submission
         const submission = await tx.submission.create({
@@ -386,10 +369,10 @@ export class Round1Service {
             stage: 1,
             questionId: params.questionId,
             submittedValue: selectedNormalized,
-            doublePointsSelected: isDouble,
-            signalAtSubmission,
-            status,
-            pointsAwarded: pointsDelta,
+            doublePointsSelected: currentControl.doublePointsEnabled,
+            signalAtSubmission: currentControl.signalState,
+            status: scoring.status,
+            pointsAwarded: scoring.pointsAwarded,
             clientIp: params.clientIp
           }
         });
@@ -401,8 +384,8 @@ export class Round1Service {
             round: 1,
             stage: 1,
             source,
-            pointsDelta,
-            reason: `Round 1 Question #${question.orderIndex} ${status} (${isDouble ? 'Double' : 'Normal'}, Signal: ${signalAtSubmission})`
+            pointsDelta: scoring.pointsAwarded,
+            reason: `Round 1 Question #${question.orderIndex} ${scoring.status} (${currentControl.doublePointsEnabled ? 'Double' : 'Normal'}, Signal: ${currentControl.signalState})`
           }
         });
 
@@ -411,10 +394,11 @@ export class Round1Service {
           where: { id: params.teamId },
           data: {
             totalScore: {
-              increment: pointsDelta
+              increment: scoring.pointsAwarded
             }
           }
         });
+        await invalidateFinalizedWinnerSnapshot(tx);
 
         const submittedQuestionIds = (await tx.submission.findMany({
           where: { teamId: params.teamId, round: 1, questionId: { not: null } },
@@ -427,11 +411,11 @@ export class Round1Service {
         return {
           alreadySubmitted: false,
           submissionId: submission.id,
-          status,
-          isCorrect,
-          pointsAwarded: pointsDelta,
-          doublePointsSelected: isDouble,
-          message,
+          status: scoring.status,
+          isCorrect: scoring.isCorrect,
+          pointsAwarded: scoring.pointsAwarded,
+          doublePointsSelected: currentControl.doublePointsEnabled,
+          message: scoring.message,
           newTotalScore: updatedTeam.totalScore
         };
       });
@@ -441,7 +425,7 @@ export class Round1Service {
       if (!txResult.alreadySubmitted) {
         sseService.broadcast('score_update', {
           teamId: params.teamId,
-          pointsDelta,
+          pointsDelta: txResult.pointsAwarded,
           newTotalScore: txResult.newTotalScore,
           source
         });
@@ -463,10 +447,10 @@ export class Round1Service {
         return {
           success: true,
           alreadySubmitted: true,
-          status: existing?.status || status,
+          status: existing?.status || SubmissionStatus.INCORRECT,
           isCorrect: existing?.status === SubmissionStatus.CORRECT,
-          pointsAwarded: existing?.pointsAwarded ?? pointsDelta,
-          doublePointsSelected: existing?.doublePointsSelected ?? isDouble,
+          pointsAwarded: existing?.pointsAwarded ?? 0,
+          doublePointsSelected: existing?.doublePointsSelected ?? false,
           message: 'This question has already been submitted and finalized by your team.',
           newTotalScore: team?.totalScore ?? 0
         };

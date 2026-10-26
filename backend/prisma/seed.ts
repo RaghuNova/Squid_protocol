@@ -441,8 +441,8 @@ export async function seed() {
         options: q.options,
         correctOption: q.correctOption,
         explanation: q.explanation,
-        pointsNormal: 100,
-        pointsDouble: 200
+        pointsNormal: 10,
+        pointsDouble: 20
       },
       create: {
         round: 1,
@@ -453,8 +453,8 @@ export async function seed() {
         options: q.options,
         correctOption: q.correctOption,
         explanation: q.explanation,
-        pointsNormal: 100,
-        pointsDouble: 200,
+        pointsNormal: 10,
+        pointsDouble: 20,
         isActive: true
       }
     });

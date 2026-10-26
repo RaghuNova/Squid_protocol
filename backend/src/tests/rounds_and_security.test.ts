@@ -33,6 +33,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
     // Clean test state for testTeam to ensure repeatable runs
     await prisma.submission.deleteMany({ where: { teamId: testTeam.id } });
     await prisma.scoreEvent.deleteMany({ where: { teamId: testTeam.id } });
+    await prisma.teamRoundProgress.deleteMany({ where: { teamId: testTeam.id } });
     await prisma.physicalVerification.deleteMany({ where: { teamId: testTeam.id } });
     await prisma.team.update({
       where: { id: testTeam.id },
@@ -200,26 +201,28 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.body.error).toBe('OUT_OF_ORDER_SUBMISSION');
     });
 
-    it('A correct answer during Green Light earns +100 points', async () => {
+    it('A correct answer during Green Light earns +10 points', async () => {
       // Ensure Green Light, Double Points OFF
       await request(app)
         .post('/api/v1/admin/signal')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ signalState: 'GREEN', doublePointsEnabled: false });
 
-      const res = await request(app)
+      const submitSameAnswer = () => request(app)
         .post('/api/v1/round1/submit')
         .set('Authorization', `Bearer ${teamToken}`)
-        .send({
-          questionId: question1.id,
-          selectedOption: question1.correctOption
-        });
+        .send({ questionId: question1.id, selectedOption: question1.correctOption });
+      const [res, duplicate] = await Promise.all([submitSameAnswer(), submitSameAnswer()]);
 
       expect(res.status).toBe(200);
+      expect(duplicate.status).toBe(200);
+      expect([res.body, duplicate.body].filter(body => body.alreadySubmitted).length).toBe(1);
       expect(res.body.isCorrect).toBe(true);
-      expect(res.body.pointsAwarded).toBe(100);
+      expect(res.body.pointsAwarded).toBe(10);
       expect(res.body.status).toBe('CORRECT');
-      expect(res.body.newTotalScore).toBe(100);
+      expect(res.body.newTotalScore).toBe(10);
+      expect(await prisma.submission.count({ where: { teamId: testTeam.id, questionId: question1.id } })).toBe(1);
+      expect(await prisma.scoreEvent.count({ where: { teamId: testTeam.id, source: 'ROUND1_Q_1' } })).toBe(1);
     });
 
     it('unlocks Question 2 after Question 1 is submitted', async () => {
@@ -232,7 +235,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.body.questionNumber).toBe(2);
     });
 
-    it('A wrong answer during Green Light deducts 50 points (-50)', async () => {
+    it('A wrong answer during Green Light deducts 5 points (-5)', async () => {
       const wrongOption = question2.correctOption === 'A' ? 'B' : 'A';
 
       const res = await request(app)
@@ -245,12 +248,12 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(res.status).toBe(200);
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-50);
+      expect(res.body.pointsAwarded).toBe(-5);
       expect(res.body.status).toBe('INCORRECT');
-      expect(res.body.newTotalScore).toBe(50); // 100 - 50 = 50
+      expect(res.body.newTotalScore).toBe(5); // 10 - 5 = 5
     });
 
-    it('A correct Double Points answer during Green Light earns +200 points', async () => {
+    it('A correct Double Points answer during Green Light earns +20 points', async () => {
       // Admin turns Double Points ON
       await request(app)
         .post('/api/v1/admin/signal')
@@ -267,12 +270,12 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(res.status).toBe(200);
       expect(res.body.isCorrect).toBe(true);
-      expect(res.body.pointsAwarded).toBe(200);
+      expect(res.body.pointsAwarded).toBe(20);
       expect(res.body.status).toBe('CORRECT');
-      expect(res.body.newTotalScore).toBe(250); // 50 + 200 = 250
+      expect(res.body.newTotalScore).toBe(25); // 5 + 20 = 25
     });
 
-    it('A wrong Double Points answer during Green Light deducts 100 points (-100)', async () => {
+    it('A wrong Double Points answer during Green Light deducts 10 points (-10)', async () => {
       const wrongOption = question4.correctOption === 'A' ? 'B' : 'A';
 
       const res = await request(app)
@@ -285,12 +288,12 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(res.status).toBe(200);
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-100);
+      expect(res.body.pointsAwarded).toBe(-10);
       expect(res.body.status).toBe('INCORRECT');
-      expect(res.body.newTotalScore).toBe(150); // 250 - 100 = 150
+      expect(res.body.newTotalScore).toBe(15); // 25 - 10 = 15
     });
 
-    it('A submission during Red Light deducts 50 points in normal mode', async () => {
+    it('A submission during Red Light deducts 5 points in normal mode', async () => {
       // Admin sets signal to RED, Double Points OFF
       await request(app)
         .post('/api/v1/admin/signal')
@@ -308,11 +311,11 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('PENALIZED');
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-50);
-      expect(res.body.newTotalScore).toBe(100); // 150 - 50 = 100
+      expect(res.body.pointsAwarded).toBe(-5);
+      expect(res.body.newTotalScore).toBe(10); // 15 - 5 = 10
     });
 
-    it('A submission during Red Light deducts 100 points in Double Points mode', async () => {
+    it('A submission during Red Light deducts 10 points in Double Points mode', async () => {
       // Admin turns Double Points ON while signal is RED
       await request(app)
         .post('/api/v1/admin/signal')
@@ -332,8 +335,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('PENALIZED');
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-100);
-      expect(res.body.newTotalScore).toBe(0); // 100 - 100 = 0
+      expect(res.body.pointsAwarded).toBe(-10);
+      expect(res.body.newTotalScore).toBe(0); // 10 - 10 = 0
     });
 
     it('A correct answer submitted during Red Light does not earn positive points', async () => {
@@ -355,7 +358,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('PENALIZED');
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-50); // Penalty applied, no positive points!
+      expect(res.body.pointsAwarded).toBe(-5); // Penalty applied, no positive points!
     });
 
     it('A Red Light submission does not incur both Red Light penalty and wrong-answer penalty', async () => {
@@ -372,8 +375,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
         });
 
       expect(res.status).toBe(200);
-      expect(res.body.pointsAwarded).toBe(-50); // Single penalty, not -100!
-      expect(res.body.newTotalScore).toBe(scoreBefore - 50);
+      expect(res.body.pointsAwarded).toBe(-5); // Single penalty, not a second deduction.
+      expect(res.body.newTotalScore).toBe(scoreBefore - 5);
     });
 
     it('A duplicate submission does not award or deduct points twice (idempotent)', async () => {
@@ -488,7 +491,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(res.status).toBe(200);
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-50);
+      expect(res.body.pointsAwarded).toBe(-5);
       expect(res.body.status).toBe('INCORRECT');
     });
 
@@ -539,7 +542,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('PENALIZED');
       expect(res.body.isCorrect).toBe(false);
-      expect(res.body.pointsAwarded).toBe(-50);
+      expect(res.body.pointsAwarded).toBe(-5);
       expect(res.body.message).toContain('RED LIGHT');
       // Must not reveal answer correctness
       expect(res.body.message).not.toContain('Wrong');
@@ -548,6 +551,21 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
   });
 
   describe('4. Round 2 — The Logic Protocol', () => {
+    beforeAll(async () => {
+      // This suite focuses on the Round 2 global gate and Sudoku hard gate.
+      // Mark Round 1 eligible as it would be after completion or timeout.
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: testTeam.id, round: 1 } },
+        create: { teamId: testTeam.id, round: 1, status: 'COMPLETED', completedAt: new Date(), nextRoundEligible: true },
+        update: { status: 'COMPLETED', deadlineAt: null, completedAt: new Date(), nextRoundEligible: true }
+      });
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: testTeam.id, round: 2 } },
+        create: { teamId: testTeam.id, round: 2, status: 'READY', nextRoundEligible: false },
+        update: { status: 'READY', startedAt: null, deadlineAt: null, nextRoundEligible: false }
+      });
+    });
+
     it('locks Round 2 when UPCOMING and does not leak puzzles', async () => {
       const res = await request(app)
         .get('/api/v1/round2/data')
@@ -560,10 +578,16 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
     it('locks Stage 2 Broken Logic before Sudoku is completed', async () => {
       // Admin starts Round 2 (which ends Round 1)
-      await request(app)
+      const startRound2 = await request(app)
         .put('/api/v1/admin/rounds/2')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ startTimer: true });
+      expect(startRound2.status).toBe(200);
+
+      const round2Data = await request(app)
+        .get('/api/v1/round2/data')
+        .set('Authorization', `Bearer ${teamToken}`);
+      expect(round2Data.body.isUnlocked).toBe(true);
 
       const res = await request(app)
         .post('/api/v1/round2/broken-logic/submit')
@@ -957,8 +981,9 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(401);
     });
 
-    it('allows production reset behind admin authentication and exact confirmation', () => {
-      expect(resetEnvironmentAllowed({ NODE_ENV: 'production', ENABLE_GAME_RESET: 'false' })).toBe(true);
+    it('allows production reset only when explicitly enabled', () => {
+      expect(resetEnvironmentAllowed({ NODE_ENV: 'production', ENABLE_GAME_RESET: 'false' })).toBe(false);
+      expect(resetEnvironmentAllowed({ NODE_ENV: 'production', ENABLE_GAME_RESET: 'true' })).toBe(true);
     });
 
     it('requires the exact typed confirmation before resetting', async () => {
@@ -1093,6 +1118,11 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(startRes.status).toBe(200);
       expect(startRes.body.round.status).toBe('ACTIVE');
+      const roundOneProgress = await prisma.teamRoundProgress.findUnique({
+        where: { teamId_round: { teamId: testTeam.id, round: 1 } }
+      });
+      expect(roundOneProgress?.status).toBe('IN_PROGRESS');
+      expect(roundOneProgress?.deadlineAt?.getTime()).toBe(new Date(startRes.body.round.endTime).getTime());
 
       // Team submits Question 1
       const submitRes = await request(app)
@@ -1105,8 +1135,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       expect(submitRes.status).toBe(200);
       expect(submitRes.body.isCorrect).toBe(true);
-      expect(submitRes.body.pointsAwarded).toBe(100);
-      expect(submitRes.body.newTotalScore).toBe(100);
+      expect(submitRes.body.pointsAwarded).toBe(10);
+      expect(submitRes.body.newTotalScore).toBe(10);
 
       // Question 2 is unlocked
       const qRes = await request(app)

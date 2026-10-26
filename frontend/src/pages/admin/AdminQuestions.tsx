@@ -12,8 +12,6 @@ interface QuestionItem {
   options: { id: string; text: string }[];
   correctOption: string;
   explanation: string;
-  pointsNormal: number;
-  pointsDouble: number;
   isActive: boolean;
 }
 
@@ -58,9 +56,18 @@ export const AdminQuestions: React.FC = () => {
     if (!editingQ) return;
 
     try {
+      const questionUpdate = {
+        topic: editingQ.topic,
+        prompt: editingQ.prompt,
+        codeSnippet: editingQ.codeSnippet,
+        options: editingQ.options,
+        correctOption: editingQ.correctOption,
+        explanation: editingQ.explanation,
+        isActive: editingQ.isActive
+      };
       await apiRequest(`/admin/questions/${editingQ.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(editingQ)
+        body: JSON.stringify(questionUpdate)
       });
       setFeedback(`Question #${editingQ.orderIndex} saved.`);
       setEditingQ(null);
@@ -81,7 +88,7 @@ export const AdminQuestions: React.FC = () => {
           Question Matrix & Answer Key
         </h1>
         <p className="text-xs font-mono text-gray-400 mt-1">
-          Review, modify prompts, code snippets, choices, verified keys, and point weights.
+          Review prompts, code snippets, choices, and verified keys. Round 1 scoring is fixed by the event rules.
         </p>
       </div>
 
@@ -141,7 +148,7 @@ export const AdminQuestions: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
                 <div>
                   <label htmlFor="question-correct-option" className="text-gray-400 uppercase block mb-1">Correct Answer Choice</label>
                   <select
@@ -157,16 +164,6 @@ export const AdminQuestions: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label htmlFor="question-points-normal" className="text-gray-400 uppercase block mb-1">Normal Points</label>
-                  <input
-                    type="number"
-                    id="question-points-normal"
-                    value={editingQ.pointsNormal}
-                    onChange={(e) => setEditingQ({ ...editingQ, pointsNormal: parseInt(e.target.value, 10) })}
-                    className="w-full px-3.5 py-2 rounded-lg bg-[#090b0f] border border-gray-800 text-white font-mono text-sm focus:outline-none focus:border-[#ff004f] focus-visible:ring-2 focus-visible:ring-[#ff004f]"
-                  />
-                </div>
               </div>
 
               <div>

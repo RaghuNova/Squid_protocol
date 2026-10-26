@@ -180,7 +180,7 @@ export const LandingPage: React.FC = () => {
                     <span>Round 1</span>
                   </td>
                   <td className="py-3.5 px-4 text-text-secondary">20 Technical MCQs (Normal Answers)</td>
-                  <td className="py-3.5 px-4 text-right font-bold tabular-nums text-text-primary">+100 / -50</td>
+                  <td className="py-3.5 px-4 text-right font-bold tabular-nums text-text-primary">+10 / -5</td>
                 </tr>
                 <tr className="hover:bg-surface-elevated transition-colors">
                   <td className="py-3.5 px-4 font-semibold text-text-primary flex items-center gap-2">
@@ -188,7 +188,7 @@ export const LandingPage: React.FC = () => {
                     <span>Round 1 Bonus</span>
                   </td>
                   <td className="py-3.5 px-4 text-text-secondary">Double Points Multiplier Window</td>
-                  <td className="py-3.5 px-4 text-right font-bold tabular-nums text-text-primary">+200 / -100</td>
+                  <td className="py-3.5 px-4 text-right font-bold tabular-nums text-text-primary">+20 / -10</td>
                 </tr>
                 <tr className="hover:bg-surface-elevated transition-colors">
                   <td className="py-3.5 px-4 font-semibold text-text-primary flex items-center gap-2">

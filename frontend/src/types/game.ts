@@ -51,8 +51,6 @@ export interface Question {
   prompt: string;
   codeSnippet?: string | null;
   options: QuestionOption[];
-  pointsNormal: number;
-  pointsDouble: number;
 }
 
 export interface SudokuData {

@@ -28,6 +28,7 @@ export const LeaderboardPage: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Winner Finalization Modal State
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState<boolean>(false);
@@ -57,11 +58,12 @@ export const LeaderboardPage: React.FC = () => {
           finalizedByAdminUsername?: string | null;
           winners: any[];
           notes?: string | null;
-        }>('/leaderboard/winners').catch(() => null)
+        }>('/leaderboard/winners')
       ]);
 
       setTeams(boardRes.teams || []);
       setLastUpdated(boardRes.updatedAt || new Date().toISOString());
+      setLoadError(null);
 
       if (winnersRes && winnersRes.success) {
         setWinnerAnnouncement({
@@ -78,6 +80,9 @@ export const LeaderboardPage: React.FC = () => {
     } catch (err: any) {
       if (err.status === 403 || err.message?.includes('denied') || err.message?.includes('restricted')) {
         setAccessDenied(true);
+        setLoadError(null);
+      } else {
+        setLoadError(err.message || 'Standings could not be loaded from the server.');
       }
     } finally {
       setIsLoading(false);
@@ -94,19 +99,19 @@ export const LeaderboardPage: React.FC = () => {
       : '/api/v1/live/stream';
 
     let eventSource: EventSource | null = null;
-    let timer: any = null;
+    const timer = window.setInterval(fetchLeaderboard, 5000);
 
     try {
       eventSource = new EventSource(streamUrl);
       eventSource.addEventListener('score_update', () => fetchLeaderboard());
       eventSource.addEventListener('final_breach', () => fetchLeaderboard());
     } catch {
-      timer = setInterval(fetchLeaderboard, 5000);
+      // Polling remains active if EventSource cannot be constructed.
     }
 
     return () => {
       eventSource?.close();
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
     };
   }, [fetchLeaderboard, user]);
 
@@ -255,6 +260,13 @@ export const LeaderboardPage: React.FC = () => {
             </div>
 
             {/* Notification Alert Banner */}
+            {loadError && (
+              <div role="alert" className="p-4 rounded-xl bg-red-950/50 border border-red-800 text-red-200 font-mono text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span>Live standings unavailable: {loadError}. Scores shown below are the last successfully loaded values.</span>
+              </div>
+            )}
+
             {actionAlert && (
               <div
                 role="alert"
@@ -303,7 +315,12 @@ export const LeaderboardPage: React.FC = () => {
                 )}
               </div>
 
-              {winnersList.length === 0 ? (
+              {loadError && winnersList.length === 0 ? (
+                <div role="alert" className="p-8 text-center bg-[#12151c] rounded-2xl border border-red-900/60 space-y-2">
+                  <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
+                  <p className="text-sm font-mono text-red-300">Winner standings are unavailable until the server responds.</p>
+                </div>
+              ) : winnersList.length === 0 ? (
                 <div className="p-8 text-center bg-[#12151c] rounded-2xl border border-gray-800 space-y-2">
                   <Trophy className="w-8 h-8 text-gray-600 mx-auto" />
                   <p className="text-sm font-mono text-gray-400">

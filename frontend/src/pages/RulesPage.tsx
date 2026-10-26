@@ -87,15 +87,15 @@ export const RULES: CodifiedRule[] = [
     categoryLabel: 'Round 1 — The Signal Protocol',
     title: 'Signal Protocol & Scoring (Red Light / Green Light)',
     plainEnglishSummary: 'Submit during Green Light for full points. Submitting during Red Light deducts points automatically.',
-    desc: 'During Round 1, submitting during GREEN LIGHT awards +100 points for correct answers (+200 during Double Points) and deducts 50 points for wrong answers (100 during Double Points). Submitting during RED LIGHT automatically deducts 50 points (100 during Double Points), even if your answer is correct.',
+    desc: 'During Round 1, GREEN LIGHT awards +10 for correct answers (+20 during Double Points) and deducts -5 for wrong answers (-10 during Double Points). RED LIGHT deducts -5 (-10 during Double Points), even if your answer is correct.',
     badge: 'PENALTY & SCORING',
     badgeType: 'danger',
     roundSymbol: 'circle',
     roundAccentColor: '#ff004f',
     keyDetails: [
-      'Green Light Correct: +100 PTS (+200 PTS during Double Points)',
-      'Green Light Incorrect: -50 PTS (-100 PTS during Double Points)',
-      'Red Light Any Submission: -50 PTS (-100 PTS during Double Points) — correctness is not revealed'
+      'Green Light Correct: +10 PTS (+20 PTS during Double Points)',
+      'Green Light Incorrect: -5 PTS (-10 PTS during Double Points)',
+      'Red Light Any Submission: -5 PTS (-10 PTS during Double Points) — correctness is not revealed'
     ]
   },
   {
@@ -104,14 +104,14 @@ export const RULES: CodifiedRule[] = [
     categoryLabel: 'Round 1 — The Signal Protocol',
     title: 'Double Points Multiplier Windows',
     plainEnglishSummary: 'Tournament officials activate Double Points windows. While active, all rewards and penalties are doubled.',
-    desc: 'Tournament officials control when Double Points windows turn on and off. When active, both positive rewards and negative penalties double for all teams (+200 PTS for correct answers; -100 PTS for wrong answers or Red Light submissions).',
+    desc: 'Tournament officials control when Double Points windows turn on and off. When active, both positive rewards and negative penalties double for all teams (+20 PTS for correct answers; -10 PTS for wrong answers or Red Light submissions).',
     badge: 'BONUS & RISK',
     badgeType: 'warning',
     roundSymbol: 'circle',
     roundAccentColor: '#ff004f',
     keyDetails: [
       'Controlled by tournament officials',
-      'Doubles both gains (+200) and penalties (-100)'
+      'Doubles both gains (+20) and penalties (-10)'
     ]
   },
   {
@@ -443,10 +443,10 @@ export const RulesPage: React.FC = () => {
               </div>
               <h3 className="font-mono text-xs font-bold text-text-secondary">The Signal Protocol</h3>
               <p className="text-xs font-mono text-text-muted leading-relaxed">
-                20 sequential technical MCQs governed by Red Light / Green Light. Correct answers award +100 (+200 Double). Red Light submissions deduct 50 (100 Double).
+                20 sequential technical MCQs governed by Red Light / Green Light. Green Light correct answers award +10 (+20 Double); wrong answers and Red Light submissions deduct 5 (10 Double).
               </p>
               <div className="pt-1 font-mono text-xs font-bold text-signal-red tabular-nums">
-                Points: +100 / +200 per MCQ
+                Points: +10 / +20 correct; -5 / -10 penalty
               </div>
             </div>
 
@@ -512,7 +512,7 @@ export const RulesPage: React.FC = () => {
                       <span>Round 1</span>
                     </td>
                     <td className="py-3 px-4 text-text-secondary">20 Technical MCQs (Normal Answers)</td>
-                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+100 / -50</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+10 / -5</td>
                   </tr>
                   <tr className="hover:bg-surface-elevated transition-colors">
                     <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
@@ -520,7 +520,7 @@ export const RulesPage: React.FC = () => {
                       <span>Round 1 Bonus</span>
                     </td>
                     <td className="py-3 px-4 text-text-secondary">Double Points Multiplier Window</td>
-                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+200 / -100</td>
+                    <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">+20 / -10</td>
                   </tr>
                   <tr className="hover:bg-surface-elevated transition-colors">
                     <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
