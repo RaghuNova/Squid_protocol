@@ -163,7 +163,7 @@ export const AdminDashboard: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({ confirmation: 'RESET GAME' }),
       });
-      setMessage(res.message || 'Game successfully reset to the initial state.');
+      setMessage(res.message || 'All participant scores, submissions, and round progress were reset to the initial state.');
       setIsRestartModalOpen(false);
       await fetchAll();
     } catch (err: unknown) {

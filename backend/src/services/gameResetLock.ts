@@ -5,7 +5,15 @@ import { Prisma } from '@prisma/client';
 // freshly reset progress before it can persist anything.
 const RESET_LOCK_A = 1567324401;
 const RESET_LOCK_B = 1;
+const SCOREBOARD_LOCK_B = 2;
 
 export async function acquireGameplayWriteLock(tx: Prisma.TransactionClient): Promise<void> {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(${RESET_LOCK_A}::integer, ${RESET_LOCK_B}::integer) IS NULL AS locked`;
+}
+
+export async function acquireGameResetLocks(tx: Prisma.TransactionClient): Promise<void> {
+  // Wait for in-flight gameplay writes, then serialize against winner
+  // finalization and other scoreboard-wide operations before clearing state.
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}::integer, ${RESET_LOCK_B}::integer) IS NULL AS locked`;
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}::integer, ${SCOREBOARD_LOCK_B}::integer) IS NULL AS locked`;
 }

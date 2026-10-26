@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma.js';
+import { acquireGameplayWriteLock } from './gameResetLock.js';
 import { sseService } from './sseService.js';
 import { logAdminAction } from './auditService.js';
 
@@ -136,6 +137,7 @@ export class ScoringService {
     const uniqueSource = `ADMIN_ADJUST_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
     const result = await prisma.$transaction(async (tx) => {
+      await acquireGameplayWriteLock(tx);
       await tx.scoreEvent.create({
         data: {
           teamId: params.teamId,
