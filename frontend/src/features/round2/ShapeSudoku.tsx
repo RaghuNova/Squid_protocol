@@ -116,9 +116,9 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
       playSuccess();
       await refreshMe();
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       playError();
-      setErrorMessage('Incorrect solution. Review the grid and try again while time remains.');
+      setErrorMessage(err instanceof Error ? err.message : 'Sudoku submission failed. Please retry while time remains.');
     } finally {
       setIsSubmitting(false);
     }

@@ -226,6 +226,19 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(reset).not.toMatch(/durationMinutes:\s*(15|20|30)/);
       expect(reset).toContain("process.env.ENABLE_GAME_RESET === 'true'");
     });
+
+    it('runs pending Render database migrations and surfaces Round 2 and QR load errors', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const render = fs.readFileSync(path.resolve(__dirname, '../../../render.yaml'), 'utf-8');
+      const dashboard = fs.readFileSync(path.resolve(__dirname, '../pages/GameDashboard.tsx'), 'utf-8');
+      const qrPage = fs.readFileSync(path.resolve(__dirname, '../pages/admin/AdminQRCodes.tsx'), 'utf-8');
+      const sudoku = fs.readFileSync(path.resolve(__dirname, '../features/round2/ShapeSudoku.tsx'), 'utf-8');
+      expect(render).toContain('preDeployCommand: npx prisma migrate deploy');
+      expect(dashboard).toContain('Round 2 could not be loaded');
+      expect(qrPage).toContain('Team QR codes could not be loaded');
+      expect(sudoku).toContain("err instanceof Error ? err.message");
+    });
   });
 
   describe('Squid Game Comet Round Cards Protocol Verification', () => {

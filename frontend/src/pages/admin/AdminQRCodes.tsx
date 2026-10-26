@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '../../services/api';
-import { QrCode, Printer, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { QrCode, Printer, RefreshCw } from 'lucide-react';
 
 interface QRItem {
   teamId: string;
@@ -13,20 +13,23 @@ interface QRItem {
 export const AdminQRCodes: React.FC = () => {
   const [qrList, setQrList] = useState<QRItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchQRs = async () => {
-      try {
-        const res = await apiRequest<{ success: boolean; qrCodes: QRItem[] }>('/admin/qr-codes');
-        setQrList(res.qrCodes || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchQRs();
+  const fetchQRs = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const res = await apiRequest<{ success: boolean; qrCodes: QRItem[] }>('/admin/qr-codes');
+      setQrList(res.qrCodes || []);
+    } catch (err) {
+      console.error('Failed to load team QR codes', err);
+      setLoadError(err instanceof Error ? err.message : 'QR codes could not be loaded.');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => { void fetchQRs(); }, [fetchQRs]);
 
   const handlePrint = () => {
     window.print();
@@ -34,6 +37,16 @@ export const AdminQRCodes: React.FC = () => {
 
   if (isLoading) {
     return <div className="font-mono text-sm text-gray-400">GENERATING HIGH-RESOLUTION SQUAD QR MATRICES...</div>;
+  }
+
+  if (loadError) {
+    return <div className="max-w-2xl rounded-2xl border border-red-800 bg-red-950/30 p-6 space-y-4">
+      <h1 className="font-display font-bold text-xl text-white">Team QR codes could not be loaded</h1>
+      <p role="alert" className="font-mono text-sm text-red-300">{loadError}</p>
+      <button type="button" onClick={() => void fetchQRs()} className="inline-flex items-center gap-2 rounded-lg bg-[#ff004f] px-4 py-2 text-xs font-mono font-bold text-white">
+        <RefreshCw className="h-4 w-4" /> RETRY
+      </button>
+    </div>;
   }
 
   return (

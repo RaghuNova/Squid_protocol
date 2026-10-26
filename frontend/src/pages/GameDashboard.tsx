@@ -50,6 +50,7 @@ export const GameDashboard: React.FC = () => {
     sudoku: null,
     brokenLogic: null,
   });
+  const [round2LoadError, setRound2LoadError] = useState<string | null>(null);
 
   const [round3Data, setRound3Data] = useState<{
     round: RoundControl | null;
@@ -100,6 +101,7 @@ export const GameDashboard: React.FC = () => {
   const fetchRound2 = useCallback(async () => {
     try {
       const res = await apiRequest<any>('/round2/data');
+      setRound2LoadError(null);
       setRound2Data({
         round: res.round,
         timer: res.timer,
@@ -111,6 +113,7 @@ export const GameDashboard: React.FC = () => {
       });
     } catch (err) {
       console.error('Failed to fetch Round 2 data', err);
+      setRound2LoadError(err instanceof Error ? err.message : 'Round 2 data could not be loaded.');
     }
   }, []);
 
@@ -488,7 +491,13 @@ export const GameDashboard: React.FC = () => {
 
           {activeTab === 2 && (
             <div className="space-y-8">
-              {!round2Data.isUnlocked ? (
+              {round2LoadError ? (
+                <div className="max-w-2xl mx-auto rounded-2xl border border-red-800 bg-red-950/30 p-6 space-y-4">
+                  <h2 className="font-display font-bold text-xl text-white">Round 2 could not be loaded</h2>
+                  <p role="alert" className="font-mono text-sm text-red-300">{round2LoadError}</p>
+                  <button type="button" onClick={() => void fetchRound2()} className="rounded-lg bg-[#ff004f] px-4 py-2 text-xs font-mono font-bold text-white">RETRY</button>
+                </div>
+              ) : !round2Data.isUnlocked ? (
                 <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
                   <div className="w-16 h-16 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 flex items-center justify-center mx-auto" aria-hidden="true">
                     <Lock className="w-8 h-8" />
