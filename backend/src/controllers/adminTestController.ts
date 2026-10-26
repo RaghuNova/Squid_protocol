@@ -3,9 +3,9 @@ import { Prisma, RoundStatus, SignalState } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { sseService } from '../services/sseService.js';
 
-let isResetInProgress = false;
 const RESET_LOCK_A = 1567324401;
 const RESET_LOCK_B = 1;
+let isResetInProgress = false;
 
 export function resetEnvironmentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.NODE_ENV === 'production') return env.ENABLE_GAME_RESET === 'true';
@@ -36,12 +36,12 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
     res.status(409).json({ success: false, error: 'RESET_IN_PROGRESS', message: 'A game reset is already running.' });
     return;
   }
-
   isResetInProgress = true;
   const resetAt = new Date();
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}::integer, ${RESET_LOCK_B}::integer) IS NULL AS locked`;
+    const resetCompleted = await prisma.$transaction(async (tx) => {
+      const lockResult = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(${RESET_LOCK_A}::integer, ${RESET_LOCK_B}::integer) AS locked`;
+      if (!lockResult[0]?.locked) return false;
       await tx.submission.deleteMany({});
       await tx.scoreEvent.deleteMany({});
       await tx.physicalVerification.deleteMany({});
@@ -117,7 +117,13 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
           ipAddress: req.ip
         }
       });
+      return true;
     }, { isolationLevel: 'Serializable', timeout: 30000 });
+
+    if (!resetCompleted) {
+      res.status(409).json({ success: false, error: 'RESET_IN_PROGRESS', message: 'A game reset is already running.' });
+      return;
+    }
 
     sseService.broadcast('game_reset', { timestamp: resetAt.toISOString(), message: 'The game has been reset by an administrator.' });
     sseService.broadcast('round_state_change', { roundId: 1, status: RoundStatus.UPCOMING, timestamp: resetAt.toISOString() });

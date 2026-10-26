@@ -6,6 +6,7 @@ import { RoundStatus, SubmissionStatus } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
 import { getRound3TeamPin } from '../utils/round3TeamPin.js';
 import bcrypt from 'bcryptjs';
+import { acquireGameplayWriteLock } from './gameResetLock.js';
 
 export function getRound3FinishingPoints(position: number): number {
   switch (position) {
@@ -108,6 +109,7 @@ export class Round3Service {
 
     try {
       return await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
         const control = await tx.roundControl.findUnique({ where: { id: 3 }, select: { status: true } });
         if (control?.status === RoundStatus.PAUSED) return { success: false, error: 'ROUND_PAUSED', message: 'Round 3 is paused by tournament officials.' };
         const token = await tx.accessToken.findUnique({ where: { tokenCode: rawCode } });
@@ -164,8 +166,14 @@ export class Round3Service {
       await bcrypt.compare(submittedKey.toLowerCase(), team.user.passwordHash);
     if (!matchesPin) return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid code. Enter the PIN shown by your team QR or your team account PIN.' };
 
-    const accessState = await prisma.accessToken.updateMany({ where: { teamId }, data: { authorizedAt: new Date() } });
-    if (accessState.count !== 1) return { success: false, error: 'ROUND3_ACCESS_STATE_MISSING', message: 'Round 3 access state is unavailable for this team. Contact the administrator.' };
+    const accessState = await prisma.$transaction(async tx => {
+      await acquireGameplayWriteLock(tx);
+      const eligibility = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+      if (!eligibility?.nextRoundEligible) return 0;
+      return (await tx.accessToken.updateMany({ where: { teamId }, data: { authorizedAt: new Date() } })).count;
+    });
+    if (accessState === 0) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team is not eligible for Round 3 yet.' };
+    if (accessState !== 1) return { success: false, error: 'ROUND3_ACCESS_STATE_MISSING', message: 'Round 3 access state is unavailable for this team. Contact the administrator.' };
     return { success: true, isAuthorized: true, message: 'Team PIN verified. The final challenge is unlocked.' };
   }
 
@@ -248,8 +256,14 @@ export class Round3Service {
     const isCorrect = finalKeyMatches(challenge.expectedFinalKey, params.finalKey);
 
     if (!isCorrect) {
-      await prisma.submission.create({
-        data: {
+      const recorded = await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
+        const [eligibility, authorization] = await Promise.all([
+          tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } }),
+          tx.accessToken.findUnique({ where: { teamId: params.teamId }, select: { authorizedAt: true } })
+        ]);
+        if (!eligibility?.nextRoundEligible || !authorization?.authorizedAt) return false;
+        await tx.submission.create({ data: {
           teamId: params.teamId,
           round: 3,
           stage: 3,
@@ -257,8 +271,11 @@ export class Round3Service {
           status: SubmissionStatus.INCORRECT,
           pointsAwarded: 0,
           clientIp: params.clientIp
-        }
+        } });
+        return true;
       });
+
+      if (!recorded) return { success: false, error: 'ROUND_INACTIVE', message: 'Round 3 access is no longer active for your team.' };
 
       return {
         success: false,
@@ -273,6 +290,7 @@ export class Round3Service {
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
+        await acquireGameplayWriteLock(tx);
         // Concurrency-safe lock: Acquire row-level lock on RoundControl for Round 3
         await tx.$queryRaw`SELECT id FROM "RoundControl" WHERE id = 3 FOR UPDATE`;
         const lockedTimestamp = new Date();

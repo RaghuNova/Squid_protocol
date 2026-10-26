@@ -39,6 +39,18 @@ export const ShapeSudoku: React.FC<ShapeSudokuProps> = ({ data, onSuccess }) => 
     }
   }, [data.id, data.initialGrid]);
 
+  useEffect(() => {
+    const resetLocalProgress = () => {
+      localStorage.removeItem(`squid_sudoku_${data.id}`);
+      setGrid(data.initialGrid.split(''));
+      setSelectedCell(null);
+      setErrorMessage(null);
+      setIsSubmitting(false);
+    };
+    window.addEventListener('squid-game-reset', resetLocalProgress);
+    return () => window.removeEventListener('squid-game-reset', resetLocalProgress);
+  }, [data.id, data.initialGrid]);
+
   // Persist grid changes locally
   const updateGrid = useCallback((newGrid: string[]) => {
     setGrid(newGrid);

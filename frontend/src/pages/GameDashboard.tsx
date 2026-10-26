@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest, cleanApiBaseUrl } from '../services/api';
@@ -70,6 +70,7 @@ export const GameDashboard: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const loadGeneration = useRef(0);
 
   // Authentication check
   useEffect(() => {
@@ -79,9 +80,10 @@ export const GameDashboard: React.FC = () => {
   }, [user, authLoading, navigate]);
 
   // Fetch Round 1 Data
-  const fetchRound1 = useCallback(async () => {
+  const fetchRound1 = useCallback(async (generation: number) => {
     try {
       const res = await apiRequest<any>('/round1/questions');
+      if (generation !== loadGeneration.current) return;
       setRound1Data({
         round: res.round,
         timer: res.timer,
@@ -96,9 +98,10 @@ export const GameDashboard: React.FC = () => {
   }, []);
 
   // Fetch Round 2 Data
-  const fetchRound2 = useCallback(async () => {
+  const fetchRound2 = useCallback(async (generation: number) => {
     try {
       const res = await apiRequest<any>('/round2/data');
+      if (generation !== loadGeneration.current) return;
       setRound2LoadError(null);
       setRound2Data({
         round: res.round,
@@ -111,14 +114,15 @@ export const GameDashboard: React.FC = () => {
       });
     } catch (err) {
       console.error('Failed to fetch Round 2 data', err);
-      setRound2LoadError(err instanceof Error ? err.message : 'Round 2 data could not be loaded.');
+      if (generation === loadGeneration.current) setRound2LoadError(err instanceof Error ? err.message : 'Round 2 data could not be loaded.');
     }
   }, []);
 
   // Fetch Round 3 Data
-  const fetchRound3 = useCallback(async () => {
+  const fetchRound3 = useCallback(async (generation: number) => {
     try {
       const res = await apiRequest<any>('/round3/data');
+      if (generation !== loadGeneration.current) return;
       setRound3Data({
         round: res.round,
         timer: res.timer,
@@ -136,8 +140,9 @@ export const GameDashboard: React.FC = () => {
 
   // Load all rounds data
   const loadAll = useCallback(async () => {
-    await Promise.all([fetchRound1(), fetchRound2(), fetchRound3()]);
-    setIsLoading(false);
+    const generation = ++loadGeneration.current;
+    await Promise.all([fetchRound1(generation), fetchRound2(generation), fetchRound3(generation)]);
+    if (generation === loadGeneration.current) setIsLoading(false);
   }, [fetchRound1, fetchRound2, fetchRound3]);
 
   useEffect(() => {
@@ -154,6 +159,13 @@ export const GameDashboard: React.FC = () => {
 
     let eventSource: EventSource | null = null;
     let pollInterval: any = null;
+
+    // SSE broadcasts are process-local. Periodically re-read server state as a
+    // fallback so users connected to another backend instance still observe a
+    // reset or other missed event.
+    pollInterval = setInterval(() => {
+      void Promise.all([loadAll(), refreshMe()]);
+    }, 15000);
 
     try {
       eventSource = new EventSource(streamUrl);
@@ -172,6 +184,7 @@ export const GameDashboard: React.FC = () => {
 
       eventSource.addEventListener('connected', () => {
         setConnectionStatus('connected');
+        void loadAll();
       });
 
       eventSource.addEventListener('ping', () => {
@@ -204,12 +217,16 @@ export const GameDashboard: React.FC = () => {
 
       eventSource.addEventListener('game_reset', () => {
         setConnectionStatus('connected');
-        loadAll();
-        refreshMe();
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('squid_sudoku_')) localStorage.removeItem(key);
+        }
+        window.dispatchEvent(new Event('squid-game-reset'));
+        setActiveTab(1);
+        void Promise.all([loadAll(), refreshMe()]);
       });
     } catch {
       setConnectionStatus('disconnected');
-      pollInterval = setInterval(loadAll, 5000);
     }
 
     return () => {
@@ -490,7 +507,7 @@ export const GameDashboard: React.FC = () => {
                 <div className="max-w-2xl mx-auto rounded-2xl border border-red-800 bg-red-950/30 p-6 space-y-4">
                   <h2 className="font-display font-bold text-xl text-white">Round 2 could not be loaded</h2>
                   <p role="alert" className="font-mono text-sm text-red-300">{round2LoadError}</p>
-                  <button type="button" onClick={() => void fetchRound2()} className="rounded-lg bg-[#ff004f] px-4 py-2 text-xs font-mono font-bold text-white">RETRY</button>
+                  <button type="button" onClick={() => void loadAll()} className="rounded-lg bg-[#ff004f] px-4 py-2 text-xs font-mono font-bold text-white">RETRY</button>
                 </div>
               ) : !round2Data.isUnlocked ? (
                 <div className="bg-[#12151c] rounded-2xl border border-gray-800 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">

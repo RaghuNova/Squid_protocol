@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { apiRequest } from '../services/api';
 import { User, Team } from '../types/game';
 
@@ -18,10 +18,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const refreshGeneration = useRef(0);
 
   const refreshMe = useCallback(async () => {
+    const generation = ++refreshGeneration.current;
     try {
       const data = await apiRequest<{ success: boolean; user: User; team?: Team | null }>('/auth/me');
+      if (generation !== refreshGeneration.current) return;
       if (data.success && data.user) {
         setUser(data.user);
         setTeam(data.team || null);
@@ -30,10 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTeam(null);
       }
     } catch {
+      if (generation !== refreshGeneration.current) return;
       setUser(null);
       setTeam(null);
     } finally {
-      setIsLoading(false);
+      if (generation === refreshGeneration.current) setIsLoading(false);
     }
   }, []);
 

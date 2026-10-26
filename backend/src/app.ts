@@ -89,6 +89,12 @@ app.get('/health/ready', async (req, res) => {
 });
 
 // API Routes (v1)
+// Game state is authoritative and changes during live events; prevent browsers
+// and intermediary proxies from reusing a cached team or round response.
+app.use('/api/v1', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  next();
+});
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/round1', round1Routes);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiRequest, cleanApiBaseUrl } from '../../services/api';
 import { SignalIndicator } from '../../components/SignalIndicator';
 import { CountdownTimer } from '../../components/CountdownTimer';
@@ -37,14 +37,17 @@ export const AdminDashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [pollErrorCount, setPollErrorCount] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const fetchGeneration = useRef(0);
 
   const fetchAll = async () => {
+    const generation = ++fetchGeneration.current;
     try {
       const [dashRes, leadRes, winnerRes] = await Promise.all([
         apiRequest('/admin/dashboard'),
         apiRequest('/leaderboard').catch(() => ({ teams: [] })),
         apiRequest('/leaderboard/winners').catch(() => null),
       ]);
+      if (generation !== fetchGeneration.current) return;
       setData(dashRes);
       setLeaderboard(leadRes.teams || []);
       setWinnerAnnouncement(winnerRes);
@@ -52,12 +55,13 @@ export const AdminDashboard: React.FC = () => {
       setPollErrorCount(0);
       setFetchError(null);
     } catch (err) {
+      if (generation !== fetchGeneration.current) return;
       console.error(err);
       setPollErrorCount((prev) => prev + 1);
       const errMsg = err instanceof Error ? err.message : 'Telemetry sync failed';
       setFetchError(errMsg);
     } finally {
-      setIsLoading(false);
+      if (generation === fetchGeneration.current) setIsLoading(false);
     }
   };
 

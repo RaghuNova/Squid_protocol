@@ -2,6 +2,7 @@ import { prisma } from '../prisma.js';
 import { sseService } from './sseService.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
+import { acquireGameplayWriteLock } from './gameResetLock.js';
 
 export class Round2Service {
   /**
@@ -198,8 +199,11 @@ export class Round2Service {
     const isValid = isExactMatch && isMathValid;
 
     if (!isValid) {
-      await prisma.submission.create({
-        data: {
+      const recorded = await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
+        const current = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+        if (!current || current.status !== 'IN_PROGRESS' || !current.deadlineAt || current.deadlineAt <= new Date()) return false;
+        await tx.submission.create({ data: {
           teamId: params.teamId,
           round: 2,
           stage: 1,
@@ -207,8 +211,11 @@ export class Round2Service {
           status: SubmissionStatus.INCORRECT,
           pointsAwarded: 0,
           clientIp: params.clientIp
-        }
+        } });
+        return true;
       });
+
+      if (!recorded) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team Round 2 timer is not active.' };
 
       return {
         success: false,
@@ -223,6 +230,7 @@ export class Round2Service {
 
     try {
       const result = await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
         await tx.$queryRaw`SELECT id FROM "TeamRoundProgress" WHERE "teamId" = ${params.teamId} AND round = 2 FOR UPDATE`;
         const existingScore = await tx.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE1_SUDOKU' } } });
         if (existingScore) {
@@ -307,8 +315,11 @@ export class Round2Service {
     const isCorrect = normalizedSubmitted === puzzle.expectedOutput.trim();
 
     if (!isCorrect) {
-      await prisma.submission.create({
-        data: {
+      const recorded = await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
+        const current = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+        if (!current || current.status !== 'IN_PROGRESS' || !current.deadlineAt || current.deadlineAt <= new Date()) return false;
+        await tx.submission.create({ data: {
           teamId: params.teamId,
           round: 2,
           stage: 2,
@@ -316,8 +327,11 @@ export class Round2Service {
           status: SubmissionStatus.INCORRECT,
           pointsAwarded: 0,
           clientIp: params.clientIp
-        }
+        } });
+        return true;
       });
+
+      if (!recorded) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team Round 2 timer is not active.' };
 
       return {
         success: false,
@@ -329,6 +343,7 @@ export class Round2Service {
 
     try {
       const result = await prisma.$transaction(async tx => {
+        await acquireGameplayWriteLock(tx);
         await tx.$queryRaw`SELECT id FROM "TeamRoundProgress" WHERE "teamId" = ${params.teamId} AND round = 2 FOR UPDATE`;
         const existingScore = await tx.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE2_BROKEN_LOGIC' } } });
         if (existingScore) {

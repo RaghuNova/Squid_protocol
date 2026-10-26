@@ -2,6 +2,7 @@ import { prisma } from '../prisma.js';
 import { sseService } from './sseService.js';
 import { RoundStatus, SignalState, SubmissionStatus, RoundControl } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
+import { acquireGameplayWriteLock } from './gameResetLock.js';
 
 export function computeRoundTimer(round: RoundControl | null) {
   const now = Date.now();
@@ -330,6 +331,7 @@ export class Round1Service {
 
     try {
       const txResult = await prisma.$transaction(async (tx) => {
+        await acquireGameplayWriteLock(tx);
         const currentProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 1 } } });
         if (!currentProgress || currentProgress.status !== 'IN_PROGRESS' || !currentProgress.deadlineAt || currentProgress.deadlineAt <= new Date()) {
           return { notActive: true as const, success: false as const, error: 'ROUND_EXPIRED', message: 'Your team Round 1 deadline has passed.' };
