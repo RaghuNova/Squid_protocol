@@ -60,7 +60,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       if (t.accessToken) {
         await prisma.accessToken.update({
           where: { id: t.accessToken.id },
-          data: { isRedeemed: false, redeemedAt: null }
+          data: { isRedeemed: false, redeemedAt: null, accessKey: null, authorizedAt: null }
         });
       }
     }
@@ -189,10 +189,15 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       // Redeem QR first
       if (team?.accessToken && !team.accessToken.isRedeemed) {
         const qrRes = await request(app)
-          .post('/api/v1/round3/qr/redeem')
+          .post('/api/v1/round3/qr/mobile-redeem')
           .set('Authorization', `Bearer ${test01Token}`)
           .send({ code: team.accessToken.tokenCode });
         expect(qrRes.status).toBe(200);
+        const authorized = await request(app)
+          .post('/api/v1/round3/debug/authorize')
+          .set('Authorization', `Bearer ${test01Token}`)
+          .send({ accessKey: qrRes.body.accessKey });
+        expect(authorized.status).toBe(200);
       }
 
       const res = await request(app)
@@ -215,7 +220,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
 
       // TEST02 tries to reuse TEST01's already-redeemed QR code
       const res = await request(app)
-        .post('/api/v1/round3/qr/redeem')
+        .post('/api/v1/round3/qr/mobile-redeem')
         .set('Authorization', `Bearer ${test02Token}`)
         .send({ code: team!.accessToken!.tokenCode });
 
@@ -254,10 +259,15 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       // Redeem QR for TEST02
       if (team2?.accessToken && !team2.accessToken.isRedeemed) {
         const qrRes = await request(app)
-          .post('/api/v1/round3/qr/redeem')
+          .post('/api/v1/round3/qr/mobile-redeem')
           .set('Authorization', `Bearer ${test02Token}`)
           .send({ code: team2.accessToken.tokenCode });
         expect(qrRes.status).toBe(200);
+        const authorized = await request(app)
+          .post('/api/v1/round3/debug/authorize')
+          .set('Authorization', `Bearer ${test02Token}`)
+          .send({ accessKey: qrRes.body.accessKey });
+        expect(authorized.status).toBe(200);
       }
 
       const team2Before = await prisma.team.findUnique({ where: { teamCode: 'TEST02' } });

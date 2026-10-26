@@ -10,13 +10,15 @@ interface Round3ViewProps {
   timer?: { status: string; remainingSeconds: number; endTime: string | null; isPaused: boolean; isExpired: boolean };
   isUnlocked: boolean;
   isQrRedeemed: boolean;
+  isAccessKeyAuthorized: boolean;
   isCompleted: boolean;
+  pointsAwarded?: number | null;
   completedAt?: string | null;
   challenge: any;
   onRefresh: () => void;
 }
 
-export const Round3View: React.FC<Round3ViewProps> = ({ round, timer, isUnlocked, isQrRedeemed, isCompleted, completedAt, challenge, onRefresh }) => {
+export const Round3View: React.FC<Round3ViewProps> = ({ round, timer, isUnlocked, isQrRedeemed, isAccessKeyAuthorized, isCompleted, pointsAwarded, completedAt, challenge, onRefresh }) => {
   const status = timer?.status || round?.status || 'UPCOMING';
   const isPaused = status === 'PAUSED' || timer?.isPaused;
 
@@ -32,19 +34,20 @@ export const Round3View: React.FC<Round3ViewProps> = ({ round, timer, isUnlocked
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-[#12151c] border border-gray-800">
       <div>
         <span className="font-display font-bold text-sm text-white block">ROUND 3: THE FINAL BREACH</span>
-        <span className="text-[11px] font-mono text-gray-400">Scan the physical team QR code, then submit the correct final answer.</span>
+        <span className="text-[11px] font-mono text-gray-400">Scan the physical team QR code with a mobile phone, enter its access key here, then submit the final answer.</span>
       </div>
       {timer?.endTime && <CountdownTimer endTime={timer.endTime} remainingSeconds={timer.remainingSeconds} status={status} isPaused={isPaused} onExpire={onRefresh} />}
     </div>
 
     {isPaused && <div role="alert" className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-4 flex items-center gap-3 text-amber-300 font-mono text-sm"><AlertTriangle className="w-5 h-5" />Round 3 is paused by tournament officials.</div>}
 
-    <BrokenQrPuzzle isUnlocked={true} isCompleted={isQrRedeemed} onSuccess={onRefresh} />
+    <BrokenQrPuzzle isUnlocked={true} isQrRedeemed={isQrRedeemed} isAuthorized={isAccessKeyAuthorized} onSuccess={onRefresh} />
 
-    {isQrRedeemed && challenge && <DebugChallengeView
+    {isAccessKeyAuthorized && challenge && <DebugChallengeView
       isUnlocked={true}
       isCompleted={isCompleted}
       challenge={challenge}
+      pointsAwarded={pointsAwarded}
       completedAt={completedAt}
       onSuccess={onRefresh}
     />}

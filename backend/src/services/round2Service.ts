@@ -1,5 +1,5 @@
 import { prisma } from '../prisma.js';
-import { scoringService } from './scoringService.js';
+import { sseService } from './sseService.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
 
@@ -17,15 +17,21 @@ export class Round2Service {
     const isRoundUnlocked = !!progress && ['IN_PROGRESS', 'COMPLETED'].includes(progress.status);
 
     if (!isRoundUnlocked) {
+      const firstRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 1 } } });
+      const message = !firstRound?.nextRoundEligible
+        ? 'Round 2 is locked because your team has not completed or timed out of Round 1.'
+        : roundControl?.status !== RoundStatus.ACTIVE
+          ? 'Your team is eligible. Round 2 is waiting for tournament officials to open its access gate.'
+          : progress?.status === 'TIMED_OUT'
+            ? 'Your Round 2 timer expired. Round 3 eligibility is recorded.'
+            : 'Round 2 is not available yet.';
       return {
         round: roundControl,
         timer,
         serverTime: new Date().toISOString(),
         currentStage: 1,
         isUnlocked: false,
-        message: progress?.status === 'TIMED_OUT'
-          ? 'Round 2 timed out. Round 3 is now unlocked.'
-          : 'Round 2 — Complete Round 1 and wait for officials to open the round.',
+        message,
         sudoku: null,
         brokenLogic: {
           puzzle: null,
@@ -215,43 +221,28 @@ export class Round2Service {
     const basePoints = 100;
     const points = basePoints;
 
-    await prisma.submission.create({
-      data: {
-        teamId: params.teamId,
-        round: 2,
-        stage: 1,
-        submittedValue: normalizedSubmitted,
-        status: SubmissionStatus.CORRECT,
-        pointsAwarded: points,
-        clientIp: params.clientIp
-      }
-    });
-
-    const awardRes = await scoringService.awardScore({
-      teamId: params.teamId,
-      round: 2,
-      stage: 1,
-      source: 'ROUND2_STAGE1_SUDOKU',
-      pointsDelta: points,
-      reason: 'Round 2 Shape Sudoku solved'
-    });
-
-    await prisma.team.update({
-      where: { id: params.teamId },
-      data: {
-        currentRound: 2,
-        currentStage: 2
-      }
-    });
-
-    return {
-      success: true,
-      isCorrect: true,
-      stageUnlocked: 2,
-      pointsAwarded: points,
-      message: `Shape Sudoku verified! Stage 2: Broken Logic is now unlocked. (+${points} pts)`,
-      newTotalScore: awardRes.newTotalScore
-    };
+    try {
+      const result = await prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM "TeamRoundProgress" WHERE "teamId" = ${params.teamId} AND round = 2 FOR UPDATE`;
+        const existingScore = await tx.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE1_SUDOKU' } } });
+        if (existingScore) {
+          const team = await tx.team.findUnique({ where: { id: params.teamId } });
+          return { alreadyCompleted: true, newTotalScore: team?.totalScore ?? 0 };
+        }
+        const current = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+        if (!current || current.status !== 'IN_PROGRESS' || !current.deadlineAt || current.deadlineAt <= new Date()) return { inactive: true, newTotalScore: 0 };
+        await tx.submission.create({ data: { teamId: params.teamId, round: 2, stage: 1, submittedValue: normalizedSubmitted, status: SubmissionStatus.CORRECT, pointsAwarded: points, clientIp: params.clientIp } });
+        await tx.scoreEvent.create({ data: { teamId: params.teamId, round: 2, stage: 1, source: 'ROUND2_STAGE1_SUDOKU', pointsDelta: points, reason: 'Round 2 Shape Sudoku solved' } });
+        const team = await tx.team.update({ where: { id: params.teamId }, data: { currentRound: 2, currentStage: 2, totalScore: { increment: points } } });
+        return { alreadyCompleted: false, newTotalScore: team.totalScore };
+      }, { isolationLevel: 'Serializable' });
+      if ('inactive' in result && result.inactive) return { success: false, error: 'ROUND_EXPIRED', message: 'Your team Round 2 timer is not active.' };
+      if (!result.alreadyCompleted) sseService.broadcast('score_update', { teamId: params.teamId, pointsDelta: points, newTotalScore: result.newTotalScore, source: 'ROUND2_STAGE1_SUDOKU' });
+      return { success: true, alreadySubmitted: result.alreadyCompleted, isCorrect: true, stageUnlocked: 2, pointsAwarded: result.alreadyCompleted ? 0 : points, message: result.alreadyCompleted ? 'Shape Sudoku has already been completed by your team.' : `Shape Sudoku verified! Stage 2: Broken Logic is now unlocked. (+${points} pts)`, newTotalScore: result.newTotalScore };
+    } catch (error: any) {
+      if (error.code === 'P2002' || error.code === 'P2034') return { success: false, error: 'SUBMISSION_CONFLICT', message: 'Your Sudoku submission is being processed. Refresh the page and check your stage.' };
+      throw error;
+    }
   }
 
   /**
@@ -336,43 +327,32 @@ export class Round2Service {
       };
     }
 
-    await prisma.submission.create({
-      data: {
-        teamId: params.teamId,
-        round: 2,
-        stage: 2,
-        submittedValue: normalizedSubmitted,
-        status: SubmissionStatus.CORRECT,
-        pointsAwarded: puzzle.points,
-        clientIp: params.clientIp
-      }
-    });
-
-    const awardRes = await scoringService.awardScore({
-      teamId: params.teamId,
-      round: 2,
-      stage: 2,
-      source: 'ROUND2_STAGE2_BROKEN_LOGIC',
-      pointsDelta: puzzle.points,
-      reason: 'Round 2 Broken Logic challenge solved successfully'
-    });
-
-    await prisma.team.update({
-      where: { id: params.teamId },
-      data: {
-        currentRound: 3,
-        currentStage: 1
-      }
-    });
-    await teamRoundProgressService.completeRound(params.teamId, 2);
-
-    return {
-      success: true,
-      isCorrect: true,
-      pointsAwarded: puzzle.points,
-      message: `Protocol Breach Stage Cleared! +${puzzle.points} points awarded. Round 3 Unlocked.`,
-      newTotalScore: awardRes.newTotalScore
-    };
+    try {
+      const result = await prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM "TeamRoundProgress" WHERE "teamId" = ${params.teamId} AND round = 2 FOR UPDATE`;
+        const existingScore = await tx.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE2_BROKEN_LOGIC' } } });
+        if (existingScore) {
+          const team = await tx.team.findUnique({ where: { id: params.teamId } });
+          return { alreadyCompleted: true, newTotalScore: team?.totalScore ?? 0 };
+        }
+        const current = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
+        if (!current || current.status !== 'IN_PROGRESS' || !current.deadlineAt || current.deadlineAt <= new Date()) return { inactive: true, newTotalScore: 0 };
+        const sudoku = await tx.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE1_SUDOKU' } } });
+        if (!sudoku) return { stageLocked: true, newTotalScore: 0 };
+        await tx.submission.create({ data: { teamId: params.teamId, round: 2, stage: 2, submittedValue: normalizedSubmitted, status: SubmissionStatus.CORRECT, pointsAwarded: puzzle.points, clientIp: params.clientIp } });
+        await tx.scoreEvent.create({ data: { teamId: params.teamId, round: 2, stage: 2, source: 'ROUND2_STAGE2_BROKEN_LOGIC', pointsDelta: puzzle.points, reason: 'Round 2 Broken Logic challenge solved successfully' } });
+        const team = await tx.team.update({ where: { id: params.teamId }, data: { currentRound: 3, currentStage: 1, totalScore: { increment: puzzle.points } } });
+        await teamRoundProgressService.completeRoundInTransaction(tx, params.teamId, 2);
+        return { alreadyCompleted: false, newTotalScore: team.totalScore };
+      }, { isolationLevel: 'Serializable' });
+      if ('inactive' in result && result.inactive) return { success: false, error: 'ROUND_EXPIRED', message: 'Your team Round 2 timer is not active.' };
+      if ('stageLocked' in result && result.stageLocked) return { success: false, error: 'STAGE_LOCKED', message: 'Stage 2 is locked. You must successfully solve Shape Sudoku first.' };
+      if (!result.alreadyCompleted) sseService.broadcast('score_update', { teamId: params.teamId, pointsDelta: puzzle.points, newTotalScore: result.newTotalScore, source: 'ROUND2_STAGE2_BROKEN_LOGIC' });
+      return { success: true, alreadySubmitted: result.alreadyCompleted, isCorrect: true, pointsAwarded: result.alreadyCompleted ? 0 : puzzle.points, message: result.alreadyCompleted ? 'Broken Logic challenge has already been solved by your team.' : `Protocol Breach Stage Cleared! +${puzzle.points} points awarded. Round 3 Unlocked.`, newTotalScore: result.newTotalScore };
+    } catch (error: any) {
+      if (error.code === 'P2002' || error.code === 'P2034') return { success: false, error: 'SUBMISSION_CONFLICT', message: 'Your answer is being processed. Refresh the page and check your stage.' };
+      throw error;
+    }
   }
 }
 

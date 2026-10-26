@@ -163,6 +163,7 @@ model BrokenLogicPuzzle {
   scenario        String
   codeSnippet     String
   expectedOutput  String   // Normalized server-validated output
+  referenceSolution String? @db.Text
   points          Int      @default(200)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
@@ -184,8 +185,10 @@ model AccessToken {
   teamId      String?   @unique
   team        Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   tokenCode   String    @unique
+  accessKey   String?   @unique
   isRedeemed  Boolean   @default(false)
   redeemedAt  DateTime?
+  authorizedAt DateTime?
   createdAt   DateTime  @default(now())
 
   @@index([tokenCode])
@@ -202,6 +205,7 @@ model DebugChallenge {
   inputData        String
   derivationRule   String
   expectedFinalKey String
+  referenceSolution String? @db.Text
   points           Int      @default(200)
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())

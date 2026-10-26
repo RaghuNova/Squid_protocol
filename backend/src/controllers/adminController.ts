@@ -331,6 +331,42 @@ export async function updateQuestion(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function getRound2ChallengeAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const challenge = await prisma.brokenLogicPuzzle.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, challenge });
+  } catch (err) { next(err); }
+}
+
+export async function updateRound2ChallengeAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const input = z.object({ title: z.string().min(1), scenario: z.string().min(1), codeSnippet: z.string(), expectedOutput: z.string().min(1), referenceSolution: z.string().min(1), points: z.number().int().min(0).max(10000) }).parse(req.body);
+    const current = await prisma.brokenLogicPuzzle.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'desc' } });
+    if (!current) { res.status(404).json({ success: false, error: 'CHALLENGE_NOT_FOUND' }); return; }
+    const challenge = await prisma.brokenLogicPuzzle.update({ where: { id: current.id }, data: input });
+    await logAdminAction({ adminUserId: req.user!.userId, adminUsername: req.user!.username, action: 'UPDATE_ROUND2_CHALLENGE', targetType: 'ROUND2_CHALLENGE', targetId: challenge.id, ipAddress: req.ip });
+    res.json({ success: true, challenge });
+  } catch (err) { next(err); }
+}
+
+export async function getRound3ChallengeAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const challenge = await prisma.debugChallenge.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, challenge });
+  } catch (err) { next(err); }
+}
+
+export async function updateRound3ChallengeAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const input = z.object({ title: z.string().min(1), description: z.string().min(1), intendedBehavior: z.string().min(1), javaCode: z.string().min(1), pythonCode: z.string().min(1), cCode: z.string().min(1), inputData: z.string().min(1), derivationRule: z.string().min(1), expectedFinalKey: z.string().min(1), referenceSolution: z.string().min(1), points: z.number().int().min(0).max(10000) }).parse(req.body);
+    const current = await prisma.debugChallenge.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'desc' } });
+    if (!current) { res.status(404).json({ success: false, error: 'CHALLENGE_NOT_FOUND' }); return; }
+    const challenge = await prisma.debugChallenge.update({ where: { id: current.id }, data: input });
+    await logAdminAction({ adminUserId: req.user!.userId, adminUsername: req.user!.username, action: 'UPDATE_ROUND3_CHALLENGE', targetType: 'ROUND3_CHALLENGE', targetId: challenge.id, ipAddress: req.ip });
+    res.json({ success: true, challenge });
+  } catch (err) { next(err); }
+}
+
 export async function getSubmissions(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { round, teamId, limit = '100' } = req.query;
@@ -436,12 +472,15 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
       } else if (!isStrongQrToken(token.tokenCode)) {
         await prisma.accessToken.updateMany({
           where: { id: token.id, tokenCode: token.tokenCode },
-          data: { tokenCode: generateQrToken(), isRedeemed: false, redeemedAt: null }
+          data: { tokenCode: generateQrToken(), accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
         });
         token = await prisma.accessToken.findUniqueOrThrow({ where: { id: token.id } });
       }
 
-      const qrContent = `SQUID://ACCESS/${token.tokenCode}`;
+      const appUrl = process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
+      const qrUrl = new URL('/qr/redeem', appUrl);
+      qrUrl.hash = new URLSearchParams({ code: token.tokenCode }).toString();
+      const qrContent = qrUrl.toString();
       const dataUrl = await QRCode.toDataURL(qrContent, {
         errorCorrectionLevel: 'H',
         margin: 2,

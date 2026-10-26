@@ -7,6 +7,10 @@ import {
   updateRound,
   getQuestions,
   updateQuestion,
+  getRound2ChallengeAdmin,
+  updateRound2ChallengeAdmin,
+  getRound3ChallengeAdmin,
+  updateRound3ChallengeAdmin,
   getSubmissions,
   applyScoreAdjustment,
   toggleLeaderboardPublish,
@@ -31,6 +35,10 @@ router.patch('/rounds/:roundId', updateRound);
 router.put('/rounds/:roundId', updateRound);
 router.get('/questions', getQuestions);
 router.patch('/questions/:id', updateQuestion);
+router.get('/round2-challenge', getRound2ChallengeAdmin);
+router.patch('/round2-challenge', updateRound2ChallengeAdmin);
+router.get('/round3-challenge', getRound3ChallengeAdmin);
+router.patch('/round3-challenge', updateRound3ChallengeAdmin);
 router.get('/submissions', getSubmissions);
 router.post('/score-adjustments', applyScoreAdjustment);
 router.post('/leaderboard/publish', toggleLeaderboardPublish);

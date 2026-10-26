@@ -27,7 +27,7 @@ async function seedDevAccounts() {
       prisma.submission.deleteMany({ where: { teamId: team.id } }),
       prisma.scoreEvent.deleteMany({ where: { teamId: team.id } }),
       prisma.teamRoundProgress.deleteMany({ where: { teamId: team.id } }),
-      prisma.accessToken.upsert({ where: { teamId: team.id }, update: { tokenCode: generateQrToken(), isRedeemed: false, redeemedAt: null }, create: { teamId: team.id, tokenCode: generateQrToken() } }),
+      prisma.accessToken.upsert({ where: { teamId: team.id }, update: { tokenCode: generateQrToken(), accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }, create: { teamId: team.id, tokenCode: generateQrToken() } }),
       prisma.user.upsert({ where: { username }, update: { passwordHash: await bcrypt.hash(`team${suffix}#2026`, 10), role: UserRole.TEAM, teamId: team.id }, create: { username, passwordHash: await bcrypt.hash(`team${suffix}#2026`, 10), role: UserRole.TEAM, teamId: team.id } })
     ]);
   }

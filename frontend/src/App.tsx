@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage';
 import { GameDashboard } from './pages/GameDashboard';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { PhysicalQrRedeemPage } from './pages/PhysicalQrRedeemPage';
 
 import { AdminIndex } from './pages/admin/AdminIndex';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/qr/redeem" element={<PhysicalQrRedeemPage />} />
 
             {/* Team Gameplay Route */}
             <Route path="/game" element={<GameDashboard />} />

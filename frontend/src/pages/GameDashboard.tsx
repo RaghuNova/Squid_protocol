@@ -42,6 +42,7 @@ export const GameDashboard: React.FC = () => {
     currentStage: number;
     sudoku: SudokuData | null;
     brokenLogic: BrokenLogicData | null;
+    message?: string;
   }>({
     round: null,
     isUnlocked: false,
@@ -55,13 +56,16 @@ export const GameDashboard: React.FC = () => {
     timer?: any;
     isUnlocked: boolean;
     isQrRedeemed: boolean;
+    isAccessKeyAuthorized: boolean;
     isCompleted: boolean;
+    pointsAwarded?: number | null;
     completedAt?: string | null;
     challenge: any;
   }>({
     round: null,
     isUnlocked: false,
     isQrRedeemed: false,
+    isAccessKeyAuthorized: false,
     isCompleted: false,
     challenge: null,
   });
@@ -103,6 +107,7 @@ export const GameDashboard: React.FC = () => {
         currentStage: res.currentStage || 1,
         sudoku: res.sudoku,
         brokenLogic: res.brokenLogic,
+        message: res.message,
       });
     } catch (err) {
       console.error('Failed to fetch Round 2 data', err);
@@ -118,7 +123,9 @@ export const GameDashboard: React.FC = () => {
         timer: res.timer,
         isUnlocked: Boolean(res.isUnlocked),
         isQrRedeemed: Boolean(res.isQrRedeemed),
+        isAccessKeyAuthorized: Boolean(res.isAccessKeyAuthorized),
         isCompleted: Boolean(res.isCompleted),
+        pointsAwarded: res.pointsAwarded ?? null,
         completedAt: res.completedAt,
         challenge: res.challenge,
       });
@@ -261,9 +268,11 @@ export const GameDashboard: React.FC = () => {
         ? 'Locked by Officials'
         : round3Data.isCompleted
         ? 'System Breached (+200 PTS)'
-        : round3Data.isQrRedeemed
+        : round3Data.isAccessKeyAuthorized
         ? 'Final Kernel Debugging Challenge'
-        : 'Offline QR Token Gate',
+        : round3Data.isQrRedeemed
+        ? 'Enter Mobile Access Key'
+        : 'Physical QR Activity',
       timerEndTime: round3Data.timer?.endTime ?? round3Data.round?.endTime,
       timerRemainingSeconds: round3Data.timer?.remainingSeconds ?? round3Data.round?.remainingSeconds,
       timerStatus: round3Data.timer?.status || round3Data.round?.status || 'UPCOMING',
@@ -493,7 +502,7 @@ export const GameDashboard: React.FC = () => {
                     </p>
                   </div>
                   <p className="text-sm text-gray-300 leading-relaxed max-w-lg mx-auto">
-                    Round 2 is currently locked by tournament officials. Once Round 1 concludes, officials will activate Stage 1: Shape Sudoku.
+                    {round2Data.message || 'Round 2 is not available yet.'}
                   </p>
                 </div>
               ) : (
@@ -537,7 +546,9 @@ export const GameDashboard: React.FC = () => {
               timer={round3Data.timer}
               isUnlocked={round3Data.isUnlocked}
               isQrRedeemed={round3Data.isQrRedeemed}
+              isAccessKeyAuthorized={round3Data.isAccessKeyAuthorized}
               isCompleted={round3Data.isCompleted}
+              pointsAwarded={round3Data.pointsAwarded}
               completedAt={round3Data.completedAt}
               challenge={round3Data.challenge}
               onRefresh={loadAll}

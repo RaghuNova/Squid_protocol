@@ -42,7 +42,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
     if (testTeam.accessToken) {
       await prisma.accessToken.update({
         where: { id: testTeam.accessToken.id },
-        data: { isRedeemed: false, redeemedAt: null }
+        data: { isRedeemed: false, redeemedAt: null, accessKey: null, authorizedAt: null }
       });
     }
 
@@ -758,7 +758,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
     it('rejects invalid QR redemption code', async () => {
       const res = await request(app)
-        .post('/api/v1/round3/qr/redeem')
+        .post('/api/v1/round3/qr/mobile-redeem')
         .set('Authorization', `Bearer ${teamToken}`)
         .send({ code: 'INVALID_QR_TOKEN_9999' });
 
@@ -773,14 +773,22 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       });
 
       const res = await request(app)
-        .post('/api/v1/round3/qr/redeem')
+        .post('/api/v1/round3/qr/mobile-redeem')
         .set('Authorization', `Bearer ${teamToken}`)
         .send({ code: teamWithToken!.accessToken!.tokenCode });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.isQrRedeemed).toBe(true);
-      expect(res.body.redemptionKey).toBe(teamWithToken!.accessToken!.tokenCode);
+      expect(res.body.accessKey).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(res.body.accessKey).not.toBe(teamWithToken!.accessToken!.tokenCode);
+
+      const authorized = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ accessKey: res.body.accessKey });
+      expect(authorized.status).toBe(200);
+      const round3 = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
+      expect(round3.body.challenge).toBeTruthy();
     });
 
     it('rejects attempt to reuse an already redeemed QR code', async () => {
@@ -797,7 +805,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
       // Team 2 tries to redeem Team 1's already redeemed token
       const res = await request(app)
-        .post('/api/v1/round3/qr/redeem')
+        .post('/api/v1/round3/qr/mobile-redeem')
         .set('Authorization', `Bearer ${team02Token}`)
         .send({ code: teamWithToken!.accessToken!.tokenCode });
 

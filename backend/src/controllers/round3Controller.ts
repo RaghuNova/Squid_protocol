@@ -10,6 +10,7 @@ const QRRedeemSchema = z.object({
 const FinalKeySubmitSchema = z.object({
   finalKey: z.string().min(3).max(100)
 });
+const AccessKeySchema = z.object({ accessKey: z.string().min(20).max(100) });
 
 export async function getRound3(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -26,28 +27,31 @@ export async function getRound3(req: Request, res: Response, next: NextFunction)
   }
 }
 
-export async function redeemQRCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function redeemPhysicalQRCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const teamId = await resolveSubmittingTeamId(req);
+    if (!teamId) {
+      res.status(403).json({ success: false, error: 'TEAM_REQUIRED', message: 'Sign in with your team account on this phone, then scan the event QR again.' });
+      return;
+    }
+    const { code } = QRRedeemSchema.parse(req.body);
+    const result = await round3Service.redeemPhysicalQr(teamId, code, req.ip);
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function authorizeRound3Access(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const teamId = await resolveSubmittingTeamId(req);
     if (!teamId) {
       res.status(403).json({ success: false, error: 'TEAM_REQUIRED' });
       return;
     }
-
-    const { code } = QRRedeemSchema.parse(req.body);
-
-    const result = await round3Service.redeemQRCode({
-      teamId,
-      code,
-      clientIp: req.ip
-    });
-
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-
-    res.json(result);
+    const { accessKey } = AccessKeySchema.parse(req.body);
+    const result = await round3Service.authorizeAccessKey(teamId, accessKey);
+    res.status(result.success ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }

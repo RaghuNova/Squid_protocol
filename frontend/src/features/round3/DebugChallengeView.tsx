@@ -21,6 +21,7 @@ interface DebugChallengeViewProps {
     points: number;
   } | null;
   completedAt?: string | null;
+  pointsAwarded?: number | null;
   onSuccess: () => void;
 }
 
@@ -29,6 +30,7 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
   isCompleted,
   challenge,
   completedAt,
+  pointsAwarded,
   onSuccess,
 }) => {
   const { refreshMe } = useAuth();
@@ -122,11 +124,11 @@ export const DebugChallengeView: React.FC<DebugChallengeViewProps> = ({
         {isCompleted ? (
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00e676]/20 border border-[#00e676]/50 text-[#00e676] font-mono text-xs font-bold shadow-[0_0_20px_rgba(0,230,118,0.3)]">
             <Trophy className="w-4 h-4 text-[#ffd166]" aria-hidden="true" />
-            <span>BREACH CONFIRMED (+200 PTS)</span>
+            <span>BREACH CONFIRMED ({pointsAwarded !== null && pointsAwarded !== undefined && pointsAwarded > 0 ? '+' : ''}{pointsAwarded ?? 0} PTS)</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 font-mono text-xs px-3 py-1 rounded bg-[#00e676]/10 border border-[#00e676]/30 text-[#00e676] font-semibold">
-            <span>PRIZE: +{challenge?.points || 200} PTS</span>
+            <span>FINISHING AWARD BASED ON VERIFIED COMPLETION POSITION</span>
           </div>
         )}
       </div>

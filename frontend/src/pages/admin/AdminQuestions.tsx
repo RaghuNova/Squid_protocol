@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiRequest } from '../../services/api';
 import { FileQuestion, Edit2, CheckCircle2, X } from 'lucide-react';
+import { AdminChallengeEditor } from './AdminChallengeEditor';
 
 interface QuestionItem {
   id: string;
@@ -77,7 +78,7 @@ export const AdminQuestions: React.FC = () => {
           CHALLENGE BANK & SOLUTION ENGINE
         </span>
         <h1 className="font-display font-black text-3xl text-white uppercase tracking-tight mt-1">
-          Round 1 Question Matrix
+          Question Matrix & Answer Key
         </h1>
         <p className="text-xs font-mono text-gray-400 mt-1">
           Review, modify prompts, code snippets, choices, verified keys, and point weights.
@@ -237,6 +238,12 @@ export const AdminQuestions: React.FC = () => {
           </div>
         ))}
       </div>
+
+      <div className="border-t border-gray-800 pt-7 space-y-2">
+        <h2 className="font-display font-bold text-2xl text-white">Later Round Questions & Solutions</h2>
+        <p className="text-xs font-mono text-gray-500">These fields load and save through administrator-only APIs. Participant challenge APIs omit expected answers and reference solutions.</p>
+      </div>
+      <AdminChallengeEditor />
     </div>
   );
 };

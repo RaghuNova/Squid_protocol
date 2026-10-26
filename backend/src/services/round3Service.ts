@@ -4,6 +4,7 @@ import { sseService } from './sseService.js';
 import { computeRoundTimer } from './round1Service.js';
 import { RoundStatus, SubmissionStatus } from '@prisma/client';
 import { teamRoundProgressService } from './teamRoundProgressService.js';
+import { generateQrToken } from '../utils/qrToken.js';
 
 export function getRound3FinishingPoints(position: number): number {
   switch (position) {
@@ -18,6 +19,13 @@ export function getRound3FinishingPoints(position: number): number {
     default:
       return -25; // 9th onward: -25
   }
+}
+
+export function finalKeyMatches(expected: string, submitted: string): boolean {
+  const expectedKey = expected.trim().toUpperCase();
+  const normalized = submitted.trim().toUpperCase();
+  const numericChecksum = expectedKey.match(/^PROTOCOL_BREACH_(\d+)$/)?.[1];
+  return normalized === expectedKey || (!!numericChecksum && normalized === numericChecksum);
 }
 
 export class Round3Service {
@@ -40,6 +48,7 @@ export class Round3Service {
         serverTime: new Date().toISOString(),
         isUnlocked: false,
         isQrRedeemed: false,
+        isAccessKeyAuthorized: false,
         isCompleted: false,
         position: null,
         pointsAwarded: null,
@@ -53,12 +62,13 @@ export class Round3Service {
       where: { teamId, isRedeemed: true }
     });
     const isQrRedeemed = !!redeemedToken;
+    const isAccessKeyAuthorized = !!redeemedToken?.authorizedAt;
 
     const isCompleted = !!team?.finalBreachCompletedAt;
 
     let debugChallenge: any = null;
-    // Strictly hide debugging challenge until QR code has been redeemed
-    if (isQrRedeemed || isCompleted) {
+    // Strictly hide debugging challenge until the scanned mobile key is validated on the laptop.
+    if (isAccessKeyAuthorized) {
       debugChallenge = await prisma.debugChallenge.findFirst({
         where: { isActive: true },
         select: {
@@ -83,6 +93,7 @@ export class Round3Service {
       serverTime: new Date().toISOString(),
       isUnlocked: true,
       isQrRedeemed,
+      isAccessKeyAuthorized,
       isCompleted,
       position: team?.finalBreachPosition ?? null,
       pointsAwarded: team?.finalBreachPoints ?? null,
@@ -91,124 +102,63 @@ export class Round3Service {
     };
   }
 
-  /**
-   * Redeem a single-use QR access code obtained from the physical QR activity.
-   */
-  public async redeemQRCode(params: {
-    teamId: string;
-    code: string;
-    clientIp?: string;
-  }) {
-    const roundControl = await prisma.roundControl.findUnique({ where: { id: 3 } });
-    if (!roundControl) {
-      return { success: false, error: 'ROUND_NOT_FOUND', message: 'Round 3 control not found.' };
-    }
-
-    if (roundControl.status === RoundStatus.PAUSED) {
-      return {
-        success: false,
-        error: 'ROUND_PAUSED',
-        message: 'Round 3 is currently paused by tournament officials.'
-      };
-    }
-
-    await teamRoundProgressService.reconcileTeam(params.teamId);
-    const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: params.teamId, round: 2 } } });
-    if (!secondRound?.nextRoundEligible) {
-      return {
-        success: false,
-        error: 'ROUND_INACTIVE',
-        message: 'Complete or time out in Round 2 before entering Round 3.'
-      };
-    }
-
-
-    // Normalize code: strip URL prefix if scanned as SQUID://ACCESS/CODE
-    let rawCode = params.code.trim();
-    if (rawCode.toUpperCase().startsWith('SQUID://ACCESS/')) {
-      rawCode = rawCode.substring(15);
-    }
-    const normalizedCode = rawCode.trim().toUpperCase();
-
-    const alreadyRedeemed = await prisma.accessToken.findFirst({
-      where: { teamId: params.teamId, isRedeemed: true, tokenCode: { equals: normalizedCode, mode: 'insensitive' } }
-    });
-    if (alreadyRedeemed) {
-      return { success: true, alreadyRedeemed: true, isQrRedeemed: true, message: 'This team QR code is already verified.' };
-    }
+  /** Mobile phone workflow: the opaque QR bearer token resolves its preassigned team. */
+  public async redeemPhysicalQr(teamId: string, code: string, clientIp?: string) {
+    const rawCode = code.trim().replace(/^SQUID:\/\/ACCESS\//i, '');
+    if (!rawCode) return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified.' };
+    const candidate = await prisma.accessToken.findUnique({ where: { tokenCode: rawCode }, select: { teamId: true } });
+    if (!candidate?.teamId || candidate.teamId !== teamId) return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified for this team.' };
+    await teamRoundProgressService.reconcileTeam(teamId);
 
     try {
-      const txResult = await prisma.$transaction(async (tx) => {
-        // Find token by exact code
-        const token = await tx.accessToken.findFirst({
-          where: { tokenCode: { equals: normalizedCode, mode: 'insensitive' } }
-        });
-
-        if (!token) {
-          return {
-            success: false,
-            error: 'INVALID_QR_CODE',
-            message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
-          };
+      return await prisma.$transaction(async tx => {
+        const control = await tx.roundControl.findUnique({ where: { id: 3 }, select: { status: true } });
+        if (control?.status === RoundStatus.PAUSED) return { success: false, error: 'ROUND_PAUSED', message: 'Round 3 is paused by tournament officials.' };
+        const token = await tx.accessToken.findUnique({ where: { tokenCode: rawCode } });
+        if (!token?.teamId || token.teamId !== teamId) {
+          return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. It may be invalid or already used.' };
         }
-
-        // If pre-assigned to another team
-        if (token.teamId && token.teamId !== params.teamId) {
-          return {
-            success: false,
-            error: 'INVALID_QR_CODE',
-            message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
-          };
+        const round2 = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+        if (!round2?.nextRoundEligible) {
+          return { success: false, error: 'ROUND_INACTIVE', message: 'This team is not eligible for Round 3 yet.' };
         }
+        const accessKey = generateQrToken();
         if (token.isRedeemed) {
-          return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. Scan your assigned event QR code and try again.' };
+          // One-time migration bridge for legacy redeemed rows that predate the separate access key.
+          const backfill = await tx.accessToken.updateMany({ where: { id: token.id, teamId, isRedeemed: true, accessKey: null }, data: { accessKey } });
+          if (backfill.count !== 1) return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. It may be invalid or already used.' };
+          const team = await tx.team.findUnique({ where: { id: teamId }, select: { teamCode: true } });
+          return { success: true, teamCode: team?.teamCode, accessKey, message: 'Physical QR verified. Enter this access key on your team laptop.' };
         }
-
-        // Conditional claim makes one-time redemption safe across concurrent requests.
-        const claimed = await tx.accessToken.updateMany({
-          where: { id: token.id, isRedeemed: false },
-          data: {
-            teamId: params.teamId,
-            isRedeemed: true,
-            redeemedAt: new Date()
-          }
+        const claim = await tx.accessToken.updateMany({
+          where: { id: token.id, teamId, isRedeemed: false, accessKey: null },
+          data: { isRedeemed: true, redeemedAt: new Date(), accessKey }
         });
-        if (claimed.count !== 1) {
-          return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. Scan your assigned event QR code and try again.' };
-        }
-
-        // Record submission for audit
+        if (claim.count !== 1) return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. It may be invalid or already used.' };
         await tx.submission.create({
-          data: {
-            teamId: params.teamId,
-            round: 3,
-            stage: 2,
-            submittedValue: normalizedCode,
-            status: SubmissionStatus.CORRECT,
-            pointsAwarded: 0,
-            clientIp: params.clientIp
-          }
+          data: { teamId, round: 3, stage: 2, submittedValue: 'PHYSICAL_QR_REDEEMED', status: SubmissionStatus.CORRECT, pointsAwarded: 0, clientIp }
         });
-
-        return {
-          success: true,
-          isQrRedeemed: true,
-          redemptionKey: token.tokenCode,
-          message: 'QR code verified. The Final Debugging Challenge is unlocked.'
-        };
-      });
-
-      return txResult;
+        return { success: true, teamCode: (await tx.team.findUnique({ where: { id: teamId }, select: { teamCode: true } }))?.teamCode, accessKey, message: 'Physical QR verified. Enter this access key on your team laptop.' };
+      }, { isolationLevel: 'Serializable' });
     } catch (err: any) {
-      if (err.code === 'P2002') {
-        return {
-          success: false,
-          error: 'INVALID_QR_CODE',
-          message: 'This QR code could not be verified. Scan your assigned event QR code and try again.'
-        };
-      }
+      if (err.code === 'P2002' || err.code === 'P2034') return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. It may be invalid or already used.' };
       throw err;
     }
+  }
+
+  /** Validate and persist laptop authorization without exposing the challenge beforehand. */
+  public async authorizeAccessKey(teamId: string, accessKey: string) {
+    const control = await prisma.roundControl.findUnique({ where: { id: 3 }, select: { status: true } });
+    if (control?.status === RoundStatus.PAUSED) return { success: false, error: 'ROUND_PAUSED', message: 'Round 3 is paused by tournament officials.' };
+    await teamRoundProgressService.reconcileTeam(teamId);
+    const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+    if (!progress?.nextRoundEligible) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team is not eligible for Round 3 yet.' };
+    const token = await prisma.accessToken.findFirst({ where: { teamId, isRedeemed: true, accessKey } });
+    if (!token) return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Access key could not be verified.' };
+    if (!token.authorizedAt) {
+      await prisma.accessToken.updateMany({ where: { id: token.id, isRedeemed: true, accessKey, authorizedAt: null }, data: { authorizedAt: new Date() } });
+    }
+    return { success: true, isAuthorized: true, message: 'Round 3 access key verified. The final challenge is unlocked.' };
   }
 
   /**
@@ -248,13 +198,13 @@ export class Round3Service {
 
     // 3. Verify team has redeemed QR code first!
     const redeemedToken = await prisma.accessToken.findFirst({
-      where: { teamId: params.teamId, isRedeemed: true }
+      where: { teamId: params.teamId, isRedeemed: true, authorizedAt: { not: null } }
     });
     if (!redeemedToken) {
       return {
         success: false,
         error: 'QR_NOT_REDEEMED',
-        message: 'Access Denied. You must redeem your physical QR code before submitting the debugging challenge.'
+        message: 'Access Denied. Enter the access key from your physical QR scan before submitting the debugging challenge.'
       };
     }
 
@@ -288,32 +238,8 @@ export class Round3Service {
     }
 
     const normalizedKey = params.finalKey.trim().toUpperCase();
-    const expectedKey = challenge.expectedFinalKey.trim().toUpperCase();
-    const enteredChecksum = normalizedKey.match(/(?:PROTOCOL_BREACH_)?(\d+)$/)?.[1];
-
-    // The configured expected key can be stale in a deployed database after a
-    // challenge code update. Recompute the intended checksum from its input so
-    // validation always agrees with the corrected Java, Python, and C logic.
-    let correctedChecksum: number | null = null;
-    try {
-      const inputValues: unknown = JSON.parse(challenge.inputData);
-      if (Array.isArray(inputValues) && inputValues.every(Number.isInteger)) {
-        correctedChecksum = inputValues.reduce((total: number, value: number) => (
-          total + (value % 2 === 0 ? (value << 2) + 3 : value ^ 0x4B)
-        ), 0);
-      }
-    } catch {
-      // Retain the configured expected key as a fallback for non-JSON challenges.
-    }
-
-    const expectedChecksum = expectedKey.match(/_(\d+)$/)?.[1];
-    const checksumMatches = enteredChecksum !== undefined && (
-      enteredChecksum === expectedChecksum ||
-      (correctedChecksum !== null && Number(enteredChecksum) === correctedChecksum)
-    );
-    const correctedOutputMatches = correctedChecksum !== null &&
-      normalizedKey === `PROTOCOL_BREACH_${correctedChecksum}`;
-    const isCorrect = normalizedKey === expectedKey || checksumMatches || correctedOutputMatches;
+    // Match the administrator-configured answer (or its exact numeric checksum).
+    const isCorrect = finalKeyMatches(challenge.expectedFinalKey, params.finalKey);
 
     if (!isCorrect) {
       await prisma.submission.create({
@@ -343,6 +269,7 @@ export class Round3Service {
       const txResult = await prisma.$transaction(async (tx) => {
         // Concurrency-safe lock: Acquire row-level lock on RoundControl for Round 3
         await tx.$queryRaw`SELECT id FROM "RoundControl" WHERE id = 3 FOR UPDATE`;
+        const lockedTimestamp = new Date();
 
         const existingScore = await tx.scoreEvent.findUnique({
           where: {
@@ -361,7 +288,7 @@ export class Round3Service {
             position: currentTeam?.finalBreachPosition || 1,
             pointsAwarded: 0,
             originalPointsAwarded: currentTeam?.finalBreachPoints ?? existingScore.pointsDelta,
-            completedAt: currentTeam?.finalBreachCompletedAt?.toISOString() || completionTimestamp.toISOString(),
+            completedAt: currentTeam?.finalBreachCompletedAt?.toISOString() || lockedTimestamp.toISOString(),
             message: `Final Breach already scored for your team (Position #${currentTeam?.finalBreachPosition || 1}).`,
             newTotalScore: currentTeam?.totalScore ?? 0
           };
@@ -401,7 +328,7 @@ export class Round3Service {
         const updatedTeam = await tx.team.update({
           where: { id: params.teamId },
           data: {
-            finalBreachCompletedAt: completionTimestamp,
+            finalBreachCompletedAt: lockedTimestamp,
             finalBreachPosition: position,
             finalBreachPoints: pointsAwarded,
             totalScore: {
@@ -415,7 +342,7 @@ export class Round3Service {
           isCorrect: true,
           position,
           pointsAwarded,
-          completedAt: completionTimestamp.toISOString(),
+          completedAt: lockedTimestamp.toISOString(),
           message: `SYSTEM BREACH SUCCESSFUL! Correct Key Verified. Position #${position} achieved: ${sign}${pointsAwarded} points awarded.`,
           newTotalScore: updatedTeam.totalScore
         };
@@ -425,7 +352,7 @@ export class Round3Service {
         sseService.broadcast('final_breach', {
           teamId: params.teamId,
           teamName: team.name,
-          completedAt: completionTimestamp.toISOString(),
+          completedAt: txResult.completedAt,
           position: txResult.position,
           points: txResult.pointsAwarded
         });

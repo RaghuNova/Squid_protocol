@@ -3,13 +3,17 @@ import { prisma } from '../prisma.js';
 
 const ROUND_MINUTES: Record<number, number> = { 1: 15, 2: 20 };
 
+export function canStartTeamRound2(isEligibleFromRound1: boolean, teamStatus: TeamRoundProgressStatus, gateStatus: RoundStatus | undefined): boolean {
+  return isEligibleFromRound1 && teamStatus === TeamRoundProgressStatus.READY && gateStatus === RoundStatus.ACTIVE;
+}
+
 type DbClient = Prisma.TransactionClient | typeof prisma;
 
 export class TeamRoundProgressService {
   private async readyNextRound(db: DbClient, teamId: string, round: number, now: Date) {
     if (round >= 3) return;
     const nextRound = round + 1;
-    await db.teamRoundProgress.upsert({
+    const next = await db.teamRoundProgress.upsert({
       where: { teamId_round: { teamId, round: nextRound } },
       create: {
         teamId,
@@ -18,15 +22,19 @@ export class TeamRoundProgressService {
         nextRoundEligible: false,
         createdAt: now
       },
-      update: {
-        status: TeamRoundProgressStatus.READY,
-        nextRoundEligible: false
-      }
+      update: {}
+    });
+    // Repairs legacy LOCKED rows without reopening or resetting a round already started.
+    await db.teamRoundProgress.updateMany({
+      where: { id: next.id, status: TeamRoundProgressStatus.LOCKED },
+      data: { status: TeamRoundProgressStatus.READY, nextRoundEligible: false }
     });
   }
 
   async completeRound(teamId: string, round: number, now = new Date()) {
     await prisma.$transaction(async (tx) => {
+      const existing = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round } } });
+      const completedAt = existing?.completedAt ?? now;
       await tx.teamRoundProgress.upsert({
         where: { teamId_round: { teamId, round } },
         create: {
@@ -34,19 +42,19 @@ export class TeamRoundProgressService {
           round,
           status: TeamRoundProgressStatus.COMPLETED,
           startedAt: now,
-          completedAt: now,
+          completedAt,
           nextRoundEligible: true
         },
         update: {
           status: TeamRoundProgressStatus.COMPLETED,
-          completedAt: now,
+          completedAt,
           timedOutAt: null,
           deadlineAt: null,
           remainingSeconds: null,
           nextRoundEligible: true
         }
       });
-      await this.readyNextRound(tx, teamId, round, now);
+      await this.readyNextRound(tx, teamId, round, completedAt);
       await tx.team.update({
         where: { id: teamId },
         data: { currentRound: Math.min(round + 1, 3), currentStage: 1 }
@@ -55,12 +63,14 @@ export class TeamRoundProgressService {
   }
 
   async completeRoundInTransaction(tx: Prisma.TransactionClient, teamId: string, round: number, now = new Date()) {
+    const existing = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round } } });
+    const completedAt = existing?.completedAt ?? now;
     await tx.teamRoundProgress.upsert({
       where: { teamId_round: { teamId, round } },
-      create: { teamId, round, status: TeamRoundProgressStatus.COMPLETED, startedAt: now, completedAt: now, nextRoundEligible: true },
-      update: { status: TeamRoundProgressStatus.COMPLETED, completedAt: now, timedOutAt: null, deadlineAt: null, remainingSeconds: null, nextRoundEligible: true }
+      create: { teamId, round, status: TeamRoundProgressStatus.COMPLETED, startedAt: now, completedAt, nextRoundEligible: true },
+      update: { status: TeamRoundProgressStatus.COMPLETED, completedAt, timedOutAt: null, deadlineAt: null, remainingSeconds: null, nextRoundEligible: true }
     });
-    await this.readyNextRound(tx, teamId, round, now);
+    await this.readyNextRound(tx, teamId, round, completedAt);
     await tx.team.update({ where: { id: teamId }, data: { currentRound: Math.min(round + 1, 3), currentStage: 1 } });
   }
 
@@ -105,51 +115,60 @@ export class TeamRoundProgressService {
         where: { teamId, round: 1, questionId: { not: null } }, distinct: ['questionId'], select: { questionId: true }
       })).length;
       if (r1Questions > 0 && r1Answers >= r1Questions) {
+        const lastAnswer = await tx.submission.findFirst({
+          where: { teamId, round: 1, questionId: { not: null } },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true }
+        });
+        const existingProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 1 } } });
+        const completedAt = existingProgress?.completedAt ?? lastAnswer?.createdAt ?? now;
         await tx.teamRoundProgress.upsert({
           where: { teamId_round: { teamId, round: 1 } },
           create: {
             teamId,
             round: 1,
             status: TeamRoundProgressStatus.COMPLETED,
-            completedAt: now,
+            completedAt,
             nextRoundEligible: true
           },
           update: {
             status: TeamRoundProgressStatus.COMPLETED,
-            completedAt: now,
+            completedAt,
             deadlineAt: null,
             timedOutAt: null,
             remainingSeconds: null,
             nextRoundEligible: true
           }
         });
-        await this.readyNextRound(tx, teamId, 1, now);
+        await this.readyNextRound(tx, teamId, 1, completedAt);
       }
 
       const r2Complete = await tx.scoreEvent.findUnique({
         where: { teamId_source: { teamId, source: 'ROUND2_STAGE2_BROKEN_LOGIC' } },
-        select: { id: true }
+        select: { id: true, createdAt: true }
       });
       if (r2Complete) {
+        const existingProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+        const completedAt = existingProgress?.completedAt ?? r2Complete.createdAt;
         await tx.teamRoundProgress.upsert({
           where: { teamId_round: { teamId, round: 2 } },
           create: {
             teamId,
             round: 2,
             status: TeamRoundProgressStatus.COMPLETED,
-            completedAt: now,
+            completedAt,
             nextRoundEligible: true
           },
           update: {
             status: TeamRoundProgressStatus.COMPLETED,
-            completedAt: now,
+            completedAt,
             deadlineAt: null,
             timedOutAt: null,
             remainingSeconds: null,
             nextRoundEligible: true
           }
         });
-        await this.readyNextRound(tx, teamId, 2, now);
+        await this.readyNextRound(tx, teamId, 2, completedAt);
       }
     });
   }
@@ -189,30 +208,25 @@ export class TeamRoundProgressService {
     if (!firstRound?.nextRoundEligible) return null;
 
     const gate = await prisma.roundControl.findUnique({ where: { id: 2 } });
-    let progress = await prisma.teamRoundProgress.findUnique({
-      where: { teamId_round: { teamId, round: 2 } }
+    const progress = await prisma.teamRoundProgress.upsert({
+      where: { teamId_round: { teamId, round: 2 } },
+      create: { teamId, round: 2, status: TeamRoundProgressStatus.READY, nextRoundEligible: false },
+      update: {}
     });
-    if (!progress) {
-      progress = await prisma.teamRoundProgress.create({
-        data: {
-          teamId,
-          round: 2,
-          status: TeamRoundProgressStatus.READY,
-          nextRoundEligible: false
-        }
-      });
-    }
-    if (gate?.status !== RoundStatus.ACTIVE || progress.status !== TeamRoundProgressStatus.READY) return progress;
+    if (!canStartTeamRound2(firstRound.nextRoundEligible, progress.status, gate?.status)) return progress;
 
-    return prisma.teamRoundProgress.update({
-      where: { id: progress.id },
+    await prisma.teamRoundProgress.updateMany({
+      where: { id: progress.id, status: TeamRoundProgressStatus.READY },
       data: {
         status: TeamRoundProgressStatus.IN_PROGRESS,
         startedAt: now,
         deadlineAt: new Date(now.getTime() + ROUND_MINUTES[2] * 60_000),
+        remainingSeconds: null,
         nextRoundEligible: false
       }
     });
+    // A concurrent request may have started the team timer first. Never reset it.
+    return prisma.teamRoundProgress.findUnique({ where: { id: progress.id } });
   }
 
   async getTeamRound(teamId: string, round: number) {

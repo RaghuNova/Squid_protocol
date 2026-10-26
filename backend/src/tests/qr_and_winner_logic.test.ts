@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { compareLeaderboardTeams } from '../services/scoringService.js';
 import { generateQrToken, isStrongQrToken } from '../utils/qrToken.js';
+import { finalKeyMatches } from '../services/round3Service.js';
+import { canStartTeamRound2 } from '../services/teamRoundProgressService.js';
+import { RoundStatus, TeamRoundProgressStatus } from '@prisma/client';
 
 const row = (teamCode: string, overrides: Partial<Parameters<typeof compareLeaderboardTeams>[0]> = {}) => ({
   teamCode,
@@ -47,5 +50,26 @@ describe('authoritative team winner tie-break order', () => {
 
   it('sorts higher total score before all tie-break fields', () => {
     expect(compareLeaderboardTeams(row('TEAM02', { totalScore: 99, r3Position: 1 }), row('TEAM01', { totalScore: 100, r3Position: 20 }))).toBeGreaterThan(0);
+  });
+});
+
+describe('configured Round 3 answer validation', () => {
+  it('accepts the configured full key or exact numeric checksum with surrounding whitespace', () => {
+    expect(finalKeyMatches('PROTOCOL_BREACH_1040', ' protocol_breach_1040 ')).toBe(true);
+    expect(finalKeyMatches('PROTOCOL_BREACH_1040', ' 1040 ')).toBe(true);
+  });
+
+  it('does not accept arbitrary text that merely ends in the right digits', () => {
+    expect(finalKeyMatches('PROTOCOL_BREACH_1040', 'WRONG1040')).toBe(false);
+    expect(finalKeyMatches('EXPECTED-KEY', '1040')).toBe(false);
+  });
+});
+
+describe('Round 1 to Round 2 access gate', () => {
+  it('starts Round 2 only after team eligibility and admin gate are both true', () => {
+    expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.ACTIVE)).toBe(true);
+    expect(canStartTeamRound2(false, TeamRoundProgressStatus.READY, RoundStatus.ACTIVE)).toBe(false);
+    expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.UPCOMING)).toBe(false);
+    expect(canStartTeamRound2(true, TeamRoundProgressStatus.IN_PROGRESS, RoundStatus.ACTIVE)).toBe(false);
   });
 });

@@ -481,6 +481,7 @@ export async function seed() {
       scenario: "The perimeter network gateway processes packet burst lengths: [7, 14, 25, 32, 41] with initial accumulator = 100.\n\nIntended Security Specification:\nA packet qualifies for fast-track processing ONLY if it has an EVEN length AND satisfies either (length > 20 OR length < 10).\n- If qualified: Add (length * 3) to accumulator\n- If NOT qualified: Subtract (length * 2) from accumulator\n\nBuggy Code in Firmware:\nif (length % 2 == 0 && length > 20 || length < 10)\n\nDue to operator precedence (&& precedes ||), odd packet 7 erroneously qualifies.\n\nTask: Trace the CORRECT intended logic and submit the resulting accumulator value.",
       codeSnippet: "accumulator = 100;\npackets = [7, 14, 25, 32, 41];\n\nfor (length of packets) {\n  // INTENDED SPECIFICATION:\n  if ((length % 2 === 0) && (length > 20 || length < 10)) {\n    accumulator += (length * 3);\n  } else {\n    accumulator -= (length * 2);\n  }\n}\nreturn accumulator;",
       expectedOutput: "22",
+      referenceSolution: "Start at 100. Apply the intended predicate (length % 2 === 0) && (length > 20 || length < 10). Values 7, 14, 25, and 41 subtract 2×length; 32 adds 3×length. Final accumulator: 100 - 14 - 28 - 50 + 96 - 82 = 22.",
       points: 200,
       isActive: true
     }
@@ -496,6 +497,14 @@ export async function seed() {
       inputData: "[12, 25, 34, 47, 58, 63, 72, 81]",
       derivationRule: "Derive key as 'PROTOCOL_BREACH_' concatenated with the corrected integer checksum.",
       expectedFinalKey: "PROTOCOL_BREACH_1040",
+      referenceSolution: [
+        "Expected output: PROTOCOL_BREACH_1040 (or numeric checksum 1040).",
+        "Even-byte contributions: (12 << 2) + 3 = 51, (34 << 2) + 3 = 139, (58 << 2) + 3 = 235, (72 << 2) + 3 = 291.",
+        "Odd-byte contributions: 25 ^ 0x4B = 82, 47 ^ 0x4B = 100, 63 ^ 0x4B = 116, 81 ^ 0x4B = 26. Total = 1040.",
+        "Corrected Python line: checksum += (b << 2) + 3",
+        "Corrected Java line: checksum += (b << 2) + 3;",
+        "Corrected C line: checksum += (b << 2) + 3;"
+      ].join("\n"),
       points: 200,
       isActive: true,
       javaCode: `public class KernelChecksum {

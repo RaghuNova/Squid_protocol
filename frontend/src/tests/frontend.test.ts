@@ -177,15 +177,41 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(modal).toContain("if (!firstConfirmed || typedConfirmation !== 'RESET GAME'");
     });
 
-    it('does not put QR redemption secrets in participant Round 3 markup', async () => {
+    it('uses mobile QR redemption and laptop access-key entry without a laptop camera', async () => {
       const fs = await import('fs');
       const path = await import('path');
       const round3 = fs.readFileSync(path.resolve(__dirname, '../features/round3/Round3View.tsx'), 'utf-8');
-      const scanner = fs.readFileSync(path.resolve(__dirname, '../features/round3/BrokenQrPuzzle.tsx'), 'utf-8');
+      const laptop = fs.readFileSync(path.resolve(__dirname, '../features/round3/BrokenQrPuzzle.tsx'), 'utf-8');
+      const mobile = fs.readFileSync(path.resolve(__dirname, '../pages/PhysicalQrRedeemPage.tsx'), 'utf-8');
       expect(round3).not.toContain('tokenCode');
       expect(round3).toContain('<BrokenQrPuzzle');
-      expect(scanner).toContain('redemptionKey');
-      expect(scanner).toContain("'/round3/qr/redeem'");
+      expect(laptop).toContain('Round 3 access key');
+      expect(laptop).not.toMatch(/BrowserQRCodeReader|decodeFromVideoDevice|<video|navigator\.mediaDevices/);
+      expect(mobile).toContain("'/round3/qr/mobile-redeem'");
+      expect(mobile).toContain('accessKey');
+    });
+  });
+
+  describe('Round progression and protected challenge data', () => {
+    it('preserves an active Round 2 row when Round 1 reconciliation runs and starts each timer once', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/teamRoundProgressService.ts'), 'utf-8');
+      expect(service).toContain('update: {}');
+      expect(service).toContain('where: { id: next.id, status: TeamRoundProgressStatus.LOCKED }');
+      expect(service).toContain('where: { id: progress.id, status: TeamRoundProgressStatus.READY }');
+      expect(service).toContain('ROUND_MINUTES[2] * 60_000');
+    });
+
+    it('gates Round 2 stage two on server-recorded Sudoku completion and omits its answer', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round2Service.ts'), 'utf-8');
+      expect(service).toContain("source: 'ROUND2_STAGE1_SUDOKU'");
+      expect(service).toContain("error: 'STAGE_LOCKED'");
+      expect(service).toMatch(/select:\s*\{\s*id: true,\s*title: true,\s*scenario: true,\s*codeSnippet: true,\s*points: true/);
+      expect(service).not.toContain('expectedOutput: true');
+      expect(service).not.toContain('referenceSolution: true');
     });
   });
 

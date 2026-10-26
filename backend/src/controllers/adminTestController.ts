@@ -69,7 +69,7 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
       for (const token of tokens) {
         await tx.accessToken.update({
           where: { id: token.id },
-          data: { tokenCode: await newUniqueQrToken(tx), isRedeemed: false, redeemedAt: null }
+          data: { tokenCode: await newUniqueQrToken(tx), accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
         });
       }
 
