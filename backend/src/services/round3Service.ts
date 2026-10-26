@@ -43,7 +43,9 @@ export class Round3Service {
     await teamRoundProgressService.reconcileTeam(teamId);
     const secondRound = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
     const isEligible = !!secondRound?.nextRoundEligible;
-    const isGateOpen = roundControl?.status === RoundStatus.ACTIVE;
+    // Later rounds are team-driven. Only an explicit pause blocks the team's
+    // access; UPCOMING is retained for legacy admin display state.
+    const isGateOpen = roundControl?.status !== RoundStatus.PAUSED;
     const isCompleted = !!team?.finalBreachCompletedAt;
     const isRoundUnlocked = isEligible;
 

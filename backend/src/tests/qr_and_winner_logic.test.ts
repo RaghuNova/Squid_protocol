@@ -65,11 +65,12 @@ describe('configured Round 3 answer validation', () => {
   });
 });
 
-describe('Round 1 to Round 2 access gate', () => {
-  it('starts Round 2 only after team eligibility and admin gate are both true', () => {
+describe('Round 1 to Round 2 team progression', () => {
+  it('starts Round 2 for an eligible team without a later-round admin gate', () => {
     expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.ACTIVE)).toBe(true);
     expect(canStartTeamRound2(false, TeamRoundProgressStatus.READY, RoundStatus.ACTIVE)).toBe(false);
-    expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.UPCOMING)).toBe(false);
+    expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.UPCOMING)).toBe(true);
+    expect(canStartTeamRound2(true, TeamRoundProgressStatus.READY, RoundStatus.PAUSED)).toBe(false);
     expect(canStartTeamRound2(true, TeamRoundProgressStatus.IN_PROGRESS, RoundStatus.ACTIVE)).toBe(false);
   });
 });

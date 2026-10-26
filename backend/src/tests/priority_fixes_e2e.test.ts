@@ -171,12 +171,6 @@ describe('SQUID PROTOCOL — Priority 1 to 5 Fixes Acceptance Test Suite', () =>
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'ACTIVE' });
 
-      // Open Round 2 gate globally
-      await request(app)
-        .patch('/api/v1/admin/rounds/2')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'ACTIVE' });
-
       const team = await prisma.team.findUnique({ where: { teamCode: 'TEST01' } });
       expect(team).toBeDefined();
 
@@ -202,6 +196,7 @@ describe('SQUID PROTOCOL — Priority 1 to 5 Fixes Acceptance Test Suite', () =>
 
       expect(r2Data.status).toBe(200);
       expect(r2Data.body.isUnlocked).toBe(true);
+      expect(r2Data.body.round.status).toBe('UPCOMING');
       // currentStage should be 1 since this team hasn't completed the Sudoku
       expect(r2Data.body.currentStage).toBe(1);
     });
@@ -224,25 +219,43 @@ describe('SQUID PROTOCOL — Priority 1 to 5 Fixes Acceptance Test Suite', () =>
       expect(r3Data.status).toBe(200);
       expect(r3Data.body.isEligible).toBe(true);
       expect(r3Data.body.isUnlocked).toBe(true);
+      expect(r3Data.body.isGateOpen).toBe(true);
+    });
+
+    it('keeps team progression independent when another team is still in Round 1', async () => {
+      const [completedTeam, activeTeam] = await Promise.all([
+        prisma.team.findUnique({ where: { teamCode: 'TEST01' } }),
+        prisma.team.findUnique({ where: { teamCode: 'TEST02' } })
+      ]);
+      expect(completedTeam).toBeDefined();
+      expect(activeTeam).toBeDefined();
+
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: completedTeam!.id, round: 1 } },
+        create: { teamId: completedTeam!.id, round: 1, status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() },
+        update: { status: 'COMPLETED', nextRoundEligible: true, completedAt: new Date() }
+      });
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: activeTeam!.id, round: 1 } },
+        create: { teamId: activeTeam!.id, round: 1, status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() + 60000) },
+        update: { status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() + 60000) }
+      });
+
+      const [completedRound2, activeRound2] = await Promise.all([
+        request(app).get('/api/v1/round2/data').set('Authorization', `Bearer ${test01Token}`),
+        request(app).get('/api/v1/round2/data').set('Authorization', `Bearer ${test02Token}`)
+      ]);
+
+      expect(completedRound2.body.isUnlocked).toBe(true);
+      expect(activeRound2.body.isUnlocked).toBe(false);
+      const activeProgress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: activeTeam!.id, round: 1 } } });
+      expect(activeProgress?.status).toBe('IN_PROGRESS');
+      expect(activeProgress?.nextRoundEligible).toBe(false);
     });
   });
 
-  describe('Test C: Admin starts Round 3 & Access Key Workflow', () => {
-    it('makes Round 3 accessible immediately when admin starts Round 3, validates PIN, and awards points once', async () => {
-      // Admin ends Round 2 and starts Round 3
-      const endR2 = await request(app)
-        .patch('/api/v1/admin/rounds/2')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'ENDED' });
-      expect(endR2.status).toBe(200);
-
-      const startR3 = await request(app)
-        .patch('/api/v1/admin/rounds/3')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'ACTIVE' });
-      expect(startR3.status).toBe(200);
-
-      // Verify Round 3 global gate is now open
+  describe('Test C: Automatic Round 3 & Access Key Workflow', () => {
+    it('makes Round 3 accessible without an admin start command, validates PIN, and awards points once', async () => {
       const r3Data = await request(app)
         .get('/api/v1/round3/data')
         .set('Authorization', `Bearer ${test01Token}`);
@@ -315,23 +328,36 @@ describe('SQUID PROTOCOL — Priority 1 to 5 Fixes Acceptance Test Suite', () =>
   });
 
   describe('Test D: Timeout Behavior Progression', () => {
-    it('promotes uncompleted teams when admin ends previous round', async () => {
-      const team4 = await prisma.team.findUnique({ where: { teamCode: 'TEST04' } });
-
-      // Put TEST04 into Round 2 in-progress state
+    it('promotes an uncompleted team when its Round 1 deadline expires', async () => {
+      const team = await prisma.team.findUnique({ where: { teamCode: 'TEST02' } });
+      expect(team).toBeDefined();
       await prisma.teamRoundProgress.upsert({
-        where: { teamId_round: { teamId: team4!.id, round: 2 } },
-        create: { teamId: team4!.id, round: 2, status: 'IN_PROGRESS', nextRoundEligible: false },
-        update: { status: 'IN_PROGRESS', nextRoundEligible: false }
+        where: { teamId_round: { teamId: team!.id, round: 1 } },
+        create: { teamId: team!.id, round: 1, status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() - 1000) },
+        update: { status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() - 1000) }
       });
 
-      // Admin ends Round 2 (which simulates global deadline expiration)
-      await request(app)
-        .patch('/api/v1/admin/rounds/2')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'ENDED' });
+      const r2Data = await request(app)
+        .get('/api/v1/round2/data')
+        .set('Authorization', `Bearer ${test02Token}`);
 
-      // TEST04 now gets timed out and promoted to nextRoundEligible
+      expect(r2Data.body.isUnlocked).toBe(true);
+      const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: team!.id, round: 1 } } });
+      expect(progress?.status).toBe('TIMED_OUT');
+      expect(progress?.nextRoundEligible).toBe(true);
+    });
+
+    it('promotes an uncompleted team when its Round 2 deadline expires', async () => {
+      const team4 = await prisma.team.findUnique({ where: { teamCode: 'TEST04' } });
+
+      // Put TEST04 into Round 2 in-progress state with an expired team deadline.
+      await prisma.teamRoundProgress.upsert({
+        where: { teamId_round: { teamId: team4!.id, round: 2 } },
+        create: { teamId: team4!.id, round: 2, status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() - 1000) },
+        update: { status: 'IN_PROGRESS', nextRoundEligible: false, deadlineAt: new Date(Date.now() - 1000) }
+      });
+
+      // TEST04 now gets timed out and promoted when its state is read.
       const r3Data = await request(app)
         .get('/api/v1/round3/data')
         .set('Authorization', `Bearer ${test04Token}`);
@@ -339,6 +365,10 @@ describe('SQUID PROTOCOL — Priority 1 to 5 Fixes Acceptance Test Suite', () =>
       expect(r3Data.status).toBe(200);
       expect(r3Data.body.isEligible).toBe(true);
       expect(r3Data.body.isUnlocked).toBe(true);
+      expect(r3Data.body.isGateOpen).toBe(true);
+      const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId: team4!.id, round: 2 } } });
+      expect(progress?.status).toBe('TIMED_OUT');
+      expect(progress?.nextRoundEligible).toBe(true);
     });
   });
 });

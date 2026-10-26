@@ -415,6 +415,7 @@ export class Round1Service {
           isCorrect: scoring.isCorrect,
           pointsAwarded: scoring.pointsAwarded,
           doublePointsSelected: currentControl.doublePointsEnabled,
+          roundCompleted: allQuestions.length > 0 && submittedQuestionIds >= allQuestions.length,
           message: scoring.message,
           newTotalScore: updatedTeam.totalScore
         };
@@ -429,6 +430,14 @@ export class Round1Service {
           newTotalScore: txResult.newTotalScore,
           source
         });
+        if (txResult.roundCompleted) {
+          sseService.broadcast('team_progress_change', {
+            teamId: params.teamId,
+            roundId: 1,
+            status: 'COMPLETED',
+            timestamp: new Date().toISOString()
+          });
+        }
       }
 
       return {

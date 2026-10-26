@@ -209,16 +209,18 @@ export const AdminRounds: React.FC = () => {
                 </div>
 
                 <div className="sm:col-span-2 flex flex-wrap items-center gap-2 justify-start sm:justify-end">
-                  <button
-                    onClick={() => handleUpdateStatus(round.id, 'ACTIVE', true)}
-                    disabled={isStartBusy}
-                    className={`px-4 py-2 rounded-lg bg-[#00e676]/20 hover:bg-[#00e676]/30 border border-[#00e676]/40 text-[#00e676] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] ${
-                      isStartBusy ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>{isStartBusy ? 'Starting...' : 'Start with Timer'}</span>
-                  </button>
+                  {round.id === 1 && (
+                    <button
+                      onClick={() => handleUpdateStatus(round.id, 'ACTIVE', true)}
+                      disabled={isStartBusy}
+                      className={`px-4 py-2 rounded-lg bg-[#00e676]/20 hover:bg-[#00e676]/30 border border-[#00e676]/40 text-[#00e676] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] ${
+                        isStartBusy ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>{isStartBusy ? 'Starting...' : 'Start with Timer'}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handleUpdateStatus(round.id, 'PAUSED')}
@@ -231,16 +233,18 @@ export const AdminRounds: React.FC = () => {
                     <span>{isPauseBusy ? 'Pausing...' : 'Pause'}</span>
                   </button>
 
-                  <button
-                    onClick={() => handleUpdateStatus(round.id, 'ENDED')}
-                    disabled={isEndBusy}
-                    className={`px-4 py-2 rounded-lg bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                      isEndBusy ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <Square className="w-3.5 h-3.5" />
-                    <span>{isEndBusy ? 'Ending...' : 'End Round'}</span>
-                  </button>
+                  {round.id === 1 && (
+                    <button
+                      onClick={() => handleUpdateStatus(round.id, 'ENDED')}
+                      disabled={isEndBusy}
+                      className={`px-4 py-2 rounded-lg bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                        isEndBusy ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Square className="w-3.5 h-3.5" />
+                      <span>{isEndBusy ? 'Ending...' : 'End Round'}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handleClearTimer(round.id)}

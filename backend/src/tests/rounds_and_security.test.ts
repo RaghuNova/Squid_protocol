@@ -552,7 +552,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
   describe('4. Round 2 — The Logic Protocol', () => {
     beforeAll(async () => {
-      // This suite focuses on the Round 2 global gate and Sudoku hard gate.
+      // This suite focuses on team eligibility and the Sudoku hard gate.
       // Mark Round 1 eligible as it would be after completion or timeout.
       await prisma.teamRoundProgress.upsert({
         where: { teamId_round: { teamId: testTeam.id, round: 1 } },
@@ -566,14 +566,14 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       });
     });
 
-    it('locks Round 2 when UPCOMING and does not leak puzzles', async () => {
+    it('starts Round 2 for an eligible team while the legacy global control is UPCOMING', async () => {
       const res = await request(app)
         .get('/api/v1/round2/data')
         .set('Authorization', `Bearer ${teamToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.isUnlocked).toBe(false);
-      expect(res.body.sudoku).toBeNull();
+      expect(res.body.isUnlocked).toBe(true);
+      expect(res.body.sudoku).toBeTruthy();
     });
 
     it('locks Stage 2 Broken Logic before Sudoku is completed', async () => {

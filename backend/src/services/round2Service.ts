@@ -128,14 +128,6 @@ export class Round2Service {
       };
     }
 
-    if (roundControl.status !== RoundStatus.ACTIVE) {
-      return {
-        success: false,
-        error: 'ROUND_INACTIVE',
-        message: 'Round 2 is not currently active.'
-      };
-    }
-
     const existing = await prisma.scoreEvent.findUnique({
       where: {
         teamId_source: {
@@ -276,14 +268,6 @@ export class Round2Service {
       };
     }
 
-    if (roundControl.status !== RoundStatus.ACTIVE) {
-      return {
-        success: false,
-        error: 'ROUND_INACTIVE',
-        message: 'Round 2 is not currently active.'
-      };
-    }
-
     const existing = await prisma.scoreEvent.findUnique({ where: { teamId_source: { teamId: params.teamId, source: 'ROUND2_STAGE2_BROKEN_LOGIC' } } });
     if (existing) return { success: true, alreadySubmitted: true, isCorrect: true, pointsAwarded: 0, message: 'Broken Logic challenge has already been solved by your team.' };
 
@@ -361,11 +345,19 @@ export class Round2Service {
         const team = await tx.team.update({ where: { id: params.teamId }, data: { currentRound: 3, currentStage: 1, totalScore: { increment: puzzle.points } } });
         await invalidateFinalizedWinnerSnapshot(tx);
         await teamRoundProgressService.completeRoundInTransaction(tx, params.teamId, 2);
-        return { alreadyCompleted: false, newTotalScore: team.totalScore };
+        return { alreadyCompleted: false, roundCompleted: true, newTotalScore: team.totalScore };
       }, { isolationLevel: 'Serializable' });
       if ('inactive' in result && result.inactive) return { success: false, error: 'ROUND_EXPIRED', message: 'Your team Round 2 timer is not active.' };
       if ('stageLocked' in result && result.stageLocked) return { success: false, error: 'STAGE_LOCKED', message: 'Stage 2 is locked. You must successfully solve Shape Sudoku first.' };
       if (!result.alreadyCompleted) sseService.broadcast('score_update', { teamId: params.teamId, pointsDelta: puzzle.points, newTotalScore: result.newTotalScore, source: 'ROUND2_STAGE2_BROKEN_LOGIC' });
+      if (!result.alreadyCompleted && result.roundCompleted) {
+        sseService.broadcast('team_progress_change', {
+          teamId: params.teamId,
+          roundId: 2,
+          status: 'COMPLETED',
+          timestamp: new Date().toISOString()
+        });
+      }
       return { success: true, alreadySubmitted: result.alreadyCompleted, isCorrect: true, pointsAwarded: result.alreadyCompleted ? 0 : puzzle.points, message: result.alreadyCompleted ? 'Broken Logic challenge has already been solved by your team.' : `Protocol Breach Stage Cleared! +${puzzle.points} points awarded. Round 3 Unlocked.`, newTotalScore: result.newTotalScore };
     } catch (error: any) {
       if (error.code === 'P2002' || error.code === 'P2034') return { success: false, error: 'SUBMISSION_CONFLICT', message: 'Your answer is being processed. Refresh the page and check your stage.' };

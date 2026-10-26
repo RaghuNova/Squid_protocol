@@ -243,30 +243,10 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
           where: { id: 1 },
           data: { status: RoundStatus.ENDED, endTime: current.endTime || now }
         });
-        await prisma.teamRoundProgress.updateMany({
-          where: { round: 1, status: { in: ['IN_PROGRESS', 'READY', 'LOCKED'] } },
-          data: { status: 'TIMED_OUT', timedOutAt: now, deadlineAt: null, remainingSeconds: 0, nextRoundEligible: true }
-        });
-        await prisma.team.updateMany({
-          where: { currentRound: 1 },
-          data: { currentRound: 2, currentStage: 1 }
-        });
       } else if (id === 3) {
         await prisma.roundControl.update({
           where: { id: 2 },
           data: { status: RoundStatus.ENDED, endTime: current.endTime || now }
-        });
-        await prisma.teamRoundProgress.updateMany({
-          where: { round: 2, status: { in: ['IN_PROGRESS', 'READY', 'LOCKED'] } },
-          data: { status: 'TIMED_OUT', timedOutAt: now, deadlineAt: null, remainingSeconds: 0, nextRoundEligible: true }
-        });
-        await prisma.teamRoundProgress.updateMany({
-          where: { round: 1, status: { in: ['IN_PROGRESS', 'READY', 'LOCKED'] } },
-          data: { status: 'TIMED_OUT', timedOutAt: now, deadlineAt: null, remainingSeconds: 0, nextRoundEligible: true }
-        });
-        await prisma.team.updateMany({
-          where: { currentRound: { in: [1, 2] } },
-          data: { currentRound: 3, currentStage: 1 }
         });
       }
     } else if (body.endRound || body.status === RoundStatus.ENDED) {
@@ -284,15 +264,6 @@ export async function updateRound(req: Request, res: Response, next: NextFunctio
         await prisma.team.updateMany({
           where: { currentRound: 1 },
           data: { currentRound: 2, currentStage: 1 }
-        });
-      } else if (id === 2) {
-        await prisma.teamRoundProgress.updateMany({
-          where: { round: 2, status: { in: ['IN_PROGRESS', 'READY', 'LOCKED'] } },
-          data: { status: 'TIMED_OUT', timedOutAt: now, deadlineAt: null, remainingSeconds: 0, nextRoundEligible: true }
-        });
-        await prisma.team.updateMany({
-          where: { currentRound: { in: [1, 2] } },
-          data: { currentRound: 3, currentStage: 1 }
         });
       }
     } else if (body.clearTimer || body.status === RoundStatus.UPCOMING) {

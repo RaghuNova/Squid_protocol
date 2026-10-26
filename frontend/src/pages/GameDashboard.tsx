@@ -215,6 +215,13 @@ export const GameDashboard: React.FC = () => {
         loadAll();
       });
 
+      eventSource.addEventListener('team_progress_change', (e: MessageEvent) => {
+        const payload = JSON.parse(e.data);
+        if (payload.teamId !== team?.id) return;
+        setConnectionStatus('connected');
+        void loadAll();
+      });
+
       eventSource.addEventListener('game_reset', () => {
         setConnectionStatus('connected');
         for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -233,7 +240,7 @@ export const GameDashboard: React.FC = () => {
       eventSource?.close();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [loadAll, refreshMe]);
+  }, [loadAll, refreshMe, team?.id]);
 
   if (authLoading || isLoading) {
     return (

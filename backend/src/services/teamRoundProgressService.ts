@@ -1,11 +1,12 @@
 import { Prisma, RoundStatus, TeamRoundProgressStatus } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { acquireGameplayWriteLock } from './gameResetLock.js';
+import { sseService } from './sseService.js';
 
 const ROUND_MINUTES: Record<number, number> = { 1: 15, 2: 20 };
 
 export function canStartTeamRound2(isEligibleFromRound1: boolean, teamStatus: TeamRoundProgressStatus, gateStatus: RoundStatus | undefined): boolean {
-  return isEligibleFromRound1 && teamStatus === TeamRoundProgressStatus.READY && gateStatus === RoundStatus.ACTIVE;
+  return isEligibleFromRound1 && teamStatus === TeamRoundProgressStatus.READY && gateStatus !== RoundStatus.PAUSED;
 }
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
@@ -102,24 +103,16 @@ export class TeamRoundProgressService {
   }
 
   async reconcileTeam(teamId: string, now = new Date()) {
+    const transitions: Array<{ round: number; status: TeamRoundProgressStatus }> = [];
     await prisma.$transaction(async (tx) => {
       await acquireGameplayWriteLock(tx);
-      const roundGates = await tx.roundControl.findMany({
-        where: { id: { in: [1, 2, 3] } },
-        select: { id: true, status: true }
-      });
-      const r1Ended = roundGates.find(g => g.id === 1)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 2)?.status === RoundStatus.ACTIVE || roundGates.find(g => g.id === 2)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 3)?.status === RoundStatus.ACTIVE;
-      const r2Ended = roundGates.find(g => g.id === 2)?.status === RoundStatus.ENDED || roundGates.find(g => g.id === 3)?.status === RoundStatus.ACTIVE;
-
       const expired = await tx.teamRoundProgress.findMany({
         where: {
           teamId,
           round: { in: [1, 2] },
           status: { in: [TeamRoundProgressStatus.IN_PROGRESS, TeamRoundProgressStatus.READY] },
           OR: [
-            { deadlineAt: { lte: now } },
-            ...(r1Ended ? [{ round: 1 }] : []),
-            ...(r2Ended ? [{ round: 2 }] : [])
+            { deadlineAt: { lte: now } }
           ]
         }
       });
@@ -138,6 +131,7 @@ export class TeamRoundProgressService {
           }
         });
         if (update.count) {
+          transitions.push({ round: progress.round, status: TeamRoundProgressStatus.TIMED_OUT });
           await this.readyNextRound(tx, teamId, progress.round, now);
           await tx.team.update({
             where: { id: teamId },
@@ -159,6 +153,7 @@ export class TeamRoundProgressService {
           select: { createdAt: true }
         });
         const existingProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 1 } } });
+        const wasCompleted = existingProgress?.status === TeamRoundProgressStatus.COMPLETED;
         const completedAt = existingProgress?.completedAt ?? lastAnswer?.createdAt ?? now;
         await tx.teamRoundProgress.upsert({
           where: { teamId_round: { teamId, round: 1 } },
@@ -180,6 +175,7 @@ export class TeamRoundProgressService {
         });
         await this.readyNextRound(tx, teamId, 1, completedAt);
         await tx.team.update({ where: { id: teamId }, data: { currentRound: 2, currentStage: 1 } });
+        if (!wasCompleted) transitions.push({ round: 1, status: TeamRoundProgressStatus.COMPLETED });
       }
 
       const r2Complete = await tx.scoreEvent.findUnique({
@@ -188,6 +184,7 @@ export class TeamRoundProgressService {
       });
       if (r2Complete) {
         const existingProgress = await tx.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
+        const wasCompleted = existingProgress?.status === TeamRoundProgressStatus.COMPLETED;
         const completedAt = existingProgress?.completedAt ?? r2Complete.createdAt;
         await tx.teamRoundProgress.upsert({
           where: { teamId_round: { teamId, round: 2 } },
@@ -209,8 +206,17 @@ export class TeamRoundProgressService {
         });
         await this.readyNextRound(tx, teamId, 2, completedAt);
         await tx.team.update({ where: { id: teamId }, data: { currentRound: 3, currentStage: 1 } });
+        if (!wasCompleted) transitions.push({ round: 2, status: TeamRoundProgressStatus.COMPLETED });
       }
     });
+    for (const transition of transitions) {
+      sseService.broadcast('team_progress_change', {
+        teamId,
+        roundId: transition.round,
+        status: transition.status,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 
   async enterRound1(teamId: string, now = new Date()) {

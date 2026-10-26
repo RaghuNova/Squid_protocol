@@ -30,7 +30,7 @@ export const Round3View: React.FC<Round3ViewProps> = ({
 }) => {
   const status = timer?.status || round?.status || 'UPCOMING';
   const isPaused = status === 'PAUSED' || timer?.isPaused;
-  const isGateOpen = status === 'ACTIVE' || status === 'PAUSED';
+  const isGateOpen = status !== 'PAUSED';
 
   useEffect(() => {
     const handleReset = () => {
