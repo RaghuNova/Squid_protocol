@@ -31,7 +31,7 @@ export function finalKeyMatches(expected: string, submitted: string): boolean {
 export class Round3Service {
   /**
    * Get team-specific Round 3 data.
-   * Debugging challenge is hidden until the team has successfully redeemed a valid QR code.
+   * Debugging challenge stays hidden until the team submits the key issued by a valid QR redemption.
    */
   public async getRound3Data(teamId: string) {
     const roundControl = await prisma.roundControl.findUnique({ where: { id: 3 } });
@@ -124,6 +124,12 @@ export class Round3Service {
         }
         const accessKey = generateQrToken();
         if (token.isRedeemed) {
+          // A phone may retry after a lost response. Return the key already
+          // issued to this same authenticated team so that retry is idempotent.
+          if (token.accessKey) {
+            const team = await tx.team.findUnique({ where: { id: teamId }, select: { teamCode: true } });
+            return { success: true, teamCode: team?.teamCode, accessKey: token.accessKey, message: 'Physical QR verified. Enter this access key on your team laptop.' };
+          }
           // One-time migration bridge for legacy redeemed rows that predate the separate access key.
           const backfill = await tx.accessToken.updateMany({ where: { id: token.id, teamId, isRedeemed: true, accessKey: null }, data: { accessKey } });
           if (backfill.count !== 1) return { success: false, error: 'INVALID_QR_CODE', message: 'This QR code could not be verified. It may be invalid or already used.' };

@@ -32,8 +32,8 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({ isUnlocked, isQr
       playSuccess();
       await refreshMe();
       onSuccess();
-    } catch {
-      setFeedback({ error: true, message: 'Access key could not be verified. Check the key from your physical QR scan.' });
+    } catch (error) {
+      setFeedback({ error: true, message: error instanceof Error ? error.message : 'Access key could not be verified. Check the key from your physical QR scan.' });
       playError();
     } finally {
       setIsSubmitting(false);
@@ -62,12 +62,13 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({ isUnlocked, isQr
       <p className="text-xs text-gray-500 font-mono">The final debugging question stays locked until the access key is entered here.</p>
     </div>}
 
-    {isQrRedeemed && !isAuthorized && <form onSubmit={handleVerify} className="space-y-4">
+    {!isAuthorized && <form onSubmit={handleVerify} className="space-y-4">
       <label htmlFor="round3-access-key" className="block text-xs font-mono uppercase tracking-wider text-cyan-300">Round 3 access key</label>
       <div className="flex flex-col sm:flex-row gap-3">
-        <input id="round3-access-key" autoComplete="off" spellCheck={false} value={accessKey} onChange={event => setAccessKey(event.target.value)} placeholder="Enter the key shown on your mobile phone" className="flex-1 px-4 py-3 rounded-xl bg-black/40 border border-gray-700 text-white font-mono text-sm focus:outline-none focus:border-cyan-400" />
-        <button type="submit" disabled={isSubmitting || !accessKey.trim()} className="px-5 py-3 rounded-xl bg-[#ff004f] text-white font-mono text-xs font-bold disabled:opacity-50">{isSubmitting ? 'VERIFYING…' : 'VERIFY ACCESS KEY'}</button>
+        <input id="round3-access-key" autoComplete="off" spellCheck={false} value={accessKey} onChange={event => setAccessKey(event.target.value)} placeholder={isQrRedeemed ? 'Enter the key shown on your mobile phone' : 'Scan your team QR on a phone first'} aria-describedby="round3-access-key-help" className="flex-1 px-4 py-3 rounded-xl bg-black/40 border border-gray-700 text-white font-mono text-sm focus:outline-none focus:border-cyan-400" />
+        <button type="submit" disabled={isSubmitting || !accessKey.trim()} aria-busy={isSubmitting} className="px-5 py-3 rounded-xl bg-[#ff004f] text-white font-mono text-xs font-bold disabled:opacity-50">{isSubmitting ? 'SUBMITTING…' : 'SUBMIT ACCESS KEY'}</button>
       </div>
+      <p id="round3-access-key-help" className="text-xs text-gray-500 font-mono">The key is issued only after your team scans its physical QR code. It is not your team login.</p>
     </form>}
 
     {isAuthorized && <div role="status" className="p-4 rounded-xl bg-[#00e676]/15 border border-[#00e676]/40 text-[#00e676] font-mono text-xs flex items-center gap-2.5"><CheckCircle2 className="w-4 h-4" />Access key verified. Your final debugging challenge is unlocked.</div>}

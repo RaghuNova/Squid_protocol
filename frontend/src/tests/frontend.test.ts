@@ -186,6 +186,8 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(round3).not.toContain('tokenCode');
       expect(round3).toContain('<BrokenQrPuzzle');
       expect(laptop).toContain('Round 3 access key');
+      expect(laptop).toContain('SUBMIT ACCESS KEY');
+      expect(laptop).toContain('{!isAuthorized && <form');
       expect(laptop).not.toMatch(/BrowserQRCodeReader|decodeFromVideoDevice|<video|navigator\.mediaDevices/);
       expect(mobile).toContain("'/round3/qr/mobile-redeem'");
       expect(mobile).toContain('accessKey');
@@ -212,6 +214,17 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(service).toMatch(/select:\s*\{\s*id: true,\s*title: true,\s*scenario: true,\s*codeSnippet: true,\s*points: true/);
       expect(service).not.toContain('expectedOutput: true');
       expect(service).not.toContain('referenceSolution: true');
+    });
+
+    it('makes physical QR redemption retryable and preserves configured reset settings', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const round3 = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
+      const reset = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminTestController.ts'), 'utf-8');
+      expect(round3).toContain('if (token.accessKey)');
+      expect(round3).toContain('accessKey: token.accessKey');
+      expect(reset).not.toMatch(/durationMinutes:\s*(15|20|30)/);
+      expect(reset).toContain("process.env.ENABLE_GAME_RESET === 'true'");
     });
   });
 

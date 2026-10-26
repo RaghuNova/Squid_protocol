@@ -36,7 +36,7 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
     return;
   }
   if (!resetEnvironmentAllowed()) {
-    res.status(403).json({ success: false, error: 'RESET_ENVIRONMENT_BLOCKED', message: 'Game reset is disabled for this database environment.' });
+    res.status(403).json({ success: false, error: 'RESET_ENVIRONMENT_BLOCKED', message: 'Reset blocked by the safety guard. Use a local database whose name contains dev or test, or explicitly set ENABLE_GAME_RESET=true for the approved production environment.' });
     return;
   }
   if (isResetInProgress) {
@@ -79,10 +79,8 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
       });
       await tx.roundControl.update({
         where: { id: 1 },
-        data: { durationMinutes: 15, remainingSeconds: 900, signalState: SignalState.GREEN, doublePointsEnabled: false, redLightPenaltyMode: false }
+        data: { signalState: SignalState.GREEN }
       });
-      await tx.roundControl.update({ where: { id: 2 }, data: { durationMinutes: 20, remainingSeconds: 1200 } });
-      await tx.roundControl.update({ where: { id: 3 }, data: { durationMinutes: 30, remainingSeconds: 1800 } });
 
       await tx.winnerAnnouncement.upsert({
         where: { id: 1 },
