@@ -186,37 +186,29 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(modal).toContain("if (!firstConfirmed || typedConfirmation !== 'RESET GAME'");
     });
 
-    it('uses mobile QR redemption and laptop access-key entry without a laptop camera', async () => {
+    it('shows a team PIN QR code and verifies that PIN on the signed-in Round 3 account', async () => {
       const fs = await import('fs');
       const path = await import('path');
       const round3 = fs.readFileSync(path.resolve(__dirname, '../features/round3/Round3View.tsx'), 'utf-8');
       const laptop = fs.readFileSync(path.resolve(__dirname, '../features/round3/BrokenQrPuzzle.tsx'), 'utf-8');
-      const mobile = fs.readFileSync(path.resolve(__dirname, '../pages/PhysicalQrRedeemPage.tsx'), 'utf-8');
       expect(round3).not.toContain('tokenCode');
       expect(round3).toContain('<BrokenQrPuzzle');
-      expect(laptop).toContain('Round 3 access key');
-      expect(laptop).toContain('SUBMIT ACCESS KEY');
+      expect(laptop).toContain('Team account PIN');
+      expect(laptop).toContain('team login PIN');
+      expect(laptop).toContain('VERIFY TEAM PIN');
       expect(laptop).toContain('{!isAuthorized && <form');
       expect(laptop).not.toMatch(/BrowserQRCodeReader|decodeFromVideoDevice|<video|navigator\.mediaDevices/);
-      expect(mobile).toContain("'/round3/qr/mobile-redeem'");
-      expect(mobile).toContain('accessKey');
-      expect(mobile).toContain('YOUR ROUND 3 CODE');
-      expect(mobile).toContain('COPY CODE');
-      const round3Routes = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/routes/round3Routes.ts'), 'utf-8');
-      expect(round3Routes).toContain("router.post('/qr/mobile-redeem', submissionRateLimiter");
-      expect(round3Routes).not.toContain("router.post('/qr/mobile-redeem', authenticate");
-      const adminController = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminController.ts'), 'utf-8');
       const round3Service = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
-      const adminQrPage = fs.readFileSync(path.resolve(__dirname, '../pages/admin/AdminQRCodes.tsx'), 'utf-8');
-      expect(adminQrPage).toContain('open the link it detects');
-      expect(adminQrPage).toContain('The QR text itself is not the laptop key');
-      expect(adminController).toContain('/qr/redeem#code=');
-      expect(adminController).toContain('PUBLIC_APP_URL || process.env.FRONTEND_URL');
-      expect(round3Service).toContain('const accessKey = generateQrToken()');
-      expect(round3Service).toContain('where: { teamId, isRedeemed: true, accessKey: submittedKey }');
-      expect(round3Service).toContain("error: 'QR_TOKEN_NOT_ACCESS_KEY'");
-      expect(round3Service).not.toContain('tokenCode: accessKey');
-      expect(round3Service).toContain('WRONG_TEAM_CODE');
+      expect(round3Service).toContain('bcrypt.compare(submittedKey, team.user.passwordHash)');
+      expect(round3Service).toContain('bcrypt.compare(submittedKey.toLowerCase(), team.user.passwordHash)');
+      expect(round3Service).toContain('where: { teamId }, select: { authorizedAt: true }');
+      expect(round3Service).not.toContain('isRedeemed: true, accessKey: submittedKey');
+      const qrPage = fs.readFileSync(path.resolve(__dirname, '../pages/admin/AdminQRCodes.tsx'), 'utf-8');
+      const qrController = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminController.ts'), 'utf-8');
+      expect(qrPage).toContain('Scan a card to display its team PIN');
+      expect(qrPage).toContain('{item.qrText}');
+      expect(qrController).toContain('const qrContent = teamPin');
+      expect(qrController).toContain('qrText: teamPin');
     });
   });
 
@@ -247,10 +239,9 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       const path = await import('path');
       const round3 = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/services/round3Service.ts'), 'utf-8');
       const reset = fs.readFileSync(path.resolve(__dirname, '../../../backend/src/controllers/adminTestController.ts'), 'utf-8');
-      expect(round3).toContain('if (token.accessKey)');
-      expect(round3).toContain('accessKey: token.accessKey');
+      expect(round3).toContain('bcrypt.compare(submittedKey, team.user.passwordHash)');
       expect(reset).not.toMatch(/durationMinutes:\s*(15|20|30)/);
-      expect(reset).toContain("process.env.ENABLE_GAME_RESET === 'true'");
+      expect(reset).toContain("env.ENABLE_GAME_RESET === 'true'");
     });
 
     it('runs pending Render database migrations and surfaces Round 2 and QR load errors', async () => {

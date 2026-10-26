@@ -164,7 +164,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
     });
   });
 
-  describe('5. Round 3 — QR Redemption Gate & Finishing-Order Execution', () => {
+  describe('5. Round 3 — Team PIN Gate & Finishing-Order Execution', () => {
     it('rejects incorrect final answer without awarding a position or finishing timestamp', async () => {
       // Ensure clean state for TEST01 and TEST02 Round 3
       await prisma.team.updateMany({
@@ -178,7 +178,7 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
         where: { team: { teamCode: { in: ['TEST01', 'TEST02'] } }, round: 3, stage: 3 }
       });
 
-      const team = await prisma.team.findUnique({ where: { teamCode: 'TEST01' }, include: { accessToken: true } });
+      const team = await prisma.team.findUnique({ where: { teamCode: 'TEST01' } });
 
       // Activate Round 3
       await prisma.roundControl.update({
@@ -186,19 +186,18 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
         data: { status: 'ACTIVE', startTime: new Date(), endTime: new Date(Date.now() + 30 * 60000) }
       });
 
-      // Redeem QR first
-      if (team?.accessToken && !team.accessToken.isRedeemed) {
-        const qrRes = await request(app)
-          .post('/api/v1/round3/qr/mobile-redeem')
-          .set('Authorization', `Bearer ${test01Token}`)
-          .send({ code: team.accessToken.tokenCode });
-        expect(qrRes.status).toBe(200);
-        const authorized = await request(app)
-          .post('/api/v1/round3/debug/authorize')
-          .set('Authorization', `Bearer ${test01Token}`)
-          .send({ accessKey: qrRes.body.accessKey });
-        expect(authorized.status).toBe(200);
-      }
+      const wrongTeamPin = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${test01Token}`)
+        .send({ accessKey: 'team02#2026' });
+      expect(wrongTeamPin.status).toBe(400);
+      expect(wrongTeamPin.body.error).toBe('INVALID_ACCESS_KEY');
+
+      const authorized = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${test01Token}`)
+        .send({ accessKey: 'TEAM01#2026' });
+      expect(authorized.status).toBe(200);
 
       const res = await request(app)
         .post('/api/v1/round3/debug/submit')
@@ -214,18 +213,22 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
       expect(refreshed!.finalBreachPosition).toBeNull();
     });
 
-    it('cannot redeem an already-redeemed QR code by another team', async () => {
-      const team = await prisma.team.findUnique({ where: { teamCode: 'TEST01' }, include: { accessToken: true } });
-      expect(team?.accessToken?.isRedeemed).toBe(true);
+    it('does not expose the challenge until that team PIN is verified', async () => {
+      const before = await request(app)
+        .get('/api/v1/round3/data')
+        .set('Authorization', `Bearer ${test02Token}`);
+      expect(before.status).toBe(200);
+      expect(before.body.challenge).toBeNull();
 
-      // TEST02 tries to reuse TEST01's already-redeemed QR code
-      const res = await request(app)
-        .post('/api/v1/round3/qr/mobile-redeem')
+      const authorized = await request(app)
+        .post('/api/v1/round3/debug/authorize')
         .set('Authorization', `Bearer ${test02Token}`)
-        .send({ code: team!.accessToken!.tokenCode });
-
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('INVALID_QR_CODE');
+        .send({ accessKey: 'TEAM02#2026' });
+      expect(authorized.status).toBe(200);
+      const after = await request(app)
+        .get('/api/v1/round3/data')
+        .set('Authorization', `Bearer ${test02Token}`);
+      expect(after.body.challenge).toBeTruthy();
     });
 
     it('correct submission awards 1st place (+200 pts) and records completion timestamp', async () => {
@@ -254,21 +257,11 @@ describe('SQUID PROTOCOL — New Features & Integration Test Suite', () => {
 
     it('second valid finisher receives position 2 (+175 pts)', async () => {
       const challenge = await prisma.debugChallenge.findFirst({ where: { isActive: true } });
-      const team2 = await prisma.team.findUnique({ where: { teamCode: 'TEST02' }, include: { accessToken: true } });
-
-      // Redeem QR for TEST02
-      if (team2?.accessToken && !team2.accessToken.isRedeemed) {
-        const qrRes = await request(app)
-          .post('/api/v1/round3/qr/mobile-redeem')
-          .set('Authorization', `Bearer ${test02Token}`)
-          .send({ code: team2.accessToken.tokenCode });
-        expect(qrRes.status).toBe(200);
-        const authorized = await request(app)
-          .post('/api/v1/round3/debug/authorize')
-          .set('Authorization', `Bearer ${test02Token}`)
-          .send({ accessKey: qrRes.body.accessKey });
-        expect(authorized.status).toBe(200);
-      }
+      const authorized = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${test02Token}`)
+        .send({ accessKey: 'TEAM02#2026' });
+      expect(authorized.status).toBe(200);
 
       const team2Before = await prisma.team.findUnique({ where: { teamCode: 'TEST02' } });
       const initialScore = team2Before!.totalScore;

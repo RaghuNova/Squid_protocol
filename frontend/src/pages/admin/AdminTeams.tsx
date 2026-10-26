@@ -98,7 +98,7 @@ export const AdminTeams: React.FC = () => {
           Team Management (20 Squads)
         </h1>
         <p className="text-xs font-mono text-gray-400 mt-1">
-          Inspect squad progression, assign display names, view QR tokens, and securely reset PIN credentials.
+          Inspect squad progression, assign display names, view Round 3 PIN QR codes, and securely reset PIN credentials.
         </p>
       </div>
 

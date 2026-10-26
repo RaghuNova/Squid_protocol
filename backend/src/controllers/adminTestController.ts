@@ -2,32 +2,25 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma, RoundStatus, SignalState } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { sseService } from '../services/sseService.js';
-import { generateQrToken } from '../utils/qrToken.js';
 
 let isResetInProgress = false;
 const RESET_LOCK_A = 1567324401;
 const RESET_LOCK_B = 1;
 
-function resetEnvironmentAllowed(): boolean {
-  if (process.env.NODE_ENV === 'production') return process.env.ENABLE_GAME_RESET === 'true';
-  const url = process.env.DATABASE_URL;
+export function resetEnvironmentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.NODE_ENV === 'production') return env.ENABLE_GAME_RESET === 'true';
+  const url = env.NODE_ENV === 'test' ? env.TEST_DATABASE_URL || env.DATABASE_URL : env.DATABASE_URL;
   if (!url) return false;
   try {
     const parsed = new URL(url);
     const databaseName = parsed.pathname.replace(/^\//, '').split('?')[0];
-    return ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname) && /(test|dev)/i.test(databaseName);
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+    if (!isLocal) return false;
+    const isNamedTestDatabase = /(test|dev)/i.test(databaseName);
+    return isNamedTestDatabase || (env.NODE_ENV === 'development' && env.ENABLE_GAME_RESET === 'true');
   } catch {
     return false;
   }
-}
-
-async function newUniqueQrToken(tx: Prisma.TransactionClient): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const tokenCode = generateQrToken();
-    const exists = await tx.accessToken.findUnique({ where: { tokenCode }, select: { id: true } });
-    if (!exists) return tokenCode;
-  }
-  throw new Error('Unable to allocate a unique QR token.');
 }
 
 export async function resetGame(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -48,7 +41,7 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
   const resetAt = new Date();
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}, ${RESET_LOCK_B})`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RESET_LOCK_A}::integer, ${RESET_LOCK_B}::integer) IS NULL AS locked`;
       await tx.submission.deleteMany({});
       await tx.scoreEvent.deleteMany({});
       await tx.physicalVerification.deleteMany({});
@@ -65,28 +58,55 @@ export async function resetGame(req: Request, res: Response, next: NextFunction)
         }
       });
 
-      const tokens = await tx.accessToken.findMany({ select: { id: true } });
-      for (const token of tokens) {
-        await tx.accessToken.update({
-          where: { id: token.id },
-          data: { tokenCode: await newUniqueQrToken(tx), accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
+      await tx.accessToken.updateMany({
+        data: { accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
+      });
+
+      const roundControls = await tx.roundControl.findMany({ where: { id: { in: [1, 2, 3] } } });
+      if (roundControls.length !== 3) throw new Error('Reset verification failed: all three round controls must exist.');
+      for (const round of roundControls) {
+        await tx.roundControl.update({
+          where: { id: round.id },
+          data: {
+            status: RoundStatus.UPCOMING,
+            startTime: null,
+            endTime: null,
+            pausedAt: null,
+            remainingSeconds: round.durationMinutes * 60,
+            signalState: SignalState.GREEN,
+            redLightPenaltyMode: false,
+            doublePointsEnabled: false
+          }
         });
       }
-
-      await tx.roundControl.updateMany({
-        where: { id: { in: [1, 2, 3] } },
-        data: { status: RoundStatus.UPCOMING, startTime: null, endTime: null, pausedAt: null, remainingSeconds: null }
-      });
-      await tx.roundControl.update({
-        where: { id: 1 },
-        data: { signalState: SignalState.GREEN }
-      });
 
       await tx.winnerAnnouncement.upsert({
         where: { id: 1 },
         update: { isFinalized: false, finalizedAt: null, finalizedByAdminId: null, finalizedByAdminUsername: null, winners: Prisma.DbNull, notes: null },
         create: { id: 1, isFinalized: false }
       });
+
+      const [submissionCount, scoreEventCount, verificationCount, progressCount, dirtyTeams, dirtyTokens, winner, resetRounds] = await Promise.all([
+        tx.submission.count(),
+        tx.scoreEvent.count(),
+        tx.physicalVerification.count(),
+        tx.teamRoundProgress.count(),
+        tx.team.count({ where: { OR: [
+          { totalScore: { not: 0 } }, { currentRound: { not: 1 } }, { currentStage: { not: 1 } },
+          { isDisqualified: true }, { finalBreachCompletedAt: { not: null } },
+          { finalBreachPosition: { not: null } }, { finalBreachPoints: { not: null } }
+        ] } }),
+        tx.accessToken.count({ where: { OR: [
+          { accessKey: { not: null } }, { authorizedAt: { not: null } },
+          { isRedeemed: true }, { redeemedAt: { not: null } }
+        ] } }),
+        tx.winnerAnnouncement.findUnique({ where: { id: 1 } }),
+        tx.roundControl.findMany({ where: { id: { in: [1, 2, 3] } } })
+      ]);
+      const badRounds = resetRounds.filter(round => round.status !== RoundStatus.UPCOMING || round.startTime || round.endTime || round.pausedAt || round.signalState !== SignalState.GREEN || round.redLightPenaltyMode || round.doublePointsEnabled || round.remainingSeconds !== round.durationMinutes * 60);
+      if (submissionCount || scoreEventCount || verificationCount || progressCount || dirtyTeams || dirtyTokens || winner?.isFinalized || winner?.finalizedAt || winner?.finalizedByAdminId || winner?.winners !== null || badRounds.length) {
+        throw new Error('Reset verification failed: persisted game state remains after the reset transaction.');
+      }
       await tx.adminAuditLog.create({
         data: {
           adminUserId: req.user!.userId,

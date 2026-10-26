@@ -527,7 +527,7 @@ export const AdminDashboard: React.FC = () => {
               </span>
             </div>
             <p className="text-xs font-mono text-gray-400">
-              Offline tasks + single-use QR redemption + online debugging (+200). 30 mins.
+                Offline tasks + team PIN verification + online debugging (+200). 30 mins.
             </p>
             {r3?.status === 'UPCOMING' ? (
               <button
@@ -775,7 +775,7 @@ export const AdminDashboard: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono text-gray-400">
-                Single-use tokens for Round 3 QR code reconstruction activity.
+                Scan the QR to display the same team PIN used to unlock Round 3.
               </span>
               <button
                 onClick={fetchQRCodes}
@@ -793,9 +793,7 @@ export const AdminDashboard: React.FC = () => {
                   )}
                   <div className="font-mono text-xs">
                     <span className="font-bold text-white block">{q.teamCode}</span>
-                    <span className={`text-[10px] font-bold ${q.isRedeemed ? 'text-[#00e676]' : 'text-amber-400'}`}>
-                      {q.isRedeemed ? 'REDEEMED' : 'UNREDEEMED'}
-                    </span>
+                    <code className="text-[10px] text-cyan-300">{q.qrText || `${q.teamCode}#2026`}</code>
                   </div>
                 </div>
               ))}

@@ -24,7 +24,7 @@
    - **Stage 2**: **Broken Logic** technical puzzle (+200 pts). Unlocked exclusively after successful Sudoku completion.
 3. **Round 3 — The Final Breach (30 min)**:
    - **Offline Physical Activities**: Cup-transfer challenge and Broken QR code reconstruction conducted and judged physically at the arena venue.
-   - **Online Single-Use QR Gate**: Teams redeem the unique code obtained from their reconstructed physical QR code. The debugging challenge is strictly hidden until the code is redeemed.
+   - **Online Team PIN Gate**: Eligible teams scan their team's QR to display its PIN, then enter it on the signed-in laptop. The debugging challenge stays hidden until verified.
    - **Final Online Debugging Challenge**: Advanced firmware challenge with equivalent **Java**, **Python**, and **C** implementations containing an operator precedence bug (`+` taking precedence over `<<`). Correctly derived final key (`PROTOCOL_BREACH_1040`) awards +200 points once and stamps the final breach timestamp.
 4. **Confidential Standings (Admin-Only Leaderboard)**:
    - In accordance with event regulations, the full leaderboard is strictly restricted to tournament administrators.
@@ -111,15 +111,15 @@ The repeatable seed script (`npm run db:seed`) creates all necessary tournament 
   - ...
   - `TEAM20`: `team20#2026`
 
-### Round 3 QR Redemption Codes
-Each team has a single-use, cryptographically random QR token. Printed QR codes encode `${PUBLIC_APP_URL}/qr/redeem#code=<opaque-token>` (or `FRONTEND_URL` when `PUBLIC_APP_URL` is unset). The phone opens the redemption page, which sends only the token to `POST /api/v1/round3/qr/mobile-redeem`. The backend returns a separate one-time laptop key, stored in `AccessToken.accessKey`; the team submits it as `{ "accessKey": "…" }` to `POST /api/v1/round3/debug/authorize`. The backend matches that key to the authenticated team and records `authorizedAt` before revealing the challenge. The QR token itself is never accepted as the laptop key. Configure the public frontend origin before generating printable QR codes, then regenerate and reprint cards after deployment.
+### Round 3 Team PIN Access
+After Round 2 eligibility is met, scan the team's Round 3 QR code. It displays that team's PIN (for example, `TEAM01#2026`); enter the same value in Round 3 on the team's signed-in laptop. The server verifies it for that team before revealing the final debugging challenge. Final answer scoring and finishing order are unchanged.
 
 The administrator Question Matrix includes the Round 2 debugging question and Round 3 final debugging challenge, expected answers, and reference solutions. Those values are available only through admin-protected endpoints; participant APIs expose challenge content only after its required stage and access checks.
 
 ### Admin Game Reset and Winner Board
-The admin dashboard provides a two-step **Reset Game** flow (checkbox confirmation, then the exact text `RESET GAME`). It clears gameplay progress and scores in one transaction, rotates all QR tokens, and clears the finalized winner snapshot while preserving accounts, teams, puzzles, questions, and event setup. Every reset attempt is audited.
+The admin dashboard provides a two-step **Reset Game** flow (checkbox confirmation, then the exact text `RESET GAME`). It clears gameplay progress and scores in one transaction, clears Round 3 authorization and the finalized winner snapshot, and restores round controls while preserving accounts, teams, QR tokens, puzzles, questions, and event setup. Every reset attempt is audited.
 
-To prevent accidental data loss, reset is disabled by default. In production, it is available only when `ENABLE_GAME_RESET=true` is explicitly configured. Outside production, it is allowed only for a local database whose name contains `test` or `dev`. The admin Winner Board shows the backend-calculated standings for all non-disqualified teams and can save a finalized snapshot.
+To prevent accidental data loss, reset is disabled by default. In production, it is available only when `ENABLE_GAME_RESET=true` is explicitly configured. Outside production, it is allowed only for a local database whose name contains `test` or `dev`, or a local development database when the flag is explicitly enabled. The admin Winner Board shows the backend-calculated standings for all non-disqualified teams and can save a finalized snapshot.
 
 ### Isolated Test Accounts
 
@@ -146,7 +146,7 @@ It refuses non-local database hosts and database names that do not contain `test
 | **Red Light — Any Submission** | **−50** | **−100** |
 | **Round 2 — Shape Sudoku Solved** | **+100** | N/A |
 | **Round 2 — Broken Logic Solved** | **+200** | N/A |
-| **Round 3 — QR Code Redeemed** | Unlocks Challenge | N/A |
+| **Round 3 — Team PIN Verified** | Unlocks Challenge | N/A |
 | **Round 3 — Final Key Solved** | **+200** | N/A |
 
 ---

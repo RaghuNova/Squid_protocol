@@ -167,15 +167,15 @@ export const RULES: CodifiedRule[] = [
     category: 'round3',
     categoryLabel: 'Round 3 — The Final Breach',
     title: 'Final Online Challenge — Finishing Order Scoring',
-    plainEnglishSummary: 'Redeeming your verified single-use QR code unlocks the final online challenge, awarding points based on completion order.',
-    desc: 'The final digital stage awards points according to verified completion order: 1st (+200), 2nd (+175), 3rd (+150), decreasing by 25 pts down to 8th (+25), and 9th onward (-25). Teams must redeem their unique single-use QR code to unlock the problem terminal.',
+    plainEnglishSummary: 'Entering your team account PIN unlocks the final online challenge, awarding points based on completion order.',
+    desc: 'The final digital stage awards points according to verified completion order: 1st (+200), 2nd (+175), 3rd (+150), decreasing by 25 pts down to 8th (+25), and 9th onward (-25). Enter the same PIN used to sign in to your team account to unlock the problem terminal.',
     badge: 'FINISHING ORDER',
     badgeType: 'success',
     roundSymbol: 'square',
     roundAccentColor: '#00e676',
     keyDetails: [
       '1st: +200, 2nd: +175, 3rd: +150, ..., 8th: +25, 9th+: -25',
-      'Requires single-use QR code redemption',
+      'Requires your team account PIN',
       'Points awarded only once per verified team completion'
     ]
   },
@@ -483,7 +483,7 @@ export const RulesPage: React.FC = () => {
               </div>
               <h3 className="font-mono text-xs font-bold text-text-secondary">The Final Breach</h3>
               <p className="text-xs font-mono text-text-muted leading-relaxed">
-                In-person Cup Transfer &amp; Broken QR Assembly. Redeem your single-use QR to unlock the final multi-language debugging challenge with finishing-order scoring.
+                In-person Cup Transfer &amp; Broken QR Assembly. Enter your team account PIN to unlock the final multi-language debugging challenge with finishing-order scoring.
               </p>
               <div className="pt-1 font-mono text-xs font-bold text-signal-green tabular-nums">
                 Finishing Order: +200 to -25 PTS

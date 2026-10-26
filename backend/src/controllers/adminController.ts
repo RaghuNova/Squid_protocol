@@ -9,7 +9,8 @@ import { logAdminAction } from '../services/auditService.js';
 import { computeRoundTimer } from '../services/round1Service.js';
 import { RoundStatus, SignalState, UserRole } from '@prisma/client';
 import { teamRoundProgressService } from '../services/teamRoundProgressService.js';
-import { generateQrToken, isStrongQrToken } from '../utils/qrToken.js';
+import { getRound3TeamPin } from '../utils/round3TeamPin.js';
+import { generateQrToken } from '../utils/qrToken.js';
 
 export async function getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -452,13 +453,6 @@ export async function getAuditLogs(req: Request, res: Response, next: NextFuncti
 
 export async function generateQRCodes(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const appUrl = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL ||
-      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '')).replace(/\/+$/, '');
-    if (!appUrl) throw new Error('PUBLIC_APP_URL or FRONTEND_URL must be configured before generating Round 3 QR codes.');
-    const parsedAppUrl = new URL(appUrl);
-    if (process.env.NODE_ENV === 'production' && (parsedAppUrl.protocol !== 'https:' || ['localhost', '127.0.0.1'].includes(parsedAppUrl.hostname))) {
-      throw new Error('Round 3 QR codes require a public HTTPS frontend URL in production.');
-    }
     const teams = await prisma.team.findMany({
       orderBy: { teamCode: 'asc' },
       include: { accessToken: true }
@@ -466,27 +460,13 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
 
     const qrDataList = [];
     for (const team of teams) {
-      let token = team.accessToken;
-      if (!token) {
-        const tokenCode = generateQrToken();
-        token = await prisma.accessToken.create({
-          data: {
-            teamId: team.id,
-            tokenCode,
-            isRedeemed: false
-          }
-        });
-      } else if (!isStrongQrToken(token.tokenCode)) {
-        await prisma.accessToken.updateMany({
-          where: { id: token.id, tokenCode: token.tokenCode },
-          data: { tokenCode: generateQrToken(), accessKey: null, authorizedAt: null, isRedeemed: false, redeemedAt: null }
-        });
-        token = await prisma.accessToken.findUniqueOrThrow({ where: { id: token.id } });
+      if (!team.accessToken) {
+        await prisma.accessToken.create({ data: { teamId: team.id, tokenCode: generateQrToken() } });
       }
-
-      // The QR must open the redemption page so the bearer token can be
-      // exchanged for a separate, one-time laptop access key.
-      const qrContent = `${appUrl}/qr/redeem#code=${encodeURIComponent(token.tokenCode)}`;
+      // QR scanners display this plain team PIN directly. It is also accepted
+      // by the authenticated team's Round 3 authorization endpoint.
+      const teamPin = getRound3TeamPin(team.teamCode);
+      const qrContent = teamPin;
       const dataUrl = await QRCode.toDataURL(qrContent, {
         errorCorrectionLevel: 'H',
         margin: 2,
@@ -500,7 +480,7 @@ export async function generateQRCodes(req: Request, res: Response, next: NextFun
         teamId: team.id,
         teamCode: team.teamCode,
         teamName: team.name,
-        isRedeemed: token.isRedeemed,
+        qrText: teamPin,
         qrDataUrl: dataUrl
       });
     }

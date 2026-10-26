@@ -11,7 +11,7 @@ const QRRedeemSchema = z.object({
 const FinalKeySubmitSchema = z.object({
   finalKey: z.string().min(3).max(100)
 });
-const AccessKeySchema = z.object({ accessKey: z.string().trim().min(20).max(100) });
+const AccessKeySchema = z.object({ accessKey: z.string().trim().min(3).max(50) });
 
 function diagnosticRequestId(req: Request, res: Response): string {
   const supplied = req.get('x-request-id');

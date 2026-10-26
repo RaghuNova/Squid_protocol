@@ -145,13 +145,13 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
     title: 'The Final Breach',
     subtitle: 'Physical Verification & Firmware Debug',
     description:
-      'Arena physical challenge and QR reconstruction gate unlock a firmware debugging task across Java, Python, and C. Derives the final tournament breach key.',
+      'Arena physical challenges lead to a team PIN QR code. Scan it to display the PIN and unlock a firmware debugging task across Java, Python, and C.',
     pointsText: 'Scoring:',
     pointsHighlight: '+200 to -25 PTS',
     footerStatus: 'Single-Use Gate',
     footerStatusColorClass: 'text-signal-green',
     briefing: {
-      lore: 'The definitive survival round. Squads compete in physical arena trials to reconstruct their designated QR token, unlocking the final kernel debugging challenge.',
+      lore: 'The definitive survival round. Squads complete physical arena trials, scan their team PIN QR code, then solve the final kernel debugging challenge.',
       duration: '25-30 Minutes',
       scoreStructure: '+200 (1st) down to -25 (9th+)',
       stages: [
@@ -163,7 +163,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
         },
         {
           title: 'Stage 2: Cryptographic QR Reconstruction',
-          desc: 'Physically assemble your squad token fragments and redeem the single-use keycode into the terminal gate.',
+          desc: 'Complete the physical QR challenge to receive your team PIN, then enter that PIN into the Round 3 terminal.',
           points: 'Unlocks Final Challenge',
           tag: 'Physical Gate'
         },
@@ -174,7 +174,7 @@ export const ROUND_PROTOCOLS: RoundProtocol[] = [
           tag: 'Final Key'
         }
       ],
-      lethalRule: 'Single-use token: Each squad QR code can be redeemed exactly once. The digital debugging challenge is strictly hidden until redeemed.',
+      lethalRule: 'The final debugging challenge stays hidden until the signed-in team enters the PIN shown by its QR code.',
       proTip: 'Compare the arithmetic operator precedence rules between C, Java and Python carefully to determine the correct evaluation order.'
     }
   }

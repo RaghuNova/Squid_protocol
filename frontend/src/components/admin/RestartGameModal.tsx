@@ -39,7 +39,7 @@ export const RestartGameModal: React.FC<RestartGameModalProps> = ({ isOpen, onCl
 
       <div className="p-4 rounded-xl bg-black/40 border border-gray-800 text-gray-300 font-mono text-xs leading-relaxed space-y-3">
         <p className="font-medium text-white">This clears all scores, submissions, round progress, verification records, QR redemptions, finish positions, and finalized winners. Teams, accounts, memberships, questions, puzzles, solutions, and event configuration remain.</p>
-        <p className="flex gap-2 text-amber-300"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> Every team's QR token will be replaced. Previously printed QR codes will stop working.</p>
+        <p className="flex gap-2 text-amber-300"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> Round 3 PIN verification will be cleared. Team QR codes remain valid.</p>
       </div>
 
       <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-800 text-xs text-gray-300 font-mono">

@@ -56,7 +56,6 @@ export const GameDashboard: React.FC = () => {
     round: RoundControl | null;
     timer?: any;
     isUnlocked: boolean;
-    isQrRedeemed: boolean;
     isAccessKeyAuthorized: boolean;
     isCompleted: boolean;
     pointsAwarded?: number | null;
@@ -65,7 +64,6 @@ export const GameDashboard: React.FC = () => {
   }>({
     round: null,
     isUnlocked: false,
-    isQrRedeemed: false,
     isAccessKeyAuthorized: false,
     isCompleted: false,
     challenge: null,
@@ -125,7 +123,6 @@ export const GameDashboard: React.FC = () => {
         round: res.round,
         timer: res.timer,
         isUnlocked: Boolean(res.isUnlocked),
-        isQrRedeemed: Boolean(res.isQrRedeemed),
         isAccessKeyAuthorized: Boolean(res.isAccessKeyAuthorized),
         isCompleted: Boolean(res.isCompleted),
         pointsAwarded: res.pointsAwarded ?? null,
@@ -273,9 +270,7 @@ export const GameDashboard: React.FC = () => {
         ? 'System Breached (+200 PTS)'
         : round3Data.isAccessKeyAuthorized
         ? 'Final Kernel Debugging Challenge'
-        : round3Data.isQrRedeemed
-        ? 'Enter Mobile Access Key'
-        : 'Physical QR Activity',
+        : 'Enter Team Access Key',
       timerEndTime: round3Data.timer?.endTime ?? round3Data.round?.endTime,
       timerRemainingSeconds: round3Data.timer?.remainingSeconds ?? round3Data.round?.remainingSeconds,
       timerStatus: round3Data.timer?.status || round3Data.round?.status || 'UPCOMING',
@@ -554,7 +549,6 @@ export const GameDashboard: React.FC = () => {
               round={round3Data.round}
               timer={round3Data.timer}
               isUnlocked={round3Data.isUnlocked}
-              isQrRedeemed={round3Data.isQrRedeemed}
               isAccessKeyAuthorized={round3Data.isAccessKeyAuthorized}
               isCompleted={round3Data.isCompleted}
               pointsAwarded={round3Data.pointsAwarded}

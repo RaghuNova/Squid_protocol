@@ -6,7 +6,7 @@ interface QRItem {
   teamId: string;
   teamCode: string;
   teamName: string;
-  isRedeemed: boolean;
+  qrText: string;
   qrDataUrl: string;
 }
 
@@ -61,7 +61,7 @@ export const AdminQRCodes: React.FC = () => {
             Printable Squad QR Codes
           </h1>
           <p className="text-xs font-mono text-gray-400 mt-1">
-            Scan the card with a phone camera and open the link it detects. After the phone verifies the QR, copy the separate access key shown on that page and enter it in Round 3 on the team laptop. The QR text itself is not the laptop key.
+            Scan a card to display its team PIN, then enter that same PIN in Round 3 on the team's signed-in laptop.
           </p>
         </div>
 
@@ -107,8 +107,9 @@ export const AdminQRCodes: React.FC = () => {
             </div>
 
             <div className="space-y-1 w-full pt-2 border-t border-gray-800 print:border-black">
-              <span className="font-mono text-[10px] text-gray-400 print:text-gray-700 uppercase block">Single-use physical QR</span>
-              <span className="font-mono text-xs text-cyan-300 print:text-black">Open link on phone; copy the key shown after verification</span>
+              <span className="font-mono text-[10px] text-gray-400 print:text-gray-700 uppercase block">Team PIN · scan to display</span>
+              <code className="font-mono text-lg font-bold text-cyan-300 print:text-black">{item.qrText}</code>
+              <span className="font-mono text-xs text-gray-300 print:text-black block">Enter this PIN in Round 3</span>
             </div>
           </div>
         ))}

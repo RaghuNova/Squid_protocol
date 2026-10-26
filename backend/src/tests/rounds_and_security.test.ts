@@ -620,7 +620,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
     it('does not expose a QR redemption secret from the Round 3 read endpoint', async () => {
       const teamWithToken = await prisma.team.findUnique({ where: { id: testTeam.id }, include: { accessToken: true } });
-      const res = await request(app).get('/api/v1/round3').set('Authorization', `Bearer ${teamToken}`);
+      const res = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
       expect(res.status).toBe(200);
       expect(JSON.stringify(res.body)).not.toContain(teamWithToken!.accessToken!.tokenCode);
       expect(res.body).not.toHaveProperty('tokenCode');
@@ -732,7 +732,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.status).toBe(404);
     });
 
-    it('rejects debugging submission before redeeming QR access token', async () => {
+    it('rejects debugging submission before validating the team access PIN', async () => {
       // Clean previous final completions so testTeam can reliably test 1st place (+200 pts)
       await prisma.team.updateMany({
         data: { finalBreachCompletedAt: null, finalBreachPosition: null, finalBreachPoints: null }
@@ -753,7 +753,7 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
         .send({ finalKey: 'PROTOCOL_BREACH_1040' });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toBe('QR_NOT_REDEEMED');
+      expect(res.body.error).toBe('ACCESS_KEY_REQUIRED');
     });
 
     it('rejects invalid QR redemption code', async () => {
@@ -766,63 +766,40 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.body.error).toBe('INVALID_QR_CODE');
     });
 
-    it('successfully redeems unique QR code and unlocks debugging challenge', async () => {
-      const teamWithToken = await prisma.team.findUnique({
-        where: { id: testTeam.id },
-        include: { accessToken: true }
-      });
-
-      const res = await request(app)
-        .post('/api/v1/round3/qr/mobile-redeem')
-        .set('Authorization', `Bearer ${teamToken}`)
-        .send({ code: teamWithToken!.accessToken!.tokenCode });
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.accessKey).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      expect(res.body.accessKey).not.toBe(teamWithToken!.accessToken!.tokenCode);
-
+    it('accepts the team login PIN and unlocks the debugging challenge without QR redemption', async () => {
       const pendingData = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
       expect(pendingData.body.challenge).toBeNull();
 
-      const rawQrKeyAttempt = await request(app)
+      const wrongPin = await request(app)
         .post('/api/v1/round3/debug/authorize')
         .set('Authorization', `Bearer ${teamToken}`)
-        .send({ accessKey: teamWithToken!.accessToken!.tokenCode });
-      expect(rawQrKeyAttempt.status).toBe(400);
-      expect(rawQrKeyAttempt.body.error).toBe('QR_TOKEN_NOT_ACCESS_KEY');
-
-      const invalidAttempt = await request(app)
-        .post('/api/v1/round3/debug/authorize')
-        .set('Authorization', `Bearer ${teamToken}`)
-        .send({ accessKey: 'x'.repeat(43) });
-      expect(invalidAttempt.status).toBe(400);
-      expect(invalidAttempt.body.error).toBe('INVALID_ACCESS_KEY');
-
-      const team02Login = await request(app)
-        .post('/api/v1/auth/team/login')
-        .send({ teamCode: 'TEAM02', pin: 'team02#2026' });
-      const crossTeamAttempt = await request(app)
-        .post('/api/v1/round3/debug/authorize')
-        .set('Authorization', `Bearer ${team02Login.body.token}`)
-        .send({ accessKey: res.body.accessKey });
-      expect(crossTeamAttempt.status).toBe(400);
-      expect(crossTeamAttempt.body.error).toBe('WRONG_TEAM_CODE');
-
-      const retry = await request(app)
-        .post('/api/v1/round3/qr/mobile-redeem')
-        .set('Authorization', `Bearer ${teamToken}`)
-        .send({ code: teamWithToken!.accessToken!.tokenCode });
-      expect(retry.status).toBe(200);
-      expect(retry.body.accessKey).toBe(res.body.accessKey);
+        .send({ accessKey: 'TEAM02#2026' });
+      expect(wrongPin.status).toBe(400);
+      expect(wrongPin.body.error).toBe('INVALID_ACCESS_KEY');
 
       const authorized = await request(app)
         .post('/api/v1/round3/debug/authorize')
         .set('Authorization', `Bearer ${teamToken}`)
-        .send({ accessKey: ` ${res.body.accessKey} ` });
+        .send({ accessKey: 'TEAM01#2026' });
       expect(authorized.status).toBe(200);
       const round3 = await request(app).get('/api/v1/round3/data').set('Authorization', `Bearer ${teamToken}`);
       expect(round3.body.challenge).toBeTruthy();
+    });
+
+    it('returns the same team PIN from the QR redemption page and accepts it in Round 3', async () => {
+      const teamWithToken = await prisma.team.findUnique({ where: { id: testTeam.id }, include: { accessToken: true } });
+      const qrRes = await request(app)
+        .post('/api/v1/round3/qr/mobile-redeem')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ code: teamWithToken!.accessToken!.tokenCode });
+
+      expect(qrRes.status).toBe(200);
+      expect(qrRes.body.accessKey).toBe('TEAM01#2026');
+      const authorizeRes = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ accessKey: qrRes.body.accessKey });
+      expect(authorizeRes.status).toBe(200);
     });
 
     it('rejects attempt to reuse an already redeemed QR code', async () => {
@@ -935,6 +912,9 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(res.body.qrCodes).toBeDefined();
       expect(res.body.qrCodes.length).toBeGreaterThanOrEqual(20);
       expect(res.body.qrCodes[0]).not.toHaveProperty('tokenCode');
+      const team01Qr = res.body.qrCodes.find((qr: { teamCode: string }) => qr.teamCode === 'TEAM01');
+      expect(team01Qr.qrText).toBe('TEAM01#2026');
+      expect(team01Qr.qrDataUrl).toMatch(/^data:image\/png;base64,/);
     });
 
     it('exports leaderboard CSV', async () => {
@@ -966,7 +946,9 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
 
     it('blocks production reset unless explicitly enabled', async () => {
       const origEnv = process.env.NODE_ENV;
+      const origResetFlag = process.env.ENABLE_GAME_RESET;
       process.env.NODE_ENV = 'production';
+      process.env.ENABLE_GAME_RESET = 'false';
 
       try {
         const res = await request(app)
@@ -978,6 +960,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
         expect(res.body.error).toBe('RESET_ENVIRONMENT_BLOCKED');
       } finally {
         process.env.NODE_ENV = origEnv;
+        if (origResetFlag === undefined) delete process.env.ENABLE_GAME_RESET;
+        else process.env.ENABLE_GAME_RESET = origResetFlag;
       }
     });
 
@@ -990,8 +974,6 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
     });
 
     it('successfully resets game to initial waiting state while preserving non-game data', async () => {
-      process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost/squid_protocol_test';
-
       // 1. Setup dirty game state:
       // Give team score, active round, red light, double points, redeemed QR token
       await prisma.team.update({
@@ -1040,7 +1022,10 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       const questionCountBefore = await prisma.question.count();
       const teamCountBefore = await prisma.team.count();
       const userCountBefore = await prisma.user.count();
-      const oldQrToken = (await prisma.accessToken.findUnique({ where: { teamId: testTeam.id } }))!.tokenCode;
+      await prisma.accessToken.update({
+        where: { teamId: testTeam.id },
+        data: { accessKey: 'temporary-round3-key', authorizedAt: new Date() }
+      });
 
       // 2. Admin triggers restart game
       const resetRes = await request(app)
@@ -1070,7 +1055,8 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       // QR tokens reset to unredeemed
       const redeemedTokensCount = await prisma.accessToken.count({ where: { isRedeemed: true } });
       expect(redeemedTokensCount).toBe(0);
-      expect((await prisma.accessToken.findUnique({ where: { teamId: testTeam.id } }))!.tokenCode).not.toBe(oldQrToken);
+      expect(await prisma.accessToken.count({ where: { accessKey: { not: null } } })).toBe(0);
+      expect(await prisma.accessToken.count({ where: { authorizedAt: { not: null } } })).toBe(0);
       expect(await prisma.teamRoundProgress.count()).toBe(0);
       expect((await prisma.winnerAnnouncement.findUnique({ where: { id: 1 } }))?.isFinalized).toBe(false);
 
@@ -1079,16 +1065,22 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(r1!.status).toBe('UPCOMING');
       expect(r1!.signalState).toBe('GREEN');
       expect(r1!.doublePointsEnabled).toBe(false);
+      expect(r1!.redLightPenaltyMode).toBe(false);
       expect(r1!.startTime).toBeNull();
       expect(r1!.endTime).toBeNull();
+      expect(r1!.remainingSeconds).toBe(r1!.durationMinutes * 60);
 
       const r2 = await prisma.roundControl.findUnique({ where: { id: 2 } });
       expect(r2!.status).toBe('UPCOMING');
       expect(r2!.startTime).toBeNull();
+      expect(r2!.doublePointsEnabled).toBe(false);
+      expect(r2!.redLightPenaltyMode).toBe(false);
 
       const r3 = await prisma.roundControl.findUnique({ where: { id: 3 } });
       expect(r3!.status).toBe('UPCOMING');
       expect(r3!.startTime).toBeNull();
+      expect(r3!.doublePointsEnabled).toBe(false);
+      expect(r3!.redLightPenaltyMode).toBe(false);
 
       // 4. Verify static entities were preserved:
       expect(await prisma.question.count()).toBe(questionCountBefore);
