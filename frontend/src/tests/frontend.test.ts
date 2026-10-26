@@ -202,6 +202,8 @@ describe('Squid Protocol — Frontend Logic & Puzzle Matrix Tests', () => {
       expect(adminController).not.toContain("'http://localhost:5173'");
       expect(round3Service).toContain('tokenCode: accessKey');
       expect(round3Service).toContain('teamId, tokenCode: accessKey');
+      expect(round3Service).toContain('qrToken && !qrToken.accessKey && !qrToken.authorizedAt');
+      expect(round3Service).toContain('WRONG_TEAM_CODE');
     });
   });
 

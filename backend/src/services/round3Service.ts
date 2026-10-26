@@ -163,18 +163,22 @@ export class Round3Service {
     // Accept a preassigned QR code as plain text for the phone camera's native
     // copy flow. The account-authenticated laptop binds redemption to its team.
     const qrToken = await prisma.accessToken.findFirst({ where: { teamId, tokenCode: accessKey } });
-    if (qrToken && !qrToken.isRedeemed && !qrToken.accessKey) {
+    if (qrToken && !qrToken.accessKey && !qrToken.authorizedAt) {
       const now = new Date();
       const claimed = await prisma.accessToken.updateMany({
-        where: { id: qrToken.id, teamId, tokenCode: accessKey, isRedeemed: false, accessKey: null, authorizedAt: null },
-        data: { isRedeemed: true, redeemedAt: now, accessKey, authorizedAt: now }
+        where: { id: qrToken.id, teamId, tokenCode: accessKey, accessKey: null, authorizedAt: null },
+        data: { isRedeemed: true, redeemedAt: qrToken.redeemedAt ?? now, accessKey, authorizedAt: now }
       });
       if (claimed.count === 1) return { success: true, isAuthorized: true, message: 'Round 3 access code verified. The final challenge is unlocked.' };
     }
 
     // Keep retries and previously issued mobile-page keys working.
     const token = await prisma.accessToken.findFirst({ where: { teamId, isRedeemed: true, accessKey } });
-    if (!token) return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Code could not be verified for this team. Scan and copy the text from your team’s physical QR.' };
+    if (!token) {
+      const owner = await prisma.accessToken.findUnique({ where: { tokenCode: accessKey }, select: { team: { select: { teamCode: true } } } });
+      if (owner?.team?.teamCode) return { success: false, error: 'WRONG_TEAM_CODE', message: `This QR code belongs to ${owner.team.teamCode}. Sign into that team on the laptop and try again.` };
+      return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Code could not be verified. Use the current code from your team’s freshly printed QR.' };
+    }
     if (!token.authorizedAt) {
       await prisma.accessToken.updateMany({ where: { id: token.id, isRedeemed: true, accessKey, authorizedAt: null }, data: { authorizedAt: new Date() } });
     }
