@@ -58,7 +58,7 @@ export const BrokenQrPuzzle: React.FC<BrokenQrPuzzleProps> = ({ isUnlocked, isAu
 
     {!isAuthorized && <div className="p-5 rounded-xl bg-black/30 border border-gray-800 space-y-2">
       <p className="text-sm text-gray-300 font-mono leading-relaxed">Enter the same PIN you use to sign in to this team account (for example, TEAM01#2026).</p>
-      <p className="text-xs text-gray-500 font-mono">Scan your team's Round 3 QR to display the PIN, or enter the same PIN used to sign in.</p>
+      <p className="text-xs text-gray-500 font-mono">Enter the PIN shown by your team's QR or the same PIN you use to sign in.</p>
     </div>}
 
     {!isAuthorized && <form onSubmit={handleVerify} className="space-y-4">

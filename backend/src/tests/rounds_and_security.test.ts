@@ -802,6 +802,18 @@ describe('SQUID PROTOCOL — Comprehensive API & Game Engine Test Suite', () => 
       expect(authorizeRes.status).toBe(200);
     });
 
+    it('accepts this team’s existing 64-character QR token without payload validation failure', async () => {
+      const legacyToken = 'a'.repeat(64);
+      await prisma.accessToken.update({ where: { teamId: testTeam.id }, data: { tokenCode: legacyToken } });
+      const response = await request(app)
+        .post('/api/v1/round3/debug/authorize')
+        .set('Authorization', `Bearer ${teamToken}`)
+        .send({ accessKey: legacyToken });
+
+      expect(response.status).toBe(200);
+      expect(response.body.isAuthorized).toBe(true);
+    });
+
     it('rejects attempt to reuse an already redeemed QR code', async () => {
       // Team 2 logs in
       const team02Res = await request(app)

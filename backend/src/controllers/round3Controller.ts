@@ -11,7 +11,9 @@ const QRRedeemSchema = z.object({
 const FinalKeySubmitSchema = z.object({
   finalKey: z.string().min(3).max(100)
 });
-const AccessKeySchema = z.object({ accessKey: z.string().trim().min(3).max(50) });
+// Accept legacy 64-character QR tokens so the service can verify ownership
+// against the authenticated team's AccessToken instead of failing payload validation.
+const AccessKeySchema = z.object({ accessKey: z.string().trim().min(3).max(100) });
 
 function diagnosticRequestId(req: Request, res: Response): string {
   const supplied = req.get('x-request-id');

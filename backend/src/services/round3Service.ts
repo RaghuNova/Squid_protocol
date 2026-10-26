@@ -150,17 +150,19 @@ export class Round3Service {
     await teamRoundProgressService.reconcileTeam(teamId);
     const progress = await prisma.teamRoundProgress.findUnique({ where: { teamId_round: { teamId, round: 2 } } });
     if (!progress?.nextRoundEligible) return { success: false, error: 'ROUND_INACTIVE', message: 'Your team is not eligible for Round 3 yet.' };
-    const submittedKey = accessKey.trim();
+    const submittedKey = accessKey.trim().replace(/^SQUID:\/\/ACCESS\//i, '');
     const team = await prisma.team.findUnique({ where: { id: teamId }, include: { user: { select: { passwordHash: true } } } });
     if (!team?.user?.passwordHash) return { success: false, error: 'TEAM_ACCOUNT_NOT_FOUND', message: 'The team login credentials could not be verified.' };
+    const storedAccess = await prisma.accessToken.findUnique({ where: { teamId }, select: { tokenCode: true, accessKey: true } });
 
     // Round 3 uses the same PIN as the authenticated team's account. Compare
-    // with the stored hash; lowercase input also supports the documented
-    // TEAM01#2026 spelling for accounts seeded with team01#2026.
+    // with the stored hash. Accept this team's own old QR token/key during the
+    // migration so previously printed cards continue to work.
     const isGeneratedQrPin = submittedKey.toUpperCase() === getRound3TeamPin(team.teamCode);
-    const matchesPin = isGeneratedQrPin || await bcrypt.compare(submittedKey, team.user.passwordHash) ||
+    const isOwnLegacyQrCode = submittedKey === storedAccess?.tokenCode || submittedKey === storedAccess?.accessKey;
+    const matchesPin = isGeneratedQrPin || isOwnLegacyQrCode || await bcrypt.compare(submittedKey, team.user.passwordHash) ||
       await bcrypt.compare(submittedKey.toLowerCase(), team.user.passwordHash);
-    if (!matchesPin) return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid team access key. Enter the same PIN used to sign in to this team account.' };
+    if (!matchesPin) return { success: false, error: 'INVALID_ACCESS_KEY', message: 'Invalid code. Enter the PIN shown by your team QR or your team account PIN.' };
 
     const accessState = await prisma.accessToken.updateMany({ where: { teamId }, data: { authorizedAt: new Date() } });
     if (accessState.count !== 1) return { success: false, error: 'ROUND3_ACCESS_STATE_MISSING', message: 'Round 3 access state is unavailable for this team. Contact the administrator.' };
